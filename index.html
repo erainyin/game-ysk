@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蛇形棋盘游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="header-controls">
+            <div class="player-selector" id="player-selector">
+                <label>玩家数量：</label>
+                <button class="player-count-btn active" data-count="2">2人</button>
+                <button class="player-count-btn" data-count="3">3人</button>
+                <button class="player-count-btn" data-count="4">4人</button>
+            </div>
+            <button class="btn-start" id="btn-start">开始游戏</button>
+            <button class="btn-restart" id="btn-restart">重新开始</button>
+        </div>
+        
+        <div class="notifications" id="notifications"></div>
+        
+        <div class="game-container">
+            <div class="game-info">
+            <div class="players-info">
+                <div class="player-indicator" id="player-indicator">当前玩家：</div>
+                <div class="players-list" id="players-list"></div>
+            </div>
+            <div class="game-status" id="game-status">点击开始游戏</div>
+        </div>
+        
+            <div class="main-content">
+                <div class="board-container">
+                    <div class="board" id="board"></div>
+                    <div class="cell-info" id="cell-info">悬停格子查看属性说明</div>
+                </div>
+                
+                <div class="side-panel">
+                    <button class="btn-dice" id="btn-dice" disabled>掷骰子</button>
+                    
+                    <!-- 测试按钮 - 点击后玩家1直接跳到25格触发BB动画，测试完成后删除 -->
+                    <button class="btn-test" id="btn-test" disabled>测试：玩家1跳25格(BB)</button>
+
+                    <div class="dice-container">
+                        <div class="dice" id="dice">🎲</div>
+                        <div class="dice-value" id="dice-value">等待掷骰</div>
+                    </div>
+
+                    <div class="game-log-container">
+                        <div class="game-log-label">游戏日志</div>
+                        <textarea class="game-log" id="game-log" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v=1"></script>
+    <script src="js/cell_properties.js?v=1"></script>
+    <script src="js/board.js?v=1"></script>
+    <script src="js/player.js?v=1"></script>
+    <script src="js/dice.js?v=1"></script>
+    <script src="js/game.js?v=1"></script>
+    <script src="js/ui.js?v=1"></script>
+</body>
+</html>
