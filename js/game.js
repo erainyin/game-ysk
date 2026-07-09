@@ -346,7 +346,7 @@ class Game {
                 if (this.onPlayerMove) {
                     this.onPlayerMove(player, oldBackPos, newBackPos, -backwardSteps);
                 }
-                return false;
+                return this.processCellProperty(player, newBackPos);
             case 'flashforward':
                 const flashSteps = this.lastRollValue * value;
                 this.notify(`${player.name} 超速前进！掷骰数${this.lastRollValue}×${value}=${flashSteps}步！`, 'success');
@@ -483,6 +483,7 @@ class Game {
                 if (this.onPlayerMove) {
                     this.onPlayerMove(player, oldBackPos, newBackPos, -backwardSteps);
                 }
+                this.processGhostCellProperty(player, newBackPos);
                 break;
             case 'flashforward':
                 const flashSteps = this.lastRollValue * value;
@@ -564,7 +565,11 @@ class Game {
                 p.changeHealth(-1);
                 this.notify(`${p.name} 被炸弹炸伤！血量减1！`, 'danger');
             });
-            this.checkGameEnd();
+
+            const alivePlayers = this.players.filter(p => !p.isDead);
+            if (alivePlayers.length <= 1) {
+                this.checkGameEnd();
+            }
         }
     }
 

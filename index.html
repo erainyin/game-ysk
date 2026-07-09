@@ -9,6 +9,7 @@
 <body>
     <div class="game-wrapper">
         <div class="header-controls">
+            <div class="game-status" id="game-status">点击开始游戏</div>
             <div class="player-selector" id="player-selector">
                 <label>玩家数量：</label>
                 <button class="player-count-btn active" data-count="2">2人</button>
@@ -28,13 +29,11 @@
                 <div class="player-indicator" id="player-indicator">当前玩家：</div>
                 <div class="players-list" id="players-list"></div>
             </div>
-            <div class="game-status" id="game-status">点击开始游戏</div>
         </div>
         
             <div class="main-content">
                 <div class="board-container">
                     <div class="board" id="board"></div>
-                    <div class="cell-info" id="cell-info">悬停格子查看属性说明</div>
                 </div>
                 
                 <div class="side-panel">
@@ -48,6 +47,8 @@
                     <div class="game-log-container">
                         <div class="game-log-label">游戏日志</div>
                         <textarea class="game-log" id="game-log" readonly></textarea>
+                        <div class="cell-info" id="cell-info">悬停格子查看属性说明</div>
+
                     </div>
                 </div>
             </div>

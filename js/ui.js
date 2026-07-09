@@ -245,6 +245,7 @@ class UI {
     renderPlayerTokens() {
         const positionGroups = {};
         this.game.players.forEach(player => {
+            if (player.isDead) return;
             if (!positionGroups[player.position]) {
                 positionGroups[player.position] = [];
             }
@@ -252,6 +253,18 @@ class UI {
         });
 
         this.game.players.forEach(player => {
+            if (player.isDead) {
+                const token = this.playerTokens[player.id];
+                if (token) {
+                    token.remove();
+                    delete this.playerTokens[player.id];
+                }
+
+                const existingBadges = document.querySelectorAll(`[data-player-badge="${player.id}"]`);
+                existingBadges.forEach(badge => badge.remove());
+                return;
+            }
+
             let token = this.playerTokens[player.id];
             if (!token) {
                 token = document.createElement('div');
@@ -798,7 +811,7 @@ class UI {
         
         setTimeout(() => {
             notification.remove();
-        }, 3500);
+        }, 12000);
     }
 
     updateUI() {
