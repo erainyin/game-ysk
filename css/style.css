@@ -358,7 +358,7 @@ body {
     gap: 10px;
 }
 
-button {
+button{
     padding: 12px 30px;
     font-size: 1rem;
     font-weight: bold;
@@ -367,7 +367,19 @@ button {
     cursor: pointer;
     transition: all 0.3s ease;
 }
-
+a.btn-mapeditor {
+    padding: 12px 16px;
+    font-size: 1rem;
+    color:#fff;
+    font-weight: bold;
+    border: 1px solid rgba(255,255,255,.5);
+    background: rgba(0,0,0,.2);
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-decoration: none;
+}
 .btn-start {
     background: linear-gradient(135deg, #27ae60, #2ecc71);
     color: white;

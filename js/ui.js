@@ -14,6 +14,7 @@ class UI {
         this.gameLogElement = document.getElementById('game-log');
         this.cellInfoElement = document.getElementById('cell-info');
         this.playerCount = 2;
+        this.isRollLocked = false;
         
         this.game = new Game(2);
         this.playerTokens = {};
@@ -557,6 +558,7 @@ class UI {
         this.playerIndex = playerIndex;
         
         this.game = new Game(playerCount);
+        this.game.setAIPlayers(aiMode ? Array.from({ length: playerCount }, (_, index) => index).filter(index => index !== playerIndex) : []);
         this.game.setCallbacks({
             onStateChange: (state) => this.onStateChange(state),
             onPlayerMove: (player, oldPosition, newPosition, steps) => this.onPlayerMove(player, oldPosition, newPosition, steps),
@@ -571,6 +573,7 @@ class UI {
         
         this.playerTokens = {};
         this.ghostTokens = {};
+        this.isRollLocked = false;
         this.playerSelectorElement.style.display = 'none';
         this.gameLogElement.value = '';
         
@@ -584,6 +587,11 @@ class UI {
         this.addLog(`游戏开始！${playerCount}位玩家准备就绪${aiMode ? '（人机大战模式）' : ''}`);
     }
     
+    setRollControlsEnabled(enabled) {
+        this.btnDice.disabled = !enabled;
+        this.diceElement.style.pointerEvents = enabled ? 'auto' : 'none';
+    }
+
     handleAIPlayerTurn() {
         if (!this.aiMode || this.game.gameState !== 'playing') return;
         
@@ -609,8 +617,13 @@ class UI {
     }
 
     handleRollDice() {
-        if (this.btnDice.disabled) return;
-        this.btnDice.disabled = true;
+        const currentPlayer = this.game.getCurrentPlayer();
+        if (!currentPlayer || this.game.gameState !== 'playing' || this.isRollLocked || this.btnDice.disabled || currentPlayer.hasRolled) {
+            return;
+        }
+
+        this.isRollLocked = true;
+        this.setRollControlsEnabled(false);
         this.game.rollDice();
     }
 
@@ -618,6 +631,7 @@ class UI {
         this.game.restart();
         this.playerTokens = {};
         this.ghostTokens = {};
+        this.isRollLocked = false;
         this.renderBoard();
         this.updateUI();
         this.playerSelectorElement.style.display = 'flex';
@@ -789,11 +803,15 @@ class UI {
 
     updateUI() {
         const state = this.game.getGameState();
+
+        if (state.currentPlayer && !state.currentPlayer.hasRolled) {
+            this.isRollLocked = false;
+        }
         
         switch (state.state) {
             case 'waiting':
                 this.btnStart.disabled = false;
-                this.btnDice.disabled = true;
+                this.setRollControlsEnabled(false);
                 this.gameStatusElement.textContent = '点击开始游戏';
                 this.playerIndicatorElement.textContent = '当前玩家：';
                 this.playersListElement.innerHTML = '';
@@ -812,15 +830,10 @@ class UI {
                     this.btnDice.style.backgroundImage = 'none';
                     this.btnDice.textContent = `${state.currentPlayer.name}掷骰子`;
                     
-                    if (state.currentPlayer.hasRolled) {
-                        this.btnDice.disabled = true;
-                    } else if (this.aiMode && state.currentPlayer.id !== this.playerIndex) {
-                        this.btnDice.disabled = true;
-                    } else {
-                        this.btnDice.disabled = false;
-                    }
+                    const canRoll = !state.currentPlayer.hasRolled && !this.isRollLocked && !(this.aiMode && state.currentPlayer.id !== this.playerIndex);
+                    this.setRollControlsEnabled(canRoll);
                 } else {
-                    this.btnDice.disabled = true;
+                    this.setRollControlsEnabled(false);
                 }
                 break;
                 

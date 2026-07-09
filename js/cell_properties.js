@@ -11,7 +11,6 @@ const FUNCTION_MAP = {
   'BB': { type: 'bomb', icon: '💣', bgColor: '#fce4ec', direction: null },
   'DDD': { type: 'diediedie', icon: '💀', bgColor: '#333', direction: null },
   'UND': { type: 'undie', icon: '🛡️', bgColor: '#e0f7fa', direction: null },
-  'UDD': { type: 'undie', icon: '🛡️', bgColor: '#e0f7fa', direction: null },
   'CR': { type: 'changeorder', icon: '🔀', bgColor: '#fce4ec', direction: null },
   'BH': { type: 'blackhole', icon: '🕳️', bgColor: '#212121', direction: null },
   'TO': { type: 'goto', icon: '🌀', bgColor: '#fff3e0', direction: null },
@@ -40,13 +39,6 @@ function parseCSV(csv) {
       
       if (funcInfo) {
         let label = funcInfo.icon;
-        if (variable && variable !== 'X') {
-          const numPart = variable.replace(/[^0-9]/g, '');
-          if (numPart) {
-            label = `${funcInfo.icon}${numPart}`;
-          }
-        }
-        
         let value = 0;
         let rawValue = variable;
         
@@ -58,7 +50,17 @@ function parseCSV(csv) {
             value = numPart ? parseInt(numPart) : 0;
           }
         }
-        
+
+        if (func === 'BL') {
+          const heartIcon = value < 0 ? '🖤' : '❤️';
+          const displayValue = Math.abs(value);
+          label = displayValue > 0 ? `${heartIcon}${displayValue}` : heartIcon;
+        } else if (variable && variable !== 'X') {
+          const numPart = variable.replace(/[^0-9]/g, '');
+          if (numPart) {
+            label = `${funcInfo.icon}${numPart}`;
+          }
+        }
         const displayName = hasChineseName ? (row['中文名称'] || funcInfo.icon) : (row['规则'] || funcInfo.icon);
         const displayRule = hasChineseName ? (row['规则'] || '') : '';
         
@@ -78,6 +80,55 @@ function parseCSV(csv) {
   }
   
   return result;
+}
+
+function assignRandomBlackholes(properties, totalCells = (CONFIG && CONFIG.ROWS && CONFIG.COLS) ? CONFIG.ROWS * CONFIG.COLS : 64) {
+  const safeProperties = {};
+  const occupiedCells = new Set();
+
+  Object.keys(properties).forEach((cellNumber) => {
+    const parsedCellNumber = parseInt(cellNumber, 10);
+    const property = properties[cellNumber];
+
+    if (property && property.type === 'blackhole') {
+      return;
+    }
+
+    safeProperties[parsedCellNumber] = property;
+    occupiedCells.add(parsedCellNumber);
+  });
+
+  const candidateCells = [];
+  for (let cellNumber = 2; cellNumber <= totalCells - 1; cellNumber++) {
+    if (!occupiedCells.has(cellNumber)) {
+      candidateCells.push(cellNumber);
+    }
+  }
+
+  const selectedCells = [];
+  while (selectedCells.length < 6 && candidateCells.length > 0) {
+    const randomIndex = Math.floor(Math.random() * candidateCells.length);
+    const selectedCell = candidateCells.splice(randomIndex, 1)[0];
+    selectedCells.push(selectedCell);
+  }
+
+  selectedCells.forEach((cellNumber, index) => {
+    const blackholeInfo = FUNCTION_MAP['BH'];
+    const blackholeConfig = PROPERTY_CONFIG.blackhole || {};
+    safeProperties[cellNumber] = {
+      label: `${blackholeInfo.icon}${index + 1}`,
+      type: blackholeInfo.type,
+      value: index + 1,
+      rawValue: String(index + 1),
+      color: getColorForType(blackholeInfo.type),
+      displayName: blackholeConfig.name || '黑洞',
+      displayRule: blackholeConfig.description || '',
+      englishName: 'Blackhole',
+      direction: blackholeInfo.direction
+    };
+  });
+
+  return safeProperties;
 }
 
 function getColorForType(type) {
@@ -120,7 +171,8 @@ async function loadGridCSV() {
       throw new Error('Failed to load grid.csv');
     }
     const csv = await response.text();
-    CELL_PROPERTIES = parseCSV(csv);
+    const parsedProperties = parseCSV(csv);
+    CELL_PROPERTIES = assignRandomBlackholes(parsedProperties);
     return CELL_PROPERTIES;
   } catch (error) {
     console.error('Error loading grid.csv:', error);

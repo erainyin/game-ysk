@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>网格配置工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .app {
+            width: 1300px;
+            max-width: 98vw;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            padding: 28px 32px 32px 32px;
+            transition: all 0.2s;
+        }
+
+        .setup-panel {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9edf4;
+            margin-bottom: 22px;
+        }
+        .setup-panel label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #1e293b;
+        }
+        .setup-panel input[type="number"] {
+            width: 70px;
+            padding: 6px 10px;
+            border: 1.5px solid #d0d8e3;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+            background: #fafcff;
+            transition: 0.2s;
+        }
+        .setup-panel input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .setup-panel .btn-generate {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 8px 28px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .setup-panel .btn-generate:hover {
+            background: #2563eb;
+            transform: scale(1.02);
+        }
+        .setup-panel .btn-generate:active {
+            transform: scale(0.97);
+        }
+        .setup-panel .info-badge {
+            font-size: 14px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .main-panel {
+            display: flex;
+            gap: 28px;
+            min-height: 520px;
+        }
+        .grid-wrapper {
+            flex: 0 0 auto;
+            width: 62%;
+            min-width: 380px;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+            user-select: none;
+        }
+        .grid-container {
+            display: grid;
+            gap: 4px;
+            background: #f8fafc;
+            position: relative;
+        }
+        .grid-item {
+            background: #ffffff;
+            border: 2px solid #dbe0e8;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e293b;
+            transition: all 0.15s;
+            user-select: none;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            min-width: 28px;
+            min-height: 28px;
+        }
+        .grid-item:hover:not(.special) {
+            border-color: #94a3b8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+        .grid-item .number {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            line-height: 1.2;
+            z-index: 1;
+            transition: color 0.15s;
+        }
+        .grid-item .content {
+            font-size: 16px;
+            line-height: 1.3;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+        .grid-item .content .icon {
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .grid-item .content .value {
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.4);
+            padding: 0 4px;
+            border-radius: 4px;
+            line-height: 1.4;
+        }
+        .grid-item.has-data {
+            border-color: #3b82f6;
+        }
+        .grid-item.has-data .number {
+            color: #1e293b;
+        }
+
+        /* 起点终点特殊样式 */
+        .grid-item.special {
+            background: #e2e8f0 !important;
+            cursor: default !important;
+            border-color: #cbd5e1 !important;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        .grid-item.special .number {
+            display: none;
+        }
+        .grid-item.special .content {
+            font-size: 14px;
+            font-weight: 700;
+            color: #475569;
+            margin-top: 0;
+        }
+
+        /* 多选选中样式 */
+        .grid-item.selected {
+            outline: 3px solid #3b82f6;
+            outline-offset: -2px;
+            z-index: 2;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        /* 选择框 */
+        .selection-box {
+            position: absolute;
+            border: 2px dashed #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            pointer-events: none;
+            display: none;
+            z-index: 10;
+        }
+
+        .side-panel {
+            flex: 1;
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .side-panel .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .side-panel .toolbar .btn-export {
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .side-panel .toolbar .btn-export:hover {
+            background: #1e293b;
+            transform: scale(1.02);
+        }
+        .side-panel .toolbar .btn-export:active {
+            transform: scale(0.97);
+        }
+        .side-panel .toolbar .stats {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+            background: #f1f5f9;
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+        .side-panel .toolbar .multi-select-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 4px;
+        }
+        .side-panel .toolbar .multi-select-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+        .side-panel .toolbar .multi-select-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+        }
+        .side-panel .toolbar .btn-batch {
+            background: #8b5cf6;
+            color: #fff;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .side-panel .toolbar .btn-batch:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .side-panel .toolbar .btn-batch:hover:not(:disabled) {
+            background: #7c3aed;
+            transform: scale(1.02);
+        }
+
+        .side-panel textarea {
+            flex: 0 0 auto;
+            min-height: 200px;
+            padding: 14px 16px;
+            border: 1.5px solid #d0d8e3;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            resize: vertical;
+            background: #fafcff;
+            color: #0f172a;
+            transition: 0.2s;
+            width: 100%;
+            tab-size: 2;
+        }
+        .side-panel textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .side-panel textarea::placeholder {
+            color: #94a3b8;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 13px;
+        }
+
+        /* ---- 规则表格 ---- */
+        .rule-container {
+            flex: 0 0 auto;
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fafcff;
+            padding: 6px 8px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .rule-container table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .rule-container th {
+            background: #f1f5f9;
+            color: #1e293b;
+            font-weight: 600;
+            text-align: left;
+            padding: 6px 8px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            border-bottom: 2px solid #d0d8e3;
+        }
+        .rule-container td {
+            padding: 5px 8px;
+            border-bottom: 1px solid #e9edf4;
+            vertical-align: middle;
+            color: #334155;
+        }
+        .rule-container tr:last-child td {
+            border-bottom: none;
+        }
+        .rule-container .icon-cell {
+            font-size: 20px;
+            text-align: center;
+            display: inline-block;
+        }
+        .rule-container .icon-cell.mirror {
+            transform: scaleX(-1);
+            display: inline-block;
+        }
+
+        .rule-container .name-cell {
+            font-weight: 500;
+            color: #0f172a;
+        }
+        .rule-container .rule-cell {
+            color: #475569;
+            font-size: 11px;
+        }
+
+        /* ---- Popover 通用 ---- */
+        .popover-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+            display: none;
+            background: rgba(15, 23, 42, 0.25);
+            backdrop-filter: blur(2px);
+            animation: fadeIn 0.15s ease;
+        }
+        .popover-overlay.active {
+            display: block;
+        }
+        .popover-card {
+            position: fixed;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            padding: 24px 28px 22px 28px;
+            min-width: 280px;
+            max-width: 400px;
+            z-index: 1000;
+            animation: popIn 0.18s ease;
+            border: 1px solid #e2e8f0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .popover-card .popover-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .popover-card .popover-title .badge {
+            background: #eef2f6;
+            padding: 1px 12px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .popover-card .field {
+            margin-bottom: 14px;
+        }
+        .popover-card .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+        /* 按钮组容器 */
+        .type-button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .type-button-group .type-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border: 2px solid #d0d8e3;
+            border-radius: 8px;
+            background: #fafcff;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.15s;
+            min-width: 42px;
+            min-height: 42px;
+            position: relative;
+        }
+        .type-button-group .type-btn:hover {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+        .type-button-group .type-btn.active {
+            border-color: #3b82f6;
+            background: #dbeafe;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        /* 按钮中的图标镜像 */
+        .type-button-group .type-btn .btn-icon.mirror {
+            transform: scaleX(-1);
+            display: inline-block;
+        }
+
+        /* 消息显示区域 */
+        .type-message {
+            min-height: 100px;
+            padding: 8px 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #1e293b;
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            transition: all 0.15s;
+            border: 1px solid #e2e8f0;
+        }
+        .type-message .msg-name {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+        .type-message .msg-rule {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 2px;
+        }
+        .type-message.empty {
+            color: #94a3b8;
+            font-style: italic;
+            font-weight: 400;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .popover-card .field input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px solid #d0d8e3;
+            border-radius: 10px;
+            font-size: 14px;
+            background: #fafcff;
+            transition: 0.2s;
+            color: #0f172a;
+        }
+        .popover-card .field input:disabled {
+            background: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .popover-card .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+            justify-content: flex-end;
+        }
+        .popover-card .actions button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .popover-card .actions .btn-confirm {
+            background: #3b82f6;
+            color: #fff;
+        }
+        .popover-card .actions .btn-confirm:hover {
+            background: #2563eb;
+        }
+        .popover-card .actions .btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        .popover-card .actions .btn-cancel:hover {
+            background: #e2e8f0;
+        }
+        .popover-card .actions .btn-delete {
+            background: #fee2e2;
+            color: #b91c1c;
+            margin-right: auto;
+        }
+        .popover-card .actions .btn-delete:hover {
+            background: #fecaca;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.92);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @media (max-width: 950px) {
+            .app {
+                padding: 18px 14px;
+            }
+            .main-panel {
+                flex-direction: column;
+                gap: 18px;
+            }
+            .grid-wrapper {
+                width: 100%;
+                min-width: unset;
+                padding: 12px;
+            }
+            .side-panel textarea {
+                min-height: 160px;
+            }
+            .rule-container {
+                max-height: 200px;
+            }
+            .popover-card {
+                min-width: 250px;
+                padding: 18px 20px;
+            }
+        }
+        @media (max-width: 500px) {
+            .setup-panel {
+                gap: 10px;
+            }
+            .setup-panel input[type="number"] {
+                width: 56px;
+                padding: 4px 6px;
+            }
+            .setup-panel .btn-generate {
+                padding: 6px 18px;
+                font-size: 13px;
+            }
+            .grid-item {
+                border-radius: 5px;
+            }
+            .grid-item .number {
+                font-size: 11px;
+            }
+            .grid-item .content {
+                font-size: 14px;
+            }
+            .grid-item .content .value {
+                font-size: 10px;
+            }
+            .popover-card {
+                min-width: 180px;
+                padding: 14px 16px;
+            }
+            .popover-card .field input {
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+            .rule-container {
+                font-size: 11px;
+            }
+            .rule-container th,
+            .rule-container td {
+                padding: 4px 6px;
+            }
+            .type-button-group .type-btn {
+                min-width: 36px;
+                min-height: 36px;
+                font-size: 16px;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app" id="app">
+        <div class="setup-panel" id="setupPanel">
+            <label>行数 <input type="number" id="rowInput" value="4" min="2" max="30" /></label>
+            <label>列数 <input type="number" id="colInput" value="3" min="2" max="30" /></label>
+            <button class="btn-generate" id="generateBtn">生成网格</button>
+            <span class="info-badge" id="infoBadge">等待生成</span>
+        </div>
+
+        <div class="main-panel" id="mainPanel" style="display:none;">
+            <div class="grid-wrapper" id="gridWrapper">
+                <div class="grid-container" id="gridContainer"></div>
+                <div class="selection-box" id="selectionBox"></div>
+            </div>
+            <div class="side-panel">
+                <div class="toolbar">
+                    <button class="btn-export" id="exportBtn">⬇ 导出 CSV</button>
+                    <span class="stats" id="statsCount">0 / 0 可配置格子</span>
+                    <div class="multi-select-group">
+                        <input type="checkbox" id="multiSelectCheck" />
+                        <label for="multiSelectCheck">多选</label>
+                        <button class="btn-batch" id="batchEditBtn" disabled>批量编辑</button>
+                    </div>
+                </div>
+                <textarea id="dataTextArea" spellcheck="false" placeholder="格子,功能,变量&#10;1,,&#10;2,BL,1&#10;…"></textarea>
+                <div class="rule-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>类型</th>
+                                <th>中文名称</th>
+                                <th>规则</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ruleTableBody">
+                            <!-- 由 JS 动态渲染 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 单个编辑 Popover -->
+    <div class="popover-overlay" id="popoverOverlay"></div>
+    <div class="popover-card" id="popoverCard" style="display:none;">
+        <div class="popover-title">
+            格子 <span class="badge" id="popoverIndex">#1</span>
+        </div>
+        <div class="field">
+            <label>类型</label>
+            <div class="type-button-group" id="singleTypeGroup"></div>
+            <div class="type-message empty" id="singleTypeMessage">请将鼠标悬停在类型按钮上查看说明</div>
+        </div>
+        <div class="field">
+            <label for="popoverValue">数值</label>
+            <input type="text" id="popoverValue" placeholder="输入数值" />
+        </div>
+        <div class="actions">
+            <button class="btn-delete" id="popoverDelete">🗑 清除</button>
+            <button class="btn-cancel" id="popoverCancel">取消</button>
+            <button class="btn-confirm" id="popoverConfirm">✓ 确认</button>
+        </div>
+    </div>
+
+    <!-- 批量编辑弹层 -->
+    <div class="popover-overlay" id="batchOverlay"></div>
+    <div class="popover-card" id="batchCard" style="display:none;">
+        <div class="popover-title">
+            <span>批量编辑</span>
+            <span class="badge" id="batchCount">已选 0 个格子</span>
+        </div>
+        <div class="field">
+            <label>类型</label>
+            <div class="type-button-group" id="batchTypeGroup"></div>
+            <div class="type-message empty" id="batchTypeMessage">请将鼠标悬停在类型按钮上查看说明</div>
+        </div>
+        <div class="field">
+            <label for="batchValue">数值</label>
+            <input type="text" id="batchValue" placeholder="输入数值" />
+        </div>
+        <div class="actions">
+            <button class="btn-cancel" id="batchCancel">取消</button>
+            <button class="btn-confirm" id="batchConfirm">✓ 确认</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ---- 类型配置（含中文名和规则） ----
+            const TYPE_CONFIG = {
+                'BL': { icon: '❤️', bgColor: '#ffebee', chineseName: '血量变化', rule: 'x为变化量，正值为加血，负值为减血' },
+                'FF': { icon: '➡️', bgColor: '#e8f5e9', chineseName: '加速前进', rule: 'x为变化量，只有正值，为额外向前移动的步数' },
+                'FB': { icon: '➡️', bgColor: '#d7ccc8', chineseName: '加速后退', rule: 'x为变化量，只有正值，为额外向后移动的步数' },
+                'FLF': { icon: '🚀', bgColor: '#e1f5fe', chineseName: '超速前进', rule: 'x为变化量，只有正值，踩到后再向前移动当前掷骰子数量x倍的格子，例如当前掷骰子为2，x为3，则向前移动6格' },
+                'FLB': { icon: '🚀', bgColor: '#eceff1', chineseName: '超速后退', rule: 'x为变化量，只有正值，为额外向右移动的步数' },
+                'BB': { icon: '💣', bgColor: '#fce4ec', chineseName: '炸弹爆炸', rule: 'x为爆炸范围，为以格子为中心，前后各x格范围内的所有玩家受到伤害，包括踩中炸弹的玩家，血量-1，超出棋盘边界的格子不计入范围' },
+                'DDD': { icon: '💀', bgColor: '#333333', chineseName: '死亡陷阱', rule: '无变量，玩家踩到直接死亡' },
+                'UDD': { icon: '🛡️', bgColor: '#e0f7fa', chineseName: '不死守护', rule: 'x为变化量，只有正值，为不死回合数，从下一回合开始包含下一回合，玩家在回合数内如果踩到DDD可不死，即可继续游戏，但因其他原因导致血量减为0，仍会死亡' },
+                'CR': { icon: '🔀', bgColor: '#fce4ec', chineseName: '顺序变换', rule: '无变量，玩家踩到后，掷骰子顺序变换，例如之前顺序是“1>2>3”，踩到后，顺序变更为“3>2>1”' },
+                'BH': { icon: '🕳️', bgColor: '#212121', chineseName: '黑洞', rule: 'x为变量，代表黑洞编号，踩到后瞬间移动到当前骰子数对应的黑洞编号的格子里。' },
+                'TO': { icon: '🌀', bgColor: '#fff3e0', chineseName: '格子跳转', rule: 'x为变量，代表格子编号，踩到后直接跳转到编号对应的格子' },
+                'GST': { icon: '👻', bgColor: '#f3e5f5', chineseName: '幽灵', rule: '无变量，玩家踩到后可召唤幽灵，幽灵的逻辑参考“增加幽灵的逻辑”' }
+            };
+            const TYPE_KEYS = Object.keys(TYPE_CONFIG);
+            const HAS_VAR_TYPES = ['BL', 'FF', 'FB', 'FLF', 'FLB', 'BB', 'UDD', 'BH', 'TO'];
+            const MIRROR_TYPES = ['FB', 'FLB'];
+
+            // ---- 判断数值是否为负数 ----
+            function isNegativeValue(value) {
+                if (value === undefined || value === null || value === '') return false;
+                const num = parseFloat(value);
+                return !isNaN(num) && num < 0;
+            }
+
+            // ---- DOM refs ----
+            const rowInput = document.getElementById('rowInput');
+            const colInput = document.getElementById('colInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const infoBadge = document.getElementById('infoBadge');
+            const mainPanel = document.getElementById('mainPanel');
+            const gridWrapper = document.getElementById('gridWrapper');
+            const gridContainer = document.getElementById('gridContainer');
+            const dataTextArea = document.getElementById('dataTextArea');
+            const exportBtn = document.getElementById('exportBtn');
+            const statsCount = document.getElementById('statsCount');
+            const multiSelectCheck = document.getElementById('multiSelectCheck');
+            const batchEditBtn = document.getElementById('batchEditBtn');
+            const selectionBox = document.getElementById('selectionBox');
+
+            const popoverOverlay = document.getElementById('popoverOverlay');
+            const popoverCard = document.getElementById('popoverCard');
+            const popoverIndex = document.getElementById('popoverIndex');
+            const popoverValue = document.getElementById('popoverValue');
+            const popoverConfirm = document.getElementById('popoverConfirm');
+            const popoverCancel = document.getElementById('popoverCancel');
+            const popoverDelete = document.getElementById('popoverDelete');
+
+            const batchOverlay = document.getElementById('batchOverlay');
+            const batchCard = document.getElementById('batchCard');
+            const batchValue = document.getElementById('batchValue');
+            const batchConfirm = document.getElementById('batchConfirm');
+            const batchCancel = document.getElementById('batchCancel');
+            const batchCount = document.getElementById('batchCount');
+
+            const singleTypeGroup = document.getElementById('singleTypeGroup');
+            const batchTypeGroup = document.getElementById('batchTypeGroup');
+            const singleTypeMessage = document.getElementById('singleTypeMessage');
+            const batchTypeMessage = document.getElementById('batchTypeMessage');
+
+            // ---- 存储当前选中的类型（单个/批量） ----
+            let selectedSingleType = '';
+            let selectedBatchType = '';
+
+            // ---- 更新消息框 ----
+            function updateTypeMessage(messageEl, type) {
+                if (!type || !TYPE_CONFIG[type]) {
+                    messageEl.className = 'type-message empty';
+                    messageEl.innerHTML = '请将鼠标悬停在类型按钮上查看说明';
+                    return;
+                }
+                const config = TYPE_CONFIG[type];
+                messageEl.className = 'type-message';
+                messageEl.innerHTML = `
+                    <span class="msg-name">${config.chineseName}</span>
+                    <span class="msg-rule">${config.rule}</span>
+                `;
+            }
+
+            // ---- 获取类型图标（按钮/表格中用，不涉及数值判断） ----
+            function getTypeIcon(type) {
+                const config = TYPE_CONFIG[type];
+                return config ? config.icon : '?';
+            }
+
+            // ---- 获取格子显示图标（根据类型和数值动态决定） ----
+            function getCellIcon(type, value) {
+                const config = TYPE_CONFIG[type];
+                if (!config) return '?';
+                // BL 特殊处理：负值显示 🖤
+                if (type === 'BL' && isNegativeValue(value)) {
+                    return '🖤';
+                }
+                return config.icon;
+            }
+
+            // ---- 创建类型按钮组 ----
+            function createTypeButtons(container, messageEl, onChangeCallback) {
+                container.innerHTML = '';
+                TYPE_KEYS.forEach(key => {
+                    const config = TYPE_CONFIG[key];
+                    const btn = document.createElement('div');
+                    btn.className = 'type-btn';
+                    btn.dataset.type = key;
+                    // 按钮内图标，FB/FLB 需要镜像
+                    const isMirror = MIRROR_TYPES.includes(key);
+                    const iconHtml = `<span class="btn-icon ${isMirror ? 'mirror' : ''}">${config.icon}</span>`;
+                    btn.innerHTML = iconHtml;
+                    btn.addEventListener('mouseenter', function(e) {
+                        updateTypeMessage(messageEl, key);
+                    });
+                    btn.addEventListener('mouseleave', function(e) {
+                        const active = container.querySelector('.type-btn.active');
+                        if (active) {
+                            updateTypeMessage(messageEl, active.dataset.type);
+                        } else {
+                            updateTypeMessage(messageEl, null);
+                        }
+                    });
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        container.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        const type = this.dataset.type;
+                        updateTypeMessage(messageEl, type);
+                        if (container === singleTypeGroup) {
+                            selectedSingleType = type;
+                            updateSingleValueState();
+                        } else {
+                            selectedBatchType = type;
+                            updateBatchValueState();
+                        }
+                        if (onChangeCallback) onChangeCallback(type);
+                    });
+                    container.appendChild(btn);
+                });
+            }
+
+            // ---- 设置选中的类型（外部调用） ----
+            function setSelectedType(container, messageEl, type) {
+                container.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                if (type) {
+                    const target = container.querySelector(`.type-btn[data-type="${type}"]`);
+                    if (target) {
+                        target.classList.add('active');
+                        updateTypeMessage(messageEl, type);
+                    } else {
+                        updateTypeMessage(messageEl, null);
+                    }
+                } else {
+                    updateTypeMessage(messageEl, null);
+                }
+                if (container === singleTypeGroup) {
+                    selectedSingleType = type || '';
+                    updateSingleValueState();
+                } else {
+                    selectedBatchType = type || '';
+                    updateBatchValueState();
+                }
+            }
+
+            // ---- 获取选中的类型 ----
+            function getSelectedType(container) {
+                const active = container.querySelector('.type-btn.active');
+                return active ? active.dataset.type : '';
+            }
+
+            // ---- 更新单个编辑的数值输入状态（并自动填充默认值1） ----
+            function updateSingleValueState() {
+                const type = selectedSingleType;
+                const hasVar = HAS_VAR_TYPES.includes(type);
+                if (hasVar) {
+                    popoverValue.disabled = false;
+                    popoverValue.placeholder = '输入数值';
+                    if (popoverValue.value === '') {
+                        popoverValue.value = '1';
+                    }
+                } else {
+                    popoverValue.disabled = true;
+                    popoverValue.value = '';
+                    popoverValue.placeholder = '无变量';
+                }
+            }
+
+            // ---- 更新批量编辑的数值输入状态（并自动填充默认值1） ----
+            function updateBatchValueState() {
+                const type = selectedBatchType;
+                const hasVar = HAS_VAR_TYPES.includes(type);
+                if (hasVar) {
+                    batchValue.disabled = false;
+                    batchValue.placeholder = '输入数值';
+                    if (batchValue.value === '') {
+                        batchValue.value = '1';
+                    }
+                } else {
+                    batchValue.disabled = true;
+                    batchValue.value = '';
+                    batchValue.placeholder = '无变量';
+                }
+            }
+
+            // ---- State ----
+            let rowCount = 4;
+            let colCount = 3;
+            let totalCells = 0;
+            const cellData = new Map();
+            let activeCellIndex = null;
+
+            // ---- 多选状态 ----
+            let selectedCells = new Set();
+
+            // ---- 工具：蛇形编号 ----
+            function getSnakeNumber(r, c, rows, cols) {
+                if (r % 2 === 0) {
+                    return r * cols + c + 1;
+                } else {
+                    return r * cols + (cols - c - 1) + 1;
+                }
+            }
+
+            // ---- 计算格子尺寸 ----
+            function calcCellSize(rows, cols, wrapper) {
+                const gap = 4;
+                const wrapperWidth = wrapper.clientWidth - 32;
+                const wrapperHeight = Math.max(300, wrapper.clientHeight - 32);
+                let sizeByWidth = (wrapperWidth - (cols - 1) * gap) / cols;
+                let sizeByHeight = (wrapperHeight - (rows - 1) * gap) / rows;
+                let idealSize = Math.min(sizeByWidth, sizeByHeight, 90);
+                idealSize = Math.max(28, Math.min(90, idealSize));
+                let cellSize = Math.floor(idealSize);
+                const total = rows * cols;
+                if (total > 200) cellSize = Math.min(cellSize, 44);
+                if (total > 400) cellSize = Math.min(cellSize, 34);
+                cellSize = Math.max(28, cellSize);
+                return cellSize;
+            }
+
+            // ---- 获取所有格子元素（不包括起点终点） ----
+            function getGridItems() {
+                return gridContainer.querySelectorAll('.grid-item:not(.special)');
+            }
+
+            // ---- 清除选中状态 ----
+            function clearSelection() {
+                selectedCells.clear();
+                document.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
+                updateBatchButton();
+                updateBatchCount();
+            }
+
+            // ---- 更新批量按钮状态 ----
+            function updateBatchButton() {
+                if (multiSelectCheck.checked && selectedCells.size > 0) {
+                    batchEditBtn.disabled = false;
+                } else {
+                    batchEditBtn.disabled = true;
+                }
+            }
+
+            // ---- 更新批量弹窗中的计数 ----
+            function updateBatchCount() {
+                batchCount.textContent = `已选 ${selectedCells.size} 个格子`;
+            }
+
+            // ---- 渲染网格 ----
+            function renderGrid(rows, cols) {
+                gridContainer.innerHTML = '';
+                cellData.clear();
+                selectedCells.clear();
+                totalCells = rows * cols;
+
+                const wrapper = gridContainer.parentElement;
+                const cellSize = calcCellSize(rows, cols, wrapper);
+
+                const gap = 4;
+                gridContainer.style.display = 'grid';
+                gridContainer.style.gap = gap + 'px';
+                gridContainer.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+                gridContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+                gridContainer.style.width = (cols * (cellSize + gap) - gap) + 'px';
+                gridContainer.style.height = (rows * (cellSize + gap) - gap) + 'px';
+
+                const items = [];
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const num = getSnakeNumber(r, c, rows, cols);
+                        items.push({ num, r, c });
+                    }
+                }
+
+                items.forEach(({ num, r, c }) => {
+                    const el = document.createElement('div');
+                    el.className = 'grid-item';
+                    el.dataset.index = num;
+                    const gridRow = rows - r;
+                    const gridCol = c + 1;
+                    el.style.gridRow = gridRow;
+                    el.style.gridColumn = gridCol;
+
+                    const numSpan = document.createElement('span');
+                    numSpan.className = 'number';
+                    numSpan.textContent = num;
+                    el.appendChild(numSpan);
+
+                    const contentSpan = document.createElement('span');
+                    contentSpan.className = 'content';
+                    contentSpan.innerHTML = '';
+                    el.appendChild(contentSpan);
+
+                    if (num === 1) {
+                        el.classList.add('special');
+                        contentSpan.textContent = '起点';
+                    } else if (num === totalCells) {
+                        el.classList.add('special');
+                        contentSpan.textContent = '终点';
+                    } else {
+                        el.addEventListener('click', function(e) {
+                            if (multiSelectCheck.checked) {
+                                const idx = parseInt(this.dataset.index);
+                                if (selectedCells.has(idx)) {
+                                    selectedCells.delete(idx);
+                                    this.classList.remove('selected');
+                                } else {
+                                    selectedCells.add(idx);
+                                    this.classList.add('selected');
+                                }
+                                updateBatchButton();
+                                updateBatchCount();
+                                e.stopPropagation();
+                            } else {
+                                const idx = parseInt(this.dataset.index);
+                                openPopover(idx);
+                            }
+                        });
+                    }
+
+                    gridContainer.appendChild(el);
+                });
+
+                infoBadge.textContent = `${rows}×${cols} = ${totalCells} 格子`;
+                updateAllCells();
+                updateTextArea();
+                mainPanel.style.display = 'flex';
+                clearSelection();
+                updateBatchButton();
+                updateBatchCount();
+            }
+
+            // ---- 重新计算格子尺寸 ----
+            function recalcCellSizes(rows, cols) {
+                if (!rows || !cols) return;
+                const wrapper = gridContainer.parentElement;
+                if (!wrapper) return;
+                const cellSize = calcCellSize(rows, cols, wrapper);
+                const gap = 4;
+                gridContainer.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+                gridContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+                gridContainer.style.width = (cols * (cellSize + gap) - gap) + 'px';
+                gridContainer.style.height = (rows * (cellSize + gap) - gap) + 'px';
+            }
+
+            // ---- 判断是否需要白色文字 ----
+            function isDarkBg(bgColor) {
+                if (!bgColor) return false;
+                const hex = bgColor.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness < 128;
+            }
+
+            // ---- 更新单个格子显示 ----
+            function updateCellDisplay(index) {
+                if (index === 1 || index === totalCells) return;
+                const items = gridContainer.querySelectorAll('.grid-item');
+                let target = null;
+                for (const el of items) {
+                    if (parseInt(el.dataset.index) === index) {
+                        target = el;
+                        break;
+                    }
+                }
+                if (!target) return;
+
+                const numSpan = target.querySelector('.number');
+                const contentSpan = target.querySelector('.content');
+                const data = cellData.get(index);
+
+                target.style.backgroundColor = '';
+                target.style.color = '';
+                target.classList.remove('has-data');
+                if (numSpan) numSpan.style.color = '';
+                if (contentSpan) {
+                    contentSpan.innerHTML = '';
+                    contentSpan.style.transform = '';
+                }
+
+                if (data && data.type) {
+                    const config = TYPE_CONFIG[data.type];
+                    if (config) {
+                        target.style.backgroundColor = config.bgColor;
+                        target.classList.add('has-data');
+
+                        const hasVar = HAS_VAR_TYPES.includes(data.type);
+                        const value = data.value || '';
+
+                        // 获取动态图标（BL 负值显示 🖤）
+                        const iconChar = getCellIcon(data.type, value);
+                        const isMirror = MIRROR_TYPES.includes(data.type);
+
+                        const iconSpan = document.createElement('span');
+                        iconSpan.className = 'icon';
+                        iconSpan.textContent = iconChar;
+                        if (isMirror) {
+                            iconSpan.style.transform = 'scaleX(-1)';
+                        }
+                        contentSpan.appendChild(iconSpan);
+
+                        if (hasVar && value) {
+                            const valueSpan = document.createElement('span');
+                            valueSpan.className = 'value';
+                            valueSpan.textContent = value;
+                            contentSpan.appendChild(valueSpan);
+                        }
+
+                        if (isDarkBg(config.bgColor)) {
+                            if (numSpan) numSpan.style.color = '#ffffff';
+                            target.style.color = '#ffffff';
+                        } else {
+                            if (numSpan) numSpan.style.color = '#1e293b';
+                            target.style.color = '#1e293b';
+                        }
+                    } else {
+                        if (data.type) {
+                            target.classList.add('has-data');
+                            contentSpan.textContent = data.type;
+                        }
+                    }
+                }
+            }
+
+            // ---- 批量更新所有格子 ----
+            function updateAllCells() {
+                for (let i = 1; i <= totalCells; i++) {
+                    if (i === 1 || i === totalCells) continue;
+                    updateCellDisplay(i);
+                }
+            }
+
+            // ---- 更新右侧文本框 ----
+            function updateTextArea() {
+                const lines = [];
+                lines.push('格子,功能,变量');
+                for (let i = 1; i <= totalCells; i++) {
+                    if (i === 1 || i === totalCells) {
+                        lines.push(`${i},,`);
+                        continue;
+                    }
+                    const data = cellData.get(i) || {};
+                    const type = data.type || '';
+                    const value = data.value || '';
+                    lines.push(`${i},${type},${value}`);
+                }
+                dataTextArea.value = lines.join('\n');
+
+                let configured = 0;
+                for (const [idx, d] of cellData) {
+                    if (idx === 1 || idx === totalCells) continue;
+                    if (d.type || d.value) configured++;
+                }
+                statsCount.textContent = `${configured} / ${totalCells - 2} 可配置格子`;
+            }
+
+            // ---- 单个编辑 Popover ----
+            function openPopover(index) {
+                if (index === 1 || index === totalCells) return;
+                activeCellIndex = index;
+                const data = cellData.get(index) || { type: '', value: '' };
+                popoverIndex.textContent = '#' + index;
+                setSelectedType(singleTypeGroup, singleTypeMessage, data.type);
+                popoverValue.value = data.value || '1';
+                updateSingleValueState();
+                popoverOverlay.classList.add('active');
+                popoverCard.style.display = 'block';
+            }
+
+            function closePopover() {
+                popoverOverlay.classList.remove('active');
+                popoverCard.style.display = 'none';
+                activeCellIndex = null;
+            }
+
+            function savePopover() {
+                if (activeCellIndex === null) return;
+                const idx = activeCellIndex;
+                if (idx === 1 || idx === totalCells) {
+                    closePopover();
+                    return;
+                }
+                const type = selectedSingleType;
+                let value = popoverValue.value.trim();
+
+                if (type && !HAS_VAR_TYPES.includes(type)) {
+                    value = '';
+                }
+
+                if (type || value) {
+                    cellData.set(idx, { type, value });
+                } else {
+                    cellData.delete(idx);
+                }
+
+                updateCellDisplay(idx);
+                updateTextArea();
+                closePopover();
+            }
+
+            function deletePopover() {
+                if (activeCellIndex === null) return;
+                const idx = activeCellIndex;
+                if (idx === 1 || idx === totalCells) {
+                    closePopover();
+                    return;
+                }
+                cellData.delete(idx);
+                updateCellDisplay(idx);
+                updateTextArea();
+                closePopover();
+            }
+
+            // ---- 批量编辑弹层 ----
+            function openBatchPopover() {
+                if (selectedCells.size === 0) return;
+                setSelectedType(batchTypeGroup, batchTypeMessage, '');
+                batchValue.value = '1';
+                updateBatchValueState();
+                updateBatchCount();
+                batchOverlay.classList.add('active');
+                batchCard.style.display = 'block';
+            }
+
+            function closeBatchPopover() {
+                batchOverlay.classList.remove('active');
+                batchCard.style.display = 'none';
+            }
+
+            function saveBatch() {
+                const type = selectedBatchType;
+                let value = batchValue.value.trim();
+                if (type && !HAS_VAR_TYPES.includes(type)) {
+                    value = '';
+                }
+
+                const selected = Array.from(selectedCells).filter(idx => idx !== 1 && idx !== totalCells);
+                if (selected.length === 0) {
+                    closeBatchPopover();
+                    return;
+                }
+
+                selected.forEach(idx => {
+                    if (type || value) {
+                        cellData.set(idx, { type, value });
+                    } else {
+                        cellData.delete(idx);
+                    }
+                });
+
+                selected.forEach(idx => updateCellDisplay(idx));
+                updateTextArea();
+                clearSelection();
+                closeBatchPopover();
+            }
+
+            // ---- 导出CSV ----
+            function exportCSV() {
+                const content = dataTextArea.value;
+                if (!content.trim()) {
+                    alert('没有数据可导出');
+                    return;
+                }
+                const BOM = '\uFEFF';
+                const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                const now = new Date();
+                const timestamp =
+                    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                link.download = `grid_config_${timestamp}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+
+            // ---- 生成网格 ----
+            function generateGrid() {
+                let rows = parseInt(rowInput.value) || 4;
+                let cols = parseInt(colInput.value) || 3;
+                rows = Math.max(2, Math.min(30, rows));
+                cols = Math.max(2, Math.min(30, cols));
+                rowInput.value = rows;
+                colInput.value = cols;
+
+                rowCount = rows;
+                colCount = cols;
+                cellData.clear();
+                clearSelection();
+
+                renderGrid(rows, cols);
+                setTimeout(() => recalcCellSizes(rows, cols), 50);
+            }
+
+            // ---- 窗口resize ----
+            let resizeTimer = null;
+            function handleResize() {
+                if (mainPanel.style.display !== 'none') {
+                    recalcCellSizes(rowCount, colCount);
+                }
+            }
+
+            // ---- 多选模式 ----
+            function toggleMultiSelect() {
+                const checked = multiSelectCheck.checked;
+                if (!checked) {
+                    clearSelection();
+                }
+                updateBatchButton();
+                gridContainer.style.cursor = checked ? 'crosshair' : 'default';
+                const items = getGridItems();
+                items.forEach(el => {
+                    el.style.cursor = 'pointer';
+                });
+                selectionBox.style.display = 'none';
+            }
+
+            // ---- 鼠标拖选实现 ----
+            function initSelectionDrag() {
+                let isDragging = false;
+                let startX = 0,
+                    startY = 0;
+
+                gridWrapper.addEventListener('mousedown', function(e) {
+                    if (!multiSelectCheck.checked) return;
+                    if (e.button !== 0) return;
+                    const target = e.target.closest('.grid-item');
+                    if (target && !target.classList.contains('special')) {
+                        return;
+                    }
+                    const rect = gridContainer.getBoundingClientRect();
+                    startX = e.clientX - rect.left;
+                    startY = e.clientY - rect.top;
+                    isDragging = true;
+                    selectionBox.style.display = 'block';
+                    selectionBox.style.left = startX + 'px';
+                    selectionBox.style.top = startY + 'px';
+                    selectionBox.style.width = '0px';
+                    selectionBox.style.height = '0px';
+                    clearSelection();
+                    e.preventDefault();
+                });
+
+                window.addEventListener('mousemove', function(e) {
+                    if (!isDragging || !multiSelectCheck.checked) return;
+                    const rect = gridContainer.getBoundingClientRect();
+                    const currentX = e.clientX - rect.left;
+                    const currentY = e.clientY - rect.top;
+
+                    const left = Math.min(startX, currentX);
+                    const top = Math.min(startY, currentY);
+                    const width = Math.abs(currentX - startX);
+                    const height = Math.abs(currentY - startY);
+
+                    selectionBox.style.left = left + 'px';
+                    selectionBox.style.top = top + 'px';
+                    selectionBox.style.width = width + 'px';
+                    selectionBox.style.height = height + 'px';
+
+                    const items = getGridItems();
+                    items.forEach(el => {
+                        const elRect = el.getBoundingClientRect();
+                        const containerRect = gridContainer.getBoundingClientRect();
+                        const elLeft = elRect.left - containerRect.left;
+                        const elTop = elRect.top - containerRect.top;
+                        const elRight = elLeft + elRect.width;
+                        const elBottom = elTop + elRect.height;
+
+                        const intersect = !(elRight < left || elLeft > left + width ||
+                            elBottom < top || elTop > top + height);
+                        const idx = parseInt(el.dataset.index);
+                        if (intersect && idx !== 1 && idx !== totalCells) {
+                            if (!selectedCells.has(idx)) {
+                                selectedCells.add(idx);
+                                el.classList.add('selected');
+                            }
+                        } else {
+                            if (selectedCells.has(idx)) {
+                                selectedCells.delete(idx);
+                                el.classList.remove('selected');
+                            }
+                        }
+                    });
+                    updateBatchButton();
+                    updateBatchCount();
+                    e.preventDefault();
+                });
+
+                window.addEventListener('mouseup', function(e) {
+                    if (isDragging) {
+                        isDragging = false;
+                        selectionBox.style.display = 'none';
+                        updateBatchButton();
+                    }
+                });
+            }
+
+            // ---- 从文本框同步到格子 ----
+            function syncFromTextArea() {
+                const text = dataTextArea.value;
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                if (lines.length < 2) return;
+
+                const header = lines[0].split(',').map(s => s.trim());
+                let idxCol = -1,
+                    typeCol = -1,
+                    valCol = -1;
+                header.forEach((h, i) => {
+                    if (h === '格子' || h === 'index' || h === '编号') idxCol = i;
+                    if (h === '功能' || h === 'type') typeCol = i;
+                    if (h === '变量' || h === 'value' || h === '数值') valCol = i;
+                });
+                if (idxCol === -1 || typeCol === -1 || valCol === -1) {
+                    if (header.length >= 3) {
+                        idxCol = 0;
+                        typeCol = 1;
+                        valCol = 2;
+                    } else {
+                        return;
+                    }
+                }
+
+                let changed = false;
+                for (let i = 1; i < lines.length; i++) {
+                    const parts = lines[i].split(',').map(s => s.trim());
+                    if (parts.length < 3) continue;
+                    const idx = parseInt(parts[idxCol]);
+                    if (isNaN(idx) || idx < 1 || idx > totalCells) continue;
+                    if (idx === 1 || idx === totalCells) continue;
+                    let type = parts[typeCol] || '';
+                    let value = parts[valCol] || '';
+
+                    if (type && !HAS_VAR_TYPES.includes(type)) {
+                        value = '';
+                    }
+
+                    const existing = cellData.get(idx);
+                    if (existing) {
+                        if (existing.type !== type || existing.value !== value) {
+                            if (type || value) {
+                                cellData.set(idx, { type, value });
+                            } else {
+                                cellData.delete(idx);
+                            }
+                            changed = true;
+                        }
+                    } else {
+                        if (type || value) {
+                            cellData.set(idx, { type, value });
+                            changed = true;
+                        }
+                    }
+                }
+
+                if (changed) {
+                    for (let i = 1; i <= totalCells; i++) {
+                        if (i === 1 || i === totalCells) continue;
+                        updateCellDisplay(i);
+                    }
+                    updateTextArea();
+                }
+            }
+
+            // ---- 渲染规则表格（图标、中文名、规则；FB/FLB 镜像） ----
+            function renderRuleTable() {
+                const tbody = document.getElementById('ruleTableBody');
+                tbody.innerHTML = '';
+                TYPE_KEYS.forEach(key => {
+                    const config = TYPE_CONFIG[key];
+                    const isMirror = MIRROR_TYPES.includes(key);
+                    const tr = document.createElement('tr');
+                    const iconClass = isMirror ? 'icon-cell mirror' : 'icon-cell';
+                    // 表格中 BL 图标固定为 ❤️（不因数值变化）
+                    const iconChar = getTypeIcon(key);
+                    tr.innerHTML = `
+                        <td><span class="${iconClass}">${iconChar}</span></td>
+                        <td class="name-cell">${config.chineseName}</td>
+                        <td class="rule-cell">${config.rule}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // ---- 初始化 ----
+            function init() {
+                // 渲染规则表格
+                renderRuleTable();
+
+                // 创建按钮组
+                createTypeButtons(singleTypeGroup, singleTypeMessage);
+                createTypeButtons(batchTypeGroup, batchTypeMessage);
+
+                generateGrid();
+
+                generateBtn.addEventListener('click', generateGrid);
+                rowInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') generateGrid(); });
+                colInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') generateGrid(); });
+
+                popoverConfirm.addEventListener('click', savePopover);
+                popoverCancel.addEventListener('click', closePopover);
+                popoverDelete.addEventListener('click', deletePopover);
+
+                batchConfirm.addEventListener('click', saveBatch);
+                batchCancel.addEventListener('click', closeBatchPopover);
+
+                multiSelectCheck.addEventListener('change', toggleMultiSelect);
+                batchEditBtn.addEventListener('click', openBatchPopover);
+
+                popoverOverlay.addEventListener('click', function(e) {
+                    if (e.target === this) closePopover();
+                });
+                batchOverlay.addEventListener('click', function(e) {
+                    if (e.target === this) closeBatchPopover();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        if (popoverOverlay.classList.contains('active')) closePopover();
+                        if (batchOverlay.classList.contains('active')) closeBatchPopover();
+                    }
+                    if (e.key === 'Enter') {
+                        if (popoverOverlay.classList.contains('active')) {
+                            const tag = document.activeElement?.tagName;
+                            if (tag !== 'INPUT' && tag !== 'SELECT') {
+                                savePopover();
+                            }
+                        }
+                        if (batchOverlay.classList.contains('active')) {
+                            const tag = document.activeElement?.tagName;
+                            if (tag !== 'INPUT' && tag !== 'SELECT') {
+                                saveBatch();
+                            }
+                        }
+                    }
+                });
+
+                exportBtn.addEventListener('click', exportCSV);
+
+                window.addEventListener('resize', function() {
+                    if (resizeTimer) clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(handleResize, 200);
+                });
+
+                dataTextArea.addEventListener('blur', syncFromTextArea);
+
+                initSelectionDrag();
+                toggleMultiSelect();
+            }
+
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                init();
+            } else {
+                document.addEventListener('DOMContentLoaded', init);
+            }
+
+            window.__gridApp = {
+                cellData,
+                rowCount,
+                colCount,
+                generateGrid,
+                exportCSV,
+                renderGrid,
+                updateTextArea,
+                syncFromTextArea
+            };
+
+        })();
+    </script>
+
+</body>
+</html>

@@ -22,6 +22,7 @@ class Game {
         this.isSelectingMoveTarget = false;
         this.roundCount = 1;
         this.currentRollStartPos = 0;
+        this.aiPlayerIds = new Set();
     }
 
     setCallbacks(callbacks) {
@@ -34,6 +35,14 @@ class Game {
         if (callbacks.onBombExplode) this.onBombExplode = callbacks.onBombExplode;
         if (callbacks.onGhostSelect) this.onGhostSelect = callbacks.onGhostSelect;
         if (callbacks.onMoveSelect) this.onMoveSelect = callbacks.onMoveSelect;
+    }
+
+    setAIPlayers(playerIds = []) {
+        this.aiPlayerIds = new Set(playerIds);
+    }
+
+    isAIPlayer(player) {
+        return !!player && this.aiPlayerIds.has(player.id);
     }
 
     notify(message, type = 'info') {
@@ -114,7 +123,13 @@ class Game {
             
             if (rollingPlayer.hasGhost && rollingPlayer.ghostType === 1) {
                 this.isSelectingMoveTarget = true;
-                this.onMoveSelect && this.onMoveSelect(rollingPlayer, value);
+                if (this.isAIPlayer(rollingPlayer)) {
+                    setTimeout(() => {
+                        this.selectMoveTarget(Math.random() < 0.5 ? 'player' : 'ghost');
+                    }, 400);
+                } else {
+                    this.onMoveSelect && this.onMoveSelect(rollingPlayer, value);
+                }
             } else {
                 this.movePlayer(rollingPlayer, value);
             }
@@ -223,13 +238,14 @@ class Game {
                 this.onPlayerMove && this.onPlayerMove(player, startPos, endPos, endPos - startPos);
                 
                 if (endPos >= this.board.totalCells) {
-                    this.notify(`${player.name}的幽灵到达终点！幽灵消失`, 'info');
-                    this.log(`幽灵到达终点，幽灵消失`);
+                    this.notify(`${player.name}的幽灵到达终点！${player.name} 获胜！`, 'success');
+                    this.log(`幽灵到达终点，玩家${player.name}获胜`);
                     player.hasGhost = false;
                     player.ghostType = 0;
                     player.ghostHealth = 0;
                     player.ghostPosition = 1;
-                    this.nextTurn();
+                    player.win();
+                    this.checkGameEnd();
                 } else {
                     this.processGhostCellProperty(player, endPos);
                     
@@ -396,7 +412,14 @@ class Game {
                 return this.processCellProperty(player, value);
             case 'ghost':
                 this.isSelectingGhost = true;
-                this.onGhostSelect && this.onGhostSelect(player);
+                if (this.isAIPlayer(player)) {
+                    setTimeout(() => {
+                        const ghostType = Math.random() < 0.5 ? 1 : 2;
+                        this.selectGhostType(player, ghostType);
+                    }, 400);
+                } else {
+                    this.onGhostSelect && this.onGhostSelect(player);
+                }
                 return true;
         }
     }
