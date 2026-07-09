@@ -1,45 +1,130 @@
-const CELL_PROPERTIES = {
-  2: { label: '[Bl+1]', type: 'blood', value: 1, color: '#3498db' },
-  3: { label: '[FF+2]', type: 'fastforward', value: 2, color: '#27ae60' },
-  4: { label: '[BB+1]', type: 'bomb', value: 1, color: '#9b59b6' },
-  5: { label: '[FF+5]', type: 'fastforward', value: 5, color: '#27ae60' },
-  7: { label: '[FF×]', type: 'fastforward_re_roll', value: 0, color: '#2ecc71' },
-  8: { label: '[UND×2]', type: 'undie', value: 2, color: '#1abc9c' },
-  9: { label: '[DDD]', type: 'diediedie', value: 0, color: '#000000' },
-  10: { label: '[TO→20]', type: 'goto', value: 20, color: '#f39c12' },
-  11: { label: '[CR]', type: 'changeorder', value: 0, color: '#e91e63' },
-  13: { label: '[FL+1]', type: 'flash', value: 1, color: '#00bcd4' },
-  16: { label: '[FLB×]', type: 'flashback', value: 0, color: '#607d8b' },
-  17: { label: '[FB-2]', type: 'fastback', value: 2, color: '#795548' },
-  19: { label: '[BH#1]', type: 'blackhole', value: 1, color: '#212121' },
-  23: { label: '[FB-3]', type: 'fastback', value: 3, color: '#795548' },
-  25: { label: '[BB+2]', type: 'bomb', value: 2, color: '#9b59b6' },
-  26: { label: '[BH#6]', type: 'blackhole', value: 6, color: '#212121' },
-  27: { label: '[BB+1]', type: 'bomb', value: 1, color: '#9b59b6' },
-  30: { label: '[Bl+1]', type: 'blood', value: 1, color: '#3498db' },
-  35: { label: '[FF+3]', type: 'fastforward', value: 3, color: '#27ae60' },
-  38: { label: '[FB-5]', type: 'fastback', value: 5, color: '#795548' },  
-  40: { label: '[Bl-1]', type: 'blood', value: -1, color: '#e74d3c9a' },
-  45: { label: '[P+2]', type: 'pause', value: 2, color: '#f39c12' },
-  50: { label: '[BB+1]', type: 'bomb', value: 1, color: '#9b59b6' },
-  55: { label: '[DDD]', type: 'diediedie', value: 0, color: '#000000' },
-  60: { label: '[Bl+1][FF+2]', type: 'combo', properties: [{ type: 'blood', value: 1 }, { type: 'fastforward', value: 2 }], color: '#e74c3c' },
-  62: { label: '[FB-5]', type: 'fastback', value: 5, color: '#795548' }
+let CELL_PROPERTIES = {};
+let PROPERTY_CONFIG = {};
+
+const FUNCTION_MAP = {
+  'BL': { type: 'blood', icon: '❤️', bgColor: '#ffebee', direction: null },
+  'FF': { type: 'fastforward', icon: '➡️', bgColor: '#e8f5e9', direction: 'forward' },
+  'FB': { type: 'fastback', icon: '➡️', bgColor: '#d7ccc8', direction: 'backward' },
+  'FL': { type: 'flashforward', icon: '🚀', bgColor: '#e1f5fe', direction: 'forward' },
+  'FLF': { type: 'flashforward', icon: '🚀', bgColor: '#e1f5fe', direction: 'forward' },
+  'FLB': { type: 'flashback', icon: '🚀', bgColor: '#eceff1', direction: 'backward' },
+  'BB': { type: 'bomb', icon: '💣', bgColor: '#fce4ec', direction: null },
+  'DDD': { type: 'diediedie', icon: '💀', bgColor: '#333', direction: null },
+  'UND': { type: 'undie', icon: '🛡️', bgColor: '#e0f7fa', direction: null },
+  'UDD': { type: 'undie', icon: '🛡️', bgColor: '#e0f7fa', direction: null },
+  'CR': { type: 'changeorder', icon: '🔀', bgColor: '#fce4ec', direction: null },
+  'BH': { type: 'blackhole', icon: '🕳️', bgColor: '#212121', direction: null },
+  'TO': { type: 'goto', icon: '🌀', bgColor: '#fff3e0', direction: null },
+  'GST': { type: 'ghost', icon: '👻', bgColor: '#f3e5f5', direction: null }
 };
 
-const PROPERTY_CONFIG = {
-  blood: { name: '血液', icon: '❤️', bgColor: '#ffebee', description: 'Bl+1：血量+1，Bl-1：血量-1' , hdLabel:'block', bgImage: '../assets/ico-cell-bl.png'},
-  fastforward: { name: '加速', icon: '⚡', bgColor: '#e8f5e9', description: 'FF+N：额外前进N步' },
-  fastforward_re_roll: { name: '重掷加速', icon: '🔄', bgColor: '#dcedc8', description: 'FF×：再次掷骰子并前进相应步数' },
-  diediedie: { name: '死亡', icon: '💀', bgColor: '#333', description: 'DDD：直接死亡' , bgImage: '../assets/ico-cell-ddd.png' },
-  pause: { name: '暂停', icon: '⏸️', bgColor: '#fff3e0', description: 'P+N：暂停N回合' },
-  bomb: { name: '炸弹', icon: '💣', bgColor: '#fce4ec', description: 'BB+N：以当前格子为中心，前后N格内所有玩家受伤' },
-  goto: { name: '传送', icon: '🌀', bgColor: '#fff3e0', description: 'TO→N：直接传送到第N格' },
-  fastback: { name: '后退', icon: '⬅️', bgColor: '#d7ccc8', description: 'FB-N：向后退N步' },
-  undie: { name: '不死', icon: '🛡️', bgColor: '#e0f7fa', description: 'UND×N：N回合内不会死亡' },
-  flash: { name: '闪现', icon: '✨', bgColor: '#e1f5fe', description: 'FL+N：掷骰子并前进，可连续触发' },
-  flashback: { name: '回溯', icon: '🔮', bgColor: '#eceff1', description: 'FLB×：对手掷骰子后，当前玩家往回走相应步数' },
-  changeorder: { name: '换序', icon: '🔀', bgColor: '#fce4ec', description: 'CR：改变玩家掷骰子的顺序' },
-  blackhole: { name: '黑洞', icon: '🕳️', bgColor: '#212121', description: 'BH#N：与对应编号黑洞互换位置' },
-  combo: { name: '组合', icon: '✨', bgColor: '#f3e5f5', description: '触发多个效果' }
+function parseCSV(csv) {
+  const lines = csv.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  const result = {};
+  
+  const hasChineseName = headers.includes('中文名称');
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',');
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] ? values[index].trim() : '';
+    });
+    
+    const cellNumber = parseInt(row['格子']);
+    if (!isNaN(cellNumber) && row['功能']) {
+      const func = row['功能'].trim();
+      const variable = row['变量'] ? row['变量'].trim() : '';
+      const funcInfo = FUNCTION_MAP[func];
+      
+      if (funcInfo) {
+        let label = funcInfo.icon;
+        if (variable && variable !== 'X') {
+          const numPart = variable.replace(/[^0-9]/g, '');
+          if (numPart) {
+            label = `${funcInfo.icon}${numPart}`;
+          }
+        }
+        
+        let value = 0;
+        let rawValue = variable;
+        
+        if (variable && variable !== 'X') {
+          if (variable.startsWith('#')) {
+            value = parseInt(variable.substring(1));
+          } else {
+            const numPart = variable.replace(/[^0-9-]/g, '');
+            value = numPart ? parseInt(numPart) : 0;
+          }
+        }
+        
+        const displayName = hasChineseName ? (row['中文名称'] || funcInfo.icon) : (row['规则'] || funcInfo.icon);
+        const displayRule = hasChineseName ? (row['规则'] || '') : '';
+        
+        result[cellNumber] = {
+          label: label,
+          type: funcInfo.type,
+          value: value,
+          rawValue: rawValue,
+          color: getColorForType(funcInfo.type),
+          displayName: displayName,
+          displayRule: displayRule,
+          englishName: row['英文全称'] || '',
+          direction: funcInfo.direction
+        };
+      }
+    }
+  }
+  
+  return result;
+}
+
+function getColorForType(type) {
+  const colors = {
+    blood: '#e74c3c',
+    fastforward: '#27ae60',
+    fastback: '#795548',
+    flashforward: '#3498db',
+    flashback: '#607d8b',
+    bomb: '#9b59b6',
+    diediedie: '#000000',
+    undie: '#1abc9c',
+    changeorder: '#e91e63',
+    blackhole: '#212121',
+    goto: '#f39c12',
+    ghost: '#9c27b0'
+  };
+  return colors[type] || '#666';
+}
+
+PROPERTY_CONFIG = {
+  blood: { name: '血量变化', icon: '❤️', bgColor: '#ffebee', description: 'x为变化量，正值为加血，负值为减血' },
+  fastforward: { name: '加速前进', icon: '⚡', bgColor: '#e8f5e9', description: 'x为变化量，只有正值，为额外向前移动的步数' },
+  fastback: { name: '加速后退', icon: '⬅️', bgColor: '#d7ccc8', description: 'x为变化量，只有正值，为额外向后移动的步数' },
+  flashforward: { name: '超速前进', icon: '🚀', bgColor: '#e1f5fe', description: 'x为变化量，踩到后再向前移动当前掷骰子数量x倍的格子' },
+  flashback: { name: '超速后退', icon: '🔮', bgColor: '#eceff1', description: 'x为变化量，为额外向后移动的步数' },
+  bomb: { name: '炸弹爆炸', icon: '💣', bgColor: '#fce4ec', description: 'x为爆炸范围，以格子为中心，前后各x格范围内的所有玩家受到伤害' },
+  diediedie: { name: '死亡陷阱', icon: '💀', bgColor: '#333', description: '无变量，玩家踩到直接死亡' },
+  undie: { name: '不死守护', icon: '🛡️', bgColor: '#e0f7fa', description: 'x为不死回合数，回合数内踩到DDD可不死' },
+  changeorder: { name: '顺序变换', icon: '🔀', bgColor: '#fce4ec', description: '无变量，掷骰子顺序反转' },
+  blackhole: { name: '黑洞', icon: '🕳️', bgColor: '#212121', description: 'x为黑洞编号，踩到后移动到当前骰子数对应的黑洞' },
+  goto: { name: '格子跳转', icon: '🌀', bgColor: '#fff3e0', description: 'x为格子编号，直接跳转到对应格子' },
+  ghost: { name: '幽灵', icon: '👻', bgColor: '#f3e5f5', description: '踩到后可召唤幽灵' }
 };
+
+async function loadGridCSV() {
+  try {
+    const response = await fetch('grid.csv');
+    if (!response.ok) {
+      throw new Error('Failed to load grid.csv');
+    }
+    const csv = await response.text();
+    CELL_PROPERTIES = parseCSV(csv);
+    return CELL_PROPERTIES;
+  } catch (error) {
+    console.error('Error loading grid.csv:', error);
+    CELL_PROPERTIES = {};
+    return CELL_PROPERTIES;
+  }
+}

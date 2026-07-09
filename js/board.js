@@ -66,6 +66,8 @@ class Board {
         let finalPosition = startPosition + steps;
         if (finalPosition > this.totalCells) {
             finalPosition = this.totalCells;
+        } else if (finalPosition < 1) {
+            finalPosition = 1;
         }
         return finalPosition;
     }

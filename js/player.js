@@ -9,6 +9,15 @@ class Player {
         this.health = 3;
         this.isDead = false;
         this.enteredOvertakeZone = false;
+        this.pauseTurns = 0;
+        this.undieTurns = 0;
+        this.justGotUndie = false;
+        this.hasGhost = false;
+        this.ghostType = 0;
+        this.ghostHealth = 0;
+        this.ghostPosition = 1;
+        this.ghostCount = 0;
+        this.maxGhostCount = 3;
     }
 
     reset() {
@@ -18,10 +27,25 @@ class Player {
         this.health = 3;
         this.isDead = false;
         this.enteredOvertakeZone = false;
+        this.pauseTurns = 0;
+        this.undieTurns = 0;
+        this.justGotUndie = false;
+        this.hasGhost = false;
+        this.ghostType = 0;
+        this.ghostHealth = 0;
+        this.ghostPosition = 1;
+        this.ghostCount = 0;
     }
 
     moveTo(position) {
         this.position = position;
+        if (this.hasGhost && this.ghostType === 2) {
+            this.ghostPosition = position;
+        }
+    }
+
+    ghostMoveTo(position) {
+        this.ghostPosition = position;
     }
 
     rollDice() {
@@ -49,6 +73,16 @@ class Player {
         if (this.health <= 0) {
             this.health = 0;
             this.isDead = true;
+        }
+    }
+
+    changeGhostHealth(delta) {
+        this.ghostHealth += delta;
+        if (this.ghostHealth <= 0) {
+            this.ghostHealth = 0;
+            this.hasGhost = false;
+            this.ghostType = 0;
+            this.ghostPosition = 1;
         }
     }
 }
