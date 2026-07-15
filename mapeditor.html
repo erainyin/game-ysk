@@ -518,6 +518,48 @@
             transition: 0.2s;
             color: #0f172a;
         }
+        .map-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1.5px solid #d0d8e3;
+            border-radius: 10px;
+            background: #fafcff;
+            padding: 4px;
+            margin-top: 4px;
+        }
+        .map-list .map-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #1e293b;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .map-list .map-item:hover {
+            background: #e0f2fe;
+        }
+        .map-list .map-item.active {
+            background: #3b82f6;
+            color: #fff;
+        }
+        .map-list .map-item .map-name {
+            font-weight: 500;
+        }
+        .map-list .map-item .map-size {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        .map-size-hint {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+            padding: 6px 10px;
+            background: #f1f5f9;
+            border-radius: 6px;
+        }
         .popover-card .field input:disabled {
             background: #f1f5f9;
             color: #94a3b8;
@@ -657,9 +699,10 @@
 
     <div class="app" id="app">
         <div class="setup-panel" id="setupPanel">
-            <label>行数 <input type="number" id="rowInput" value="4" min="2" max="30" /></label>
-            <label>列数 <input type="number" id="colInput" value="3" min="2" max="30" /></label>
+            <label>行数 <input type="number" id="rowInput" value="8" min="2" max="30" /></label>
+            <label>列数 <input type="number" id="colInput" value="8" min="2" max="30" /></label>
             <button class="btn-generate" id="generateBtn">生成网格</button>
+            <button class="btn-generate" id="loadMapBtn">选择地图</button>
             <span class="info-badge" id="infoBadge">等待生成</span>
         </div>
 
@@ -741,6 +784,26 @@
         </div>
     </div>
 
+    <!-- 地图选择弹层 -->
+    <div class="popover-overlay" id="mapOverlay"></div>
+    <div class="popover-card" id="mapCard" style="display:none;">
+        <div class="popover-title">
+            <span>选择地图</span>
+        </div>
+        <div class="field">
+            <label>地图文件列表</label>
+            <div class="map-list" id="mapList"></div>
+        </div>
+        <div class="field">
+            <label>检测到格子数：<span id="mapCellCount" class="badge">0</span></label>
+            <div class="map-size-hint">请输入行列数（行数×列数需等于格子数）</div>
+        </div>
+        <div class="actions">
+            <button class="btn-cancel" id="mapCancel">取消</button>
+            <button class="btn-confirm" id="mapConfirm" disabled>✓ 加载地图</button>
+        </div>
+    </div>
+
     <script>
         (function() {
             'use strict';
@@ -756,7 +819,7 @@
                 'DDD': { icon: '💀', bgColor: '#333333', chineseName: '死亡陷阱', rule: '无变量，玩家踩到直接死亡' },
                 'UDD': { icon: '🛡️', bgColor: '#e0f7fa', chineseName: '不死守护', rule: 'x为变化量，只有正值，为不死回合数，从下一回合开始包含下一回合，玩家在回合数内如果踩到DDD可不死，即可继续游戏，但因其他原因导致血量减为0，仍会死亡' },
                 'CR': { icon: '🔀', bgColor: '#fce4ec', chineseName: '顺序变换', rule: '无变量，玩家踩到后，掷骰子顺序变换，例如之前顺序是“1>2>3”，踩到后，顺序变更为“3>2>1”' },
-                'BH': { icon: '🕳️', bgColor: '#212121', chineseName: '黑洞', rule: 'x为变量，代表黑洞编号，踩到后瞬间移动到当前骰子数对应的黑洞编号的格子里。' },
+                'BH': { icon: '🕳️', bgColor: '#666666', chineseName: '黑洞', rule: 'x为变量，代表黑洞编号，踩到后瞬间移动到当前骰子数对应的黑洞编号的格子里。' },
                 'TO': { icon: '🌀', bgColor: '#fff3e0', chineseName: '格子跳转', rule: 'x为变量，代表格子编号，踩到后直接跳转到编号对应的格子' },
                 'GST': { icon: '👻', bgColor: '#f3e5f5', chineseName: '幽灵', rule: '无变量，玩家踩到后可召唤幽灵，幽灵的逻辑参考“增加幽灵的逻辑”' }
             };
@@ -800,6 +863,14 @@
             const batchConfirm = document.getElementById('batchConfirm');
             const batchCancel = document.getElementById('batchCancel');
             const batchCount = document.getElementById('batchCount');
+
+            const mapOverlay = document.getElementById('mapOverlay');
+            const mapCard = document.getElementById('mapCard');
+            const mapList = document.getElementById('mapList');
+            const mapCellCount = document.getElementById('mapCellCount');
+            const mapConfirm = document.getElementById('mapConfirm');
+            const mapCancel = document.getElementById('mapCancel');
+            const loadMapBtn = document.getElementById('loadMapBtn');
 
             const singleTypeGroup = document.getElementById('singleTypeGroup');
             const batchTypeGroup = document.getElementById('batchTypeGroup');
@@ -956,6 +1027,11 @@
 
             // ---- 多选状态 ----
             let selectedCells = new Set();
+
+            // ---- 地图选择状态 ----
+            let selectedMapFile = null;
+            let loadedMapContent = '';
+            let loadedMapCellCount = 0;
 
             // ---- 工具：蛇形编号 ----
             function getSnakeNumber(r, c, rows, cols) {
@@ -1342,6 +1418,156 @@
                 URL.revokeObjectURL(url);
             }
 
+            // ---- 地图选择相关函数 ----
+            async function loadMapList() {
+                mapList.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8;">加载中...</div>';
+                try {
+                    const response = await fetch('./map/');
+                    if (!response.ok) {
+                        mapList.innerHTML = '<div style="padding: 16px; text-align: center; color: #ef4444;">无法访问地图目录</div>';
+                        return;
+                    }
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const links = doc.querySelectorAll('a[href$=".csv"]');
+                    
+                    if (links.length === 0) {
+                        mapList.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8;">没有找到地图文件</div>';
+                        return;
+                    }
+
+                    mapList.innerHTML = '';
+                    links.forEach(link => {
+                        const fileName = link.textContent.trim();
+                        let filePath = link.getAttribute('href');
+                        if (!fileName.endsWith('.csv')) return;
+
+                        if (!filePath.startsWith('./') && !filePath.startsWith('/')) {
+                            filePath = './map/' + filePath;
+                        }
+
+                        const item = document.createElement('div');
+                        item.className = 'map-item';
+                        item.innerHTML = `
+                            <span class="map-name">${fileName}</span>
+                        `;
+                        item.addEventListener('click', () => selectMapFile(fileName, filePath));
+                        mapList.appendChild(item);
+                    });
+                } catch (error) {
+                    mapList.innerHTML = '<div style="padding: 16px; text-align: center; color: #ef4444;">加载失败：' + error.message + '</div>';
+                }
+            }
+
+            async function selectMapFile(fileName, filePath) {
+                mapList.querySelectorAll('.map-item').forEach(el => el.classList.remove('active'));
+                const activeItem = Array.from(mapList.children).find(el => el.textContent.includes(fileName));
+                if (activeItem) activeItem.classList.add('active');
+                
+                selectedMapFile = filePath;
+                mapConfirm.disabled = true;
+
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) {
+                        alert('无法读取文件');
+                        return;
+                    }
+                    loadedMapContent = await response.text();
+                    const lines = loadedMapContent.split('\n').filter(line => line.trim() !== '');
+                    loadedMapCellCount = lines.length - 1;
+                    mapCellCount.textContent = loadedMapCellCount;
+                    mapCellCount.style.backgroundColor = '#3b82f6';
+                    mapCellCount.style.color = '#fff';
+
+                    const hintEl = document.querySelector('.map-size-hint');
+                    const factors = findFactors(loadedMapCellCount);
+                    if (factors.length > 0) {
+                        hintEl.textContent = `可选行列组合：${factors.map(f => `${f.rows}×${f.cols}`).join(', ')}`;
+                        hintEl.style.color = '#3b82f6';
+                    } else {
+                        hintEl.textContent = '该格子数无法分解为有效的行列组合，请检查地图文件';
+                        hintEl.style.color = '#ef4444';
+                    }
+
+                    mapConfirm.disabled = !checkMapSizeValid();
+                } catch (error) {
+                    alert('读取文件失败：' + error.message);
+                }
+            }
+
+            function findFactors(num) {
+                const factors = [];
+                for (let rows = 2; rows <= Math.sqrt(num); rows++) {
+                    if (num % rows === 0) {
+                        const cols = num / rows;
+                        if (cols >= 2 && cols <= 30 && rows <= 30) {
+                            factors.push({ rows, cols });
+                        }
+                    }
+                }
+                for (let cols = 2; cols <= Math.sqrt(num); cols++) {
+                    if (num % cols === 0) {
+                        const rows = num / cols;
+                        if (rows >= 2 && rows <= 30 && cols <= 30 && 
+                            !factors.some(f => f.rows === rows && f.cols === cols)) {
+                            factors.push({ rows, cols });
+                        }
+                    }
+                }
+                return factors.sort((a, b) => a.rows - b.rows);
+            }
+
+            function checkMapSizeValid() {
+                const rows = parseInt(rowInput.value) || 0;
+                const cols = parseInt(colInput.value) || 0;
+                return rows * cols === loadedMapCellCount;
+            }
+
+            function closeMapModal() {
+                mapOverlay.classList.remove('active');
+                mapCard.style.display = 'none';
+                selectedMapFile = null;
+                loadedMapContent = '';
+                loadedMapCellCount = 0;
+                mapCellCount.textContent = '0';
+                mapCellCount.style.backgroundColor = '';
+                mapCellCount.style.color = '';
+                mapConfirm.disabled = true;
+            }
+
+            function confirmMapSelection() {
+                if (!selectedMapFile || !loadedMapContent) return;
+                if (!checkMapSizeValid()) {
+                    alert('行列数乘积不等于格子数，请重新输入');
+                    return;
+                }
+
+                const rows = parseInt(rowInput.value);
+                const cols = parseInt(colInput.value);
+                
+                dataTextArea.value = loadedMapContent;
+                rowCount = rows;
+                colCount = cols;
+                totalCells = rows * cols;
+                cellData.clear();
+                clearSelection();
+
+                renderGrid(rows, cols);
+                syncFromTextArea();
+                updateTextArea();
+                setTimeout(() => recalcCellSizes(rows, cols), 50);
+                
+                closeMapModal();
+            }
+
+            function showMapSelectionModal() {
+                mapOverlay.classList.add('active');
+                mapCard.style.display = 'block';
+                loadMapList();
+            }
+
             // ---- 生成网格 ----
             function generateGrid() {
                 let rows = parseInt(rowInput.value) || 4;
@@ -1603,6 +1829,24 @@
                 });
 
                 exportBtn.addEventListener('click', exportCSV);
+
+                loadMapBtn.addEventListener('click', showMapSelectionModal);
+                mapCancel.addEventListener('click', closeMapModal);
+                mapConfirm.addEventListener('click', confirmMapSelection);
+                mapOverlay.addEventListener('click', function(e) {
+                    if (e.target === this) closeMapModal();
+                });
+
+                rowInput.addEventListener('input', function() {
+                    if (mapCard.style.display !== 'none' && loadedMapCellCount > 0) {
+                        mapConfirm.disabled = !checkMapSizeValid();
+                    }
+                });
+                colInput.addEventListener('input', function() {
+                    if (mapCard.style.display !== 'none' && loadedMapCellCount > 0) {
+                        mapConfirm.disabled = !checkMapSizeValid();
+                    }
+                });
 
                 window.addEventListener('resize', function() {
                     if (resizeTimer) clearTimeout(resizeTimer);

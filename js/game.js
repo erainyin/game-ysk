@@ -25,7 +25,7 @@ class Game {
         this.aiPlayerIds = new Set();
     }
 
-    setCallbacks(callbacks) {
+    setCallbacks(callbacks) {//设置回调函数
         if (callbacks.onStateChange) this.onStateChange = callbacks.onStateChange;
         if (callbacks.onPlayerMove) this.onPlayerMove = callbacks.onPlayerMove;
         if (callbacks.onDiceRoll) this.onDiceRoll = callbacks.onDiceRoll;
@@ -37,21 +37,21 @@ class Game {
         if (callbacks.onMoveSelect) this.onMoveSelect = callbacks.onMoveSelect;
     }
 
-    setAIPlayers(playerIds = []) {
+    setAIPlayers(playerIds = []) {//设置AI玩家
         this.aiPlayerIds = new Set(playerIds);
     }
 
-    isAIPlayer(player) {
+    isAIPlayer(player) {//判断是否为AI玩家
         return !!player && this.aiPlayerIds.has(player.id);
     }
 
-    notify(message, type = 'info') {
+    notify(message, type = 'info') {//通知玩家
         if (this.onNotification) {
             this.onNotification(message, type);
         }
     }
 
-    log(message, isMainRoll = false) {
+    log(message, isMainRoll = false) {//记录日志
         if (this.onLog) {
             const player = this.getCurrentPlayer();
             const playerName = player ? player.name : '未知';
@@ -67,7 +67,7 @@ class Game {
         }
     }
 
-    initPlayers(count) {
+    initPlayers(count) {//初始化玩家
         this.playerCount = Math.max(CONFIG.MIN_PLAYERS, Math.min(CONFIG.MAX_PLAYERS, count));
         this.players = [];
         
@@ -80,30 +80,30 @@ class Game {
         }
     }
 
-    start() {
+    start() {//开始游戏
         this.initPlayers(this.playerCount);
         this.currentPlayerIndex = 0;
         this.gameState = 'playing';
         this.notifyStateChange();
     }
 
-    restart() {
+    restart() {//重新开始游戏
         this.gameState = 'waiting';
         this.currentPlayerIndex = 0;
         this.players = [];
         this.notifyStateChange();
     }
 
-    getCurrentPlayer() {
+    getCurrentPlayer() {//获取当前玩家
         return this.players[this.currentPlayerIndex];
     }
 
-    getPlayerCount() {
+    getPlayerCount() {//获取玩家数量
         return this.playerCount;
     }
 
-    rollDice() {
-        if (this.gameState !== 'playing' || this.dice.isRollingNow()) {
+    rollDice() {//掷骰子
+        if (this.gameState !== 'playing' || this.dice.isRollingNow() || this.isSelectingMoveTarget) {
             return;
         }
 
@@ -136,8 +136,16 @@ class Game {
         });
     }
 
-    selectMoveTarget(target) {
+    selectMoveTarget(target) {//选择移动目标
         if (!this.isSelectingMoveTarget || !this.pendingRollPlayer) {
+            return;
+        }
+
+        const currentPlayer = this.getCurrentPlayer();
+        if (currentPlayer && currentPlayer.id !== this.pendingRollPlayer.id) {
+            this.isSelectingMoveTarget = false;
+            this.pendingRollPlayer = null;
+            this.pendingRollValue = 0;
             return;
         }
 
@@ -154,7 +162,7 @@ class Game {
         }
     }
 
-    movePlayer(player, steps, isFromProperty = false) {
+    movePlayer(player, steps, isFromProperty = false) {//移动玩家
         const oldPosition = player.position;
         const newPosition = this.board.getFinalPosition(oldPosition, steps);
         
@@ -167,7 +175,7 @@ class Game {
         this.movePlayerStepByStep(player, oldPosition, newPosition, 0);
     }
     
-    moveGhost(player, steps) {
+    moveGhost(player, steps) {//移动幽灵
         const oldPosition = player.ghostPosition;
         const newPosition = this.board.getFinalPosition(oldPosition, steps);
         
@@ -178,7 +186,7 @@ class Game {
         this.moveGhostStepByStep(player, oldPosition, newPosition, 0);
     }
     
-    movePlayerStepByStep(player, startPos, endPos, currentStep) {
+    movePlayerStepByStep(player, startPos, endPos, currentStep) {//玩家移动分步
         if (currentStep === 0) {
             player.moveTo(startPos);
             this.onPlayerMove && this.onPlayerMove(player, startPos, startPos, 0);
@@ -219,7 +227,7 @@ class Game {
         }, 100);
     }
     
-    moveGhostStepByStep(player, startPos, endPos, currentStep) {
+    moveGhostStepByStep(player, startPos, endPos, currentStep) {//幽灵移动分步
         if (currentStep === 0) {
             player.ghostMoveTo(startPos);
             this.onPlayerMove && this.onPlayerMove(player, startPos, startPos, 0);
@@ -266,7 +274,7 @@ class Game {
         }, 100);
     }
     
-    checkOvertake(movingPlayer, oldPosition, newPosition) {
+    checkOvertake(movingPlayer, oldPosition, newPosition) {//检查是否超过其他玩家
         if (newPosition <= oldPosition) return;
         
         const overtakeThreshold = Math.floor(this.board.totalCells * 4 / 5);
@@ -290,21 +298,21 @@ class Game {
         }
     }
 
-    processCellProperty(player, position) {
+    processCellProperty(player, position) {//处理单元格属性
         const property = CELL_PROPERTIES[position];
         if (!property) return false;
 
         return this.processSingleProperty(player, property.type, property.value, property.rawValue);
     }
     
-    processGhostCellProperty(player, position) {
+    processGhostCellProperty(player, position) {//处理幽灵单元格属性
         const property = CELL_PROPERTIES[position];
         if (!property) return;
 
         this.processGhostProperty(player, property.type, property.value, property.rawValue);
     }
 
-    processSingleProperty(player, type, value, rawValue = '') {
+    processSingleProperty(player, type, value, rawValue = '') {//处理单属性
         switch (type) {
             case 'blood':
                 player.changeHealth(value);
@@ -312,15 +320,15 @@ class Game {
                 this.log(`触发[BL${value > 0 ? '+' : ''}${value}]，血量变为${player.health}`);
                 return false;
             case 'diediedie':
-                if (player.ghostType === 2 && player.ghostCount > 0) {
-                    player.ghostCount--;
-                    player.ghostHealth = player.ghostCount;
-                    if (player.ghostCount === 0) {
+                if (player.ghostType === 2 && player.ghostHealth > 0) {
+                    player.ghostHealth--;
+                    player.ghostCount = player.ghostHealth;
+                    if (player.ghostHealth === 0) {
                         player.hasGhost = false;
                         player.ghostType = 0;
                     }
-                    this.notify(`${player.name} 的贴身幽灵代替玩家死亡！剩余${player.ghostCount}个`, 'success');
-                    this.log(`触发[DDD]，贴身幽灵代替玩家死亡，剩余${player.ghostCount}个`);
+                    this.notify(`${player.name} 的贴身幽灵代替玩家死亡！剩余${player.ghostHealth}血`, 'success');
+                    this.log(`触发[DDD]，贴身幽灵代替玩家死亡，剩余${player.ghostHealth}血`);
                 } else if (player.undieTurns > 0) {
                     player.undieTurns--;
                     this.notify(`${player.name} 触发死亡陷阱！但不死守护生效，免于死亡！`, 'success');
@@ -424,23 +432,36 @@ class Game {
         }
     }
     
-    selectGhostType(player, ghostType) {
+    selectGhostType(player, ghostType) {//选择幽灵类型
         this.isSelectingGhost = false;
         
-        if (player.hasGhost && player.ghostType === ghostType && player.ghostCount < player.maxGhostCount) {
-            player.ghostCount++;
+        if (player.hasGhost && player.ghostType === ghostType) {
+            if (player.ghostHealth < player.maxGhostCount) {
+                player.ghostHealth++;
+                player.ghostCount = player.ghostHealth;
+            }
         } else {
+            const hadOtherGhostType = player.hasGhost && player.ghostType !== ghostType;
+            
             player.hasGhost = true;
             player.ghostType = ghostType;
+            player.ghostHealth = 1;
             player.ghostCount = 1;
+            
+            if (ghostType === 1) {
+                if (hadOtherGhostType) {
+                    player.ghostPosition = player.position;
+                } else {
+                    player.ghostPosition = 1;
+                }
+            } else {
+                player.ghostPosition = player.position;
+            }
         }
         
-        player.ghostHealth = player.ghostCount;
-        player.ghostPosition = ghostType === 1 ? 1 : player.position;
-        
         const ghostTypeName = ghostType === 1 ? '普通幽灵' : '贴身幽灵';
-        this.notify(`${player.name} 召唤了${ghostTypeName}！当前${ghostTypeName}数量：${player.ghostCount}`, 'success');
-        this.log(`触发[GST]，召唤${ghostTypeName}，当前数量${player.ghostCount}`);
+        this.notify(`${player.name} 召唤了${ghostTypeName}！当前${ghostTypeName}血量：${player.ghostHealth}`, 'success');
+        this.log(`触发[GST]，召唤${ghostTypeName}，当前血量${player.ghostHealth}`);
         
         if (!player.isDead) {
             this.nextTurn();
@@ -455,17 +476,17 @@ class Game {
                 this.log(`幽灵触发[BL${value > 0 ? '+' : ''}${value}]，幽灵血量变为${player.ghostHealth}`);
                 break;
             case 'diediedie':
-                player.ghostCount--;
-                player.ghostHealth = player.ghostCount;
-                if (player.ghostCount === 0) {
+                player.ghostHealth--;
+                player.ghostCount = player.ghostHealth;
+                if (player.ghostHealth === 0) {
                     player.hasGhost = false;
                     player.ghostType = 0;
                     player.ghostPosition = 1;
                     this.notify(`${player.name}的幽灵触发死亡陷阱！幽灵死亡！`, 'danger');
                     this.log(`幽灵触发[DDD]，幽灵死亡！`);
                 } else {
-                    this.notify(`${player.name}的幽灵触发死亡陷阱！剩余${player.ghostCount}个`, 'warning');
-                    this.log(`幽灵触发[DDD]，剩余${player.ghostCount}个`);
+                    this.notify(`${player.name}的幽灵触发死亡陷阱！剩余${player.ghostHealth}血`, 'warning');
+                    this.log(`幽灵触发[DDD]，剩余${player.ghostHealth}血`);
                 }
                 break;
             case 'fastforward':
@@ -542,7 +563,7 @@ class Game {
         }
     }
 
-    triggerBomb(player, range) {
+    triggerBomb(player, range) {//触发炸弹
         const bombPosition = player.position;
         const affectedPositions = [];
         
@@ -573,7 +594,7 @@ class Game {
         }
     }
 
-    checkGameEnd() {
+    checkGameEnd() {//检查游戏结束
         const winners = this.players.filter(p => p.isWinner);
         
         if (winners.length > 0) {
@@ -598,7 +619,11 @@ class Game {
         }
     }
 
-    nextTurn() {
+    nextTurn() {//下一轮
+        this.isSelectingMoveTarget = false;
+        this.pendingRollPlayer = null;
+        this.pendingRollValue = 0;
+        
         const previousPlayer = this.players[this.currentPlayerIndex];
         if (previousPlayer && previousPlayer.undieTurns > 0 && !previousPlayer.isDead && previousPlayer.hasRolled && !previousPlayer.justGotUndie) {
             previousPlayer.undieTurns--;
@@ -627,7 +652,7 @@ class Game {
         this.notifyStateChange();
     }
 
-    notifyStateChange() {
+    notifyStateChange() {//通知状态改变
         if (this.onStateChange) {
             this.onStateChange({
                 state: this.gameState,
@@ -638,7 +663,7 @@ class Game {
         }
     }
 
-    getGameState() {
+    getGameState() {//获取游戏状态
         return {
             state: this.gameState,
             currentPlayer: this.getCurrentPlayer(),

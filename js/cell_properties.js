@@ -12,7 +12,7 @@ const FUNCTION_MAP = {
   'DDD': { type: 'diediedie', icon: '💀', bgColor: '#333', direction: null },
   'UND': { type: 'undie', icon: '🛡️', bgColor: '#e0f7fa', direction: null },
   'CR': { type: 'changeorder', icon: '🔀', bgColor: '#fce4ec', direction: null },
-  'BH': { type: 'blackhole', icon: '🕳️', bgColor: '#212121', direction: null },
+  'BH': { type: 'blackhole', icon: '🕳️', bgColor: '#666666', direction: null },
   'TO': { type: 'goto', icon: '🌀', bgColor: '#fff3e0', direction: null },
   'GST': { type: 'ghost', icon: '👻', bgColor: '#f3e5f5', direction: null }
 };
@@ -142,7 +142,7 @@ function getColorForType(type) {
     diediedie: '#000000',
     undie: '#1abc9c',
     changeorder: '#e91e63',
-    blackhole: '#212121',
+    blackhole: '#666666',
     goto: '#f39c12',
     ghost: '#9c27b0'
   };
@@ -159,24 +159,35 @@ PROPERTY_CONFIG = {
   diediedie: { name: '死亡陷阱', icon: '💀', bgColor: '#333', description: '无变量，玩家踩到直接死亡' },
   undie: { name: '不死守护', icon: '🛡️', bgColor: '#e0f7fa', description: 'x为不死回合数，回合数内踩到DDD可不死' },
   changeorder: { name: '顺序变换', icon: '🔀', bgColor: '#fce4ec', description: '无变量，掷骰子顺序反转' },
-  blackhole: { name: '黑洞', icon: '🕳️', bgColor: '#212121', description: 'x为黑洞编号，踩到后移动到当前骰子数对应的黑洞' },
+  blackhole: { name: '黑洞', icon: '🕳️', bgColor: '#666666', description: 'x为黑洞编号，踩到后移动到当前骰子数对应的黑洞' },
   goto: { name: '格子跳转', icon: '🌀', bgColor: '#fff3e0', description: 'x为格子编号，直接跳转到对应格子' },
   ghost: { name: '幽灵', icon: '👻', bgColor: '#f3e5f5', description: '踩到后可召唤幽灵' }
 };
 
-async function loadGridCSV() {
+let currentMapFile = 'grid.csv';
+
+async function loadGridCSV(filePath = 'grid.csv') {
   try {
-    const response = await fetch('grid.csv');
+    const response = await fetch(filePath);
     if (!response.ok) {
-      throw new Error('Failed to load grid.csv');
+      throw new Error(`Failed to load ${filePath}`);
     }
     const csv = await response.text();
     const parsedProperties = parseCSV(csv);
     CELL_PROPERTIES = assignRandomBlackholes(parsedProperties);
+    currentMapFile = filePath;
     return CELL_PROPERTIES;
   } catch (error) {
-    console.error('Error loading grid.csv:', error);
+    console.error(`Error loading ${filePath}:`, error);
     CELL_PROPERTIES = {};
     return CELL_PROPERTIES;
   }
+}
+
+async function loadMapFromFile(filePath) {
+  return loadGridCSV(filePath);
+}
+
+function getCurrentMapFile() {
+  return currentMapFile;
 }

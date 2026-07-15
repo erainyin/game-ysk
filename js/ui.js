@@ -7,6 +7,7 @@ class UI {
         this.btnStart = document.getElementById('btn-start');
         this.btnDice = document.getElementById('btn-dice');
         this.btnRestart = document.getElementById('btn-restart');
+        this.btnMapSelect = document.getElementById('btn-map-select');
         this.diceElement = document.getElementById('dice');
         this.diceValueElement = document.getElementById('dice-value');
         this.notificationsElement = document.getElementById('notifications');
@@ -15,10 +16,12 @@ class UI {
         this.cellInfoElement = document.getElementById('cell-info');
         this.playerCount = 2;
         this.isRollLocked = false;
+        this.currentMapFile = 'grid.csv';
         
         this.game = new Game(2);
         this.playerTokens = {};
         this.ghostTokens = {};
+        this.mapSelectModal = null;
         
         this.init();
     }
@@ -34,6 +37,7 @@ class UI {
         this.btnStart.addEventListener('click', () => this.handleStart());
         this.btnDice.addEventListener('click', () => this.handleRollDice());
         this.btnRestart.addEventListener('click', () => this.handleRestart());
+        this.btnMapSelect.addEventListener('click', () => this.handleMapSelect());
         this.diceElement.addEventListener('click', () => this.handleRollDice());
 
         window.addEventListener('resize', () => {
@@ -588,6 +592,7 @@ class UI {
         this.ghostTokens = {};
         this.isRollLocked = false;
         this.playerSelectorElement.style.display = 'none';
+        this.btnMapSelect.disabled = true;
         this.gameLogElement.value = '';
         
         this.renderBoard();
@@ -648,6 +653,121 @@ class UI {
         this.renderBoard();
         this.updateUI();
         this.playerSelectorElement.style.display = 'flex';
+        this.btnMapSelect.disabled = false;
+    }
+    
+    async handleMapSelect() {
+        if (this.game.gameState === 'playing') return;
+        
+        const maps = await this.loadMapList();
+        this.showMapSelectionModal(maps);
+    }
+    
+    async loadMapList() {
+        try {
+            const response = await fetch('map/');
+            if (!response.ok) {
+                throw new Error('Failed to load map directory');
+            }
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const links = doc.querySelectorAll('a[href$=".csv"]');
+            const maps = [];
+            
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                const name = href.replace('.csv', '');
+                maps.push({
+                    name: name,
+                    path: 'map/' + href
+                });
+            });
+            
+            maps.unshift({
+                name: '默认地图',
+                path: 'grid.csv'
+            });
+            
+            return maps;
+        } catch (error) {
+            console.error('Error loading map list:', error);
+            return [
+                { name: '默认地图', path: 'grid.csv' },
+                { name: 'grid1', path: 'map/grid1.csv' },
+                { name: 'grid2', path: 'map/grid2.csv' },
+                { name: 'grid3', path: 'map/grid3.csv' },
+                { name: 'grid4', path: 'map/grid4.csv' }
+            ];
+        }
+    }
+    
+    showMapSelectionModal(maps) {
+        this.hideMapSelectModal();
+        
+        const modal = document.createElement('div');
+        modal.className = 'map-select-modal';
+        
+        const currentPath = this.currentMapFile;
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>🗺️ 选择地图</h3>
+                <ul class="map-list">
+                    ${maps.map(map => `
+                        <li class="map-item ${map.path === currentPath ? 'selected' : ''}" data-path="${map.path}">
+                            <span class="map-name">${map.name}</span>
+                            ${map.path === currentPath ? '<span class="map-check">✓</span>' : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+                <div class="modal-buttons">
+                    <button class="btn-cancel" onclick="ui.hideMapSelectModal()">取消</button>
+                    <button class="btn-confirm" onclick="ui.confirmMapSelection()">确认选择</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        this.mapSelectModal = modal;
+        
+        const mapItems = modal.querySelectorAll('.map-item');
+        mapItems.forEach(item => {
+            item.addEventListener('click', () => {
+                mapItems.forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                const checkSpans = modal.querySelectorAll('.map-check');
+                checkSpans.forEach(s => s.remove());
+                const checkSpan = document.createElement('span');
+                checkSpan.className = 'map-check';
+                checkSpan.textContent = '✓';
+                item.appendChild(checkSpan);
+            });
+        });
+    }
+    
+    hideMapSelectModal() {
+        if (this.mapSelectModal) {
+            this.mapSelectModal.remove();
+            this.mapSelectModal = null;
+        }
+    }
+    
+    async confirmMapSelection() {
+        if (!this.mapSelectModal) return;
+        
+        const selectedItem = this.mapSelectModal.querySelector('.map-item.selected');
+        if (selectedItem) {
+            const mapPath = selectedItem.dataset.path;
+            if (mapPath !== this.currentMapFile) {
+                await loadMapFromFile(mapPath);
+                this.currentMapFile = mapPath;
+                this.renderBoard();
+                this.addLog(`已切换到地图: ${selectedItem.querySelector('.map-name').textContent}`);
+            }
+        }
+        
+        this.hideMapSelectModal();
     }
     
     showGhostSelection(player) {
