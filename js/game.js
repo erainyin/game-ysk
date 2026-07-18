@@ -24,6 +24,8 @@ class Game {
         this.currentRollStartPos = 0;
         this.aiPlayerIds = new Set();
         this.pendingTimeouts = [];
+        this.isAIMode = false;
+        this.humanPlayerIndex = -1;
     }
 
     setCallbacks(callbacks) {//设置回调函数
@@ -44,6 +46,11 @@ class Game {
 
     isAIPlayer(player) {//判断是否为AI玩家
         return !!player && this.aiPlayerIds.has(player.id);
+    }
+
+    setAIMode(isAIMode, humanPlayerIndex) {//设置AI模式
+        this.isAIMode = isAIMode;
+        this.humanPlayerIndex = humanPlayerIndex;
     }
 
     notify(message, type = 'info') {//通知玩家
@@ -618,6 +625,16 @@ class Game {
             this.onGameEnd && this.onGameEnd(winners[0]);
             this.notifyStateChange();
             return;
+        }
+        
+        if (this.isAIMode && this.humanPlayerIndex >= 0) {
+            const humanPlayer = this.players[this.humanPlayerIndex];
+            if (humanPlayer && humanPlayer.isDead) {
+                this.gameState = 'ended';
+                this.onGameEnd && this.onGameEnd(null);
+                this.notifyStateChange();
+                return;
+            }
         }
         
         const alivePlayers = this.players.filter(p => !p.isDead);

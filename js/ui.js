@@ -26,14 +26,14 @@ class UI {
         this.init();
     }
 
-    async init() {
+    async init() {//初始化UI
         this.setupEventListeners();
         await loadGridCSV();
         this.renderBoard();
         this.updateUI();
     }
 
-    setupEventListeners() {
+    setupEventListeners() {//设置事件监听器
         this.btnStart.addEventListener('click', () => this.handleStart());
         this.btnDice.addEventListener('click', () => this.handleRollDice());
         this.btnRestart.addEventListener('click', () => this.handleRestart());
@@ -66,7 +66,7 @@ class UI {
         });
     }
 
-    renderBoard() {
+    renderBoard() {//渲染游戏板
         this.boardElement.innerHTML = '';
 
         const totalCells = CONFIG.ROWS * CONFIG.COLS;
@@ -471,24 +471,20 @@ class UI {
             
             let statusText = '';
             if (player.isDead) {
-                statusText = '<span class="player-dead">💀 已死亡</span>';
+                statusText = `<span class="player-dead">${player.name}｜💀 已死亡</span>`;
             } else if (player.isWinner) {
-                statusText = '<span class="player-winner">🏆 获胜</span>';
+                statusText = `<span class="player-winner">${player.name}｜🏆 获胜</span>`;
             } else {
-                const hearts = '❤️'.repeat(player.health) + '🖤'.repeat(Math.max(0, 3 - player.health));
                 let ghostText = '';
                 if (player.hasGhost) {
-                    const ghostTypeText = player.ghostType === 1 ? '普通幽灵' : '贴身幽灵';
-                    const ghostCountText = player.ghostCount > 1 ? `x${player.ghostCount}` : '';
-                    ghostText = ` | 👻${ghostCountText} ${ghostTypeText}(${player.ghostHealth}血)`;
+                    const ghostTypeText = player.ghostType === 1 ? '普通' : '贴身';
+                    const ghostHearts = '🩸'.repeat(player.ghostHealth);
+                    ghostText = `👻${ghostTypeText}${ghostHearts}`;
                 }
-                statusText = `<span>位置: ${player.position} | 血量: ${hearts}${ghostText}</span>`;
+                statusText = `<span>${player.name}：📍${player.position}🩸${player.health}${ghostText}</span>`;
             }
             
-            tag.innerHTML = `
-                <span>${player.name}</span>
-                ${statusText}
-            `;
+            tag.innerHTML = statusText;
             
             if (player.id === this.game.currentPlayerIndex && this.game.gameState === 'playing') {
                 tag.classList.add('active');
@@ -576,6 +572,7 @@ class UI {
         
         this.game = new Game(playerCount);
         this.game.setAIPlayers(aiMode ? Array.from({ length: playerCount }, (_, index) => index).filter(index => index !== playerIndex) : []);
+        this.game.setAIMode(aiMode, playerIndex);
         this.game.setCallbacks({
             onStateChange: (state) => this.onStateChange(state),
             onPlayerMove: (player, oldPosition, newPosition, steps) => this.onPlayerMove(player, oldPosition, newPosition, steps),
@@ -904,14 +901,24 @@ class UI {
     }
 
     onGameEnd(player) {
-        this.gameStatusElement.textContent = `🎉 ${player.name} 获胜！`;
         this.btnDice.disabled = true;
         this.btnStart.disabled = true;
-        this.addLog(`${player.name}到达终点，游戏胜利！`);
         
-        setTimeout(() => {
-            alert(`${player.name} 获胜！恭喜！`);
-        }, 500);
+        if (!player) {
+            this.gameStatusElement.textContent = '💀 你输了！';
+            this.addLog('你死亡了，游戏结束！');
+            
+            setTimeout(() => {
+                alert('你输了！');
+            }, 500);
+        } else {
+            this.gameStatusElement.textContent = `🎉 ${player.name} 获胜！`;
+            this.addLog(`${player.name}到达终点，游戏胜利！`);
+            
+            setTimeout(() => {
+                alert(`${player.name} 获胜！恭喜！`);
+            }, 500);
+        }
     }
 
     showNotification(message, type) {
