@@ -23,6 +23,7 @@ class Game {
         this.roundCount = 1;
         this.currentRollStartPos = 0;
         this.aiPlayerIds = new Set();
+        this.pendingTimeouts = [];
     }
 
     setCallbacks(callbacks) {//设置回调函数
@@ -88,10 +89,25 @@ class Game {
     }
 
     restart() {//重新开始游戏
+        this.pendingTimeouts.forEach(id => clearTimeout(id));
+        this.pendingTimeouts = [];
         this.gameState = 'waiting';
         this.currentPlayerIndex = 0;
         this.players = [];
+        this.roundCount = 1;
+        this.currentRollStartPos = 0;
+        this.lastRollValue = 0;
+        this.pendingRollValue = 0;
+        this.pendingRollPlayer = null;
+        this.isSelectingGhost = false;
+        this.isSelectingMoveTarget = false;
         this.notifyStateChange();
+    }
+
+    setTimeout(fn, delay) {
+        const id = window.setTimeout(fn, delay);
+        this.pendingTimeouts.push(id);
+        return id;
     }
 
     getCurrentPlayer() {//获取当前玩家
@@ -124,7 +140,7 @@ class Game {
             if (rollingPlayer.hasGhost && rollingPlayer.ghostType === 1) {
                 this.isSelectingMoveTarget = true;
                 if (this.isAIPlayer(rollingPlayer)) {
-                    setTimeout(() => {
+                    this.setTimeout(() => {
                         this.selectMoveTarget(Math.random() < 0.5 ? 'player' : 'ghost');
                     }, 400);
                 } else {
@@ -192,7 +208,7 @@ class Game {
             this.onPlayerMove && this.onPlayerMove(player, startPos, startPos, 0);
         }
         
-        setTimeout(() => {
+        this.setTimeout(() => {
             if (player.isDead || player.isWinner) return;
             
             const isForward = endPos >= startPos;
@@ -233,7 +249,7 @@ class Game {
             this.onPlayerMove && this.onPlayerMove(player, startPos, startPos, 0);
         }
         
-        setTimeout(() => {
+        this.setTimeout(() => {
             if (player.isDead || !player.hasGhost) return;
             
             const isForward = endPos >= startPos;
@@ -421,7 +437,7 @@ class Game {
             case 'ghost':
                 this.isSelectingGhost = true;
                 if (this.isAIPlayer(player)) {
-                    setTimeout(() => {
+                    this.setTimeout(() => {
                         const ghostType = Math.random() < 0.5 ? 1 : 2;
                         this.selectGhostType(player, ghostType);
                     }, 400);

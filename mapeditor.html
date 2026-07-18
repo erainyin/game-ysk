@@ -1461,6 +1461,7 @@
             }
 
             async function selectMapFile(fileName, filePath) {
+                console.log('[MapEditor] selectMapFile called:', { fileName, filePath });
                 mapList.querySelectorAll('.map-item').forEach(el => el.classList.remove('active'));
                 const activeItem = Array.from(mapList.children).find(el => el.textContent.includes(fileName));
                 if (activeItem) activeItem.classList.add('active');
@@ -1469,14 +1470,19 @@
                 mapConfirm.disabled = true;
 
                 try {
+                    console.log('[MapEditor] fetching file:', filePath);
                     const response = await fetch(filePath);
+                    console.log('[MapEditor] fetch response:', { status: response.status, ok: response.ok });
                     if (!response.ok) {
                         alert('无法读取文件');
                         return;
                     }
                     loadedMapContent = await response.text();
+                    console.log('[MapEditor] file content loaded, length:', loadedMapContent.length);
+                    console.log('[MapEditor] first 200 chars:', loadedMapContent.substring(0, 200));
                     const lines = loadedMapContent.split('\n').filter(line => line.trim() !== '');
                     loadedMapCellCount = lines.length - 1;
+                    console.log('[MapEditor] lines count:', lines.length, 'cell count:', loadedMapCellCount);
                     mapCellCount.textContent = loadedMapCellCount;
                     mapCellCount.style.backgroundColor = '#3b82f6';
                     mapCellCount.style.color = '#fff';
@@ -1492,7 +1498,9 @@
                     }
 
                     mapConfirm.disabled = !checkMapSizeValid();
+                    console.log('[MapEditor] mapConfirm disabled:', mapConfirm.disabled, 'cellCount:', loadedMapCellCount, 'rowInput:', rowInput.value, 'colInput:', colInput.value);
                 } catch (error) {
+                    console.error('[MapEditor] selectMapFile error:', error);
                     alert('读取文件失败：' + error.message);
                 }
             }
@@ -1528,7 +1536,6 @@
             function closeMapModal() {
                 mapOverlay.classList.remove('active');
                 mapCard.style.display = 'none';
-                selectedMapFile = null;
                 loadedMapContent = '';
                 loadedMapCellCount = 0;
                 mapCellCount.textContent = '0';
@@ -1538,28 +1545,46 @@
             }
 
             function confirmMapSelection() {
-                if (!selectedMapFile || !loadedMapContent) return;
+                console.log('[MapEditor] confirmMapSelection called');
+                console.log('[MapEditor] selectedMapFile:', selectedMapFile);
+                console.log('[MapEditor] loadedMapContent length:', loadedMapContent ? loadedMapContent.length : 0);
+                if (!selectedMapFile || !loadedMapContent) {
+                    console.log('[MapEditor] confirmMapSelection: selectedMapFile or loadedMapContent is empty');
+                    return;
+                }
                 if (!checkMapSizeValid()) {
+                    console.log('[MapEditor] confirmMapSelection: size not valid');
                     alert('行列数乘积不等于格子数，请重新输入');
                     return;
                 }
 
                 const rows = parseInt(rowInput.value);
                 const cols = parseInt(colInput.value);
+                console.log('[MapEditor] rows:', rows, 'cols:', cols);
                 
-                dataTextArea.value = loadedMapContent;
                 rowCount = rows;
                 colCount = cols;
                 totalCells = rows * cols;
-                cellData.clear();
                 clearSelection();
 
+                console.log('[MapEditor] calling renderGrid');
                 renderGrid(rows, cols);
+
+                console.log('[MapEditor] setting dataTextArea value, length:', loadedMapContent.length);
+                dataTextArea.value = loadedMapContent;
+                console.log('[MapEditor] dataTextArea value length after set:', dataTextArea.value.length);
+                
+                console.log('[MapEditor] calling syncFromTextArea');
                 syncFromTextArea();
+                console.log('[MapEditor] cellData size after sync:', cellData.size);
+
+                updateAllCells();
                 updateTextArea();
+                
                 setTimeout(() => recalcCellSizes(rows, cols), 50);
                 
                 closeMapModal();
+                console.log('[MapEditor] confirmMapSelection completed');
             }
 
             function showMapSelectionModal() {
@@ -1581,6 +1606,7 @@
                 colCount = cols;
                 cellData.clear();
                 clearSelection();
+                selectedMapFile = null;
 
                 renderGrid(rows, cols);
                 setTimeout(() => recalcCellSizes(rows, cols), 50);
@@ -1691,11 +1717,18 @@
 
             // ---- 从文本框同步到格子 ----
             function syncFromTextArea() {
+                console.log('[MapEditor] syncFromTextArea called, totalCells:', totalCells);
                 const text = dataTextArea.value;
+                console.log('[MapEditor] text length:', text.length);
                 const lines = text.split('\n').filter(line => line.trim() !== '');
-                if (lines.length < 2) return;
+                console.log('[MapEditor] lines count:', lines.length);
+                if (lines.length < 2) {
+                    console.log('[MapEditor] syncFromTextArea: not enough lines');
+                    return;
+                }
 
                 const header = lines[0].split(',').map(s => s.trim());
+                console.log('[MapEditor] header:', header);
                 let idxCol = -1,
                     typeCol = -1,
                     valCol = -1;

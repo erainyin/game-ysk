@@ -78,6 +78,9 @@ class Player {
 
     changeGhostHealth(delta) {
         this.ghostHealth += delta;
+        if (this.ghostHealth > this.maxGhostCount) {
+            this.ghostHealth = this.maxGhostCount;
+        }
         if (this.ghostHealth <= 0) {
             this.ghostHealth = 0;
             this.hasGhost = false;

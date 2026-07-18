@@ -743,12 +743,12 @@ a.btn-mapeditor {
 }
 
 .btn-map-select {
-    padding: 8px 16px;
-    font-size: 14px;
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 1px solid rgba(255,255,255,.5);
+    background: rgba(0,0,0,.2);
     color: white;
-    border: none;
-    border-radius: 8px;
+    border-radius: 25px;
     cursor: pointer;
     transition: all 0.3s ease;
 }

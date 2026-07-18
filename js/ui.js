@@ -528,7 +528,7 @@ class UI {
     }
 
     async handleStart() {
-        await loadGridCSV();
+        await loadGridCSV(this.currentMapFile);
         const playerCount = this.getPlayerCount();
         this.showSelectPlayerModal(playerCount);
     }
@@ -650,6 +650,7 @@ class UI {
         this.playerTokens = {};
         this.ghostTokens = {};
         this.isRollLocked = false;
+        this.gameLogElement.value = '';
         this.renderBoard();
         this.updateUI();
         this.playerSelectorElement.style.display = 'flex';
