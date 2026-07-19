@@ -669,15 +669,44 @@ class UI {
     }
 
     handleRestart() {
+        this.showRestartConfirmModal();
+    }
+    
+    showRestartConfirmModal() {
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>是否要重新开始游戏？</h3>
+                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+                    <button class="btn-restart-confirm" onclick="ui.confirmRestart()">是，重新开始</button>
+                    <button class="btn-restart-cancel" onclick="ui.hideRestartConfirmModal()">继续游戏</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        this.restartConfirmModal = modal;
+    }
+    
+    hideRestartConfirmModal() {
+        if (this.restartConfirmModal) {
+            this.restartConfirmModal.remove();
+            this.restartConfirmModal = null;
+        }
+    }
+    
+    confirmRestart() {
+        this.hideRestartConfirmModal();
         this.game.restart();
         this.playerTokens = {};
         this.ghostTokens = {};
         this.isRollLocked = false;
         this.gameLogElement.value = '';
-        this.renderBoard();
-        this.updateUI();
         this.playerSelectorElement.style.display = 'flex';
         this.btnMapSelect.disabled = false;
+        this.showSelectPlayerModal(2);
     }
     
     async handleMapSelect() {
@@ -1022,9 +1051,10 @@ class UI {
         switch (state.state) {
             case 'waiting':
                 this.btnStart.disabled = false;
+                this.btnStart.textContent = '开始游戏';
                 this.setRollControlsEnabled(false);
                 this.gameStatusElement.textContent = '点击开始游戏';
-                this.playerIndicatorElement.textContent = '当前玩家：';
+                this.playerIndicatorElement.textContent = '点击开始游戏';
                 this.playersListElement.innerHTML = '';
                 this.diceValueElement.textContent = '等待掷骰';
                 this.diceElement.textContent = '🎲';
@@ -1034,6 +1064,7 @@ class UI {
                 
             case 'playing':
                 this.btnStart.disabled = true;
+                this.btnStart.textContent = '游戏进行中';
                 this.gameStatusElement.textContent = '游戏进行中';
                 if (state.currentPlayer) {
                     this.playerIndicatorElement.textContent = `当前玩家：${state.currentPlayer.name}`;
@@ -1050,6 +1081,7 @@ class UI {
                 
             case 'ended':
                 this.btnStart.disabled = false;
+                this.btnStart.textContent = '开始游戏';
                 this.btnDice.disabled = true;
                 break;
         }

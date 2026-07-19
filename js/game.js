@@ -627,16 +627,6 @@ class Game {
             return;
         }
         
-        if (this.isAIMode && this.humanPlayerIndex >= 0) {
-            const humanPlayer = this.players[this.humanPlayerIndex];
-            if (humanPlayer && humanPlayer.isDead) {
-                this.gameState = 'ended';
-                this.onGameEnd && this.onGameEnd(null);
-                this.notifyStateChange();
-                return;
-            }
-        }
-        
         const alivePlayers = this.players.filter(p => !p.isDead);
         
         if (alivePlayers.length === 0) {
@@ -647,6 +637,15 @@ class Game {
             this.gameState = 'ended';
             this.onGameEnd && this.onGameEnd(alivePlayers[0]);
             this.notifyStateChange();
+        } else if (this.isAIMode && this.humanPlayerIndex >= 0) {
+            const humanPlayer = this.players[this.humanPlayerIndex];
+            if (humanPlayer && humanPlayer.isDead) {
+                this.gameState = 'ended';
+                this.onGameEnd && this.onGameEnd(null);
+                this.notifyStateChange();
+                return;
+            }
+            this.nextTurn();
         } else {
             this.nextTurn();
         }
