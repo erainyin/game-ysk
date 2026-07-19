@@ -485,6 +485,14 @@ class UI {
             }
             
             tag.innerHTML = statusText;
+            tag.setAttribute('data-player-id', player.id);
+            
+            if (player.id === this.playerIndex) {
+                tag.classList.add('is-self');
+            } else {
+                tag.classList.remove('is-self');
+                tag.onclick = (e) => this.showPlayerInfo(e, player);
+            }
             
             if (player.id === this.game.currentPlayerIndex && this.game.gameState === 'playing') {
                 tag.classList.add('active');
@@ -525,8 +533,7 @@ class UI {
 
     async handleStart() {
         await loadGridCSV(this.currentMapFile);
-        const playerCount = this.getPlayerCount();
-        this.showSelectPlayerModal(playerCount);
+        this.showSelectPlayerModal(2);
     }
     
     showSelectPlayerModal(playerCount) {
@@ -535,6 +542,33 @@ class UI {
         const modal = document.createElement('div');
         modal.className = 'selection-modal';
         
+        let buttonsHtml = this.renderPlayerButtons(playerCount);
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>选择你要扮演的角色</h3>
+                <div class="player-count-selector">
+                    <label>玩家数量：</label>
+                    <button class="player-count-btn ${playerCount === 2 ? 'active' : ''}" data-count="2" onclick="ui.updatePlayerCount(2)">2人</button>
+                    <button class="player-count-btn ${playerCount === 3 ? 'active' : ''}" data-count="3" onclick="ui.updatePlayerCount(3)">3人</button>
+                    <button class="player-count-btn ${playerCount === 4 ? 'active' : ''}" data-count="4" onclick="ui.updatePlayerCount(4)">4人</button>
+                </div>
+                <div class="ai-checkbox-container">
+                    <label>
+                        <input type="checkbox" id="ai-mode">
+                        <span class="checkbox-text">人机大战（其他玩家自动行动）</span>
+                    </label>
+                </div>
+                <div class="selection-buttons" id="selection-buttons">
+                    ${buttonsHtml}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        this.selectionModal = modal;
+    }
+    
+    renderPlayerButtons(playerCount) {
         let buttonsHtml = '';
         for (let i = 0; i < playerCount; i++) {
             const color = CONFIG.PLAYER_COLORS[i];
@@ -545,23 +579,15 @@ class UI {
                 </button>
             `;
         }
-        
-        modal.innerHTML = `
-            <div class="modal-content">
-                <h3>选择你要扮演的角色</h3>
-                <div class="selection-buttons">
-                    ${buttonsHtml}
-                </div>
-                <div class="ai-checkbox-container">
-                    <label>
-                        <input type="checkbox" id="ai-mode">
-                        <span class="checkbox-text">人机大战（其他玩家自动行动）</span>
-                    </label>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        this.selectionModal = modal;
+        return buttonsHtml;
+    }
+    
+    updatePlayerCount(count) {
+        const selectionButtons = document.getElementById('selection-buttons');
+        const playerCountBtns = document.querySelectorAll('.player-count-btn');
+        playerCountBtns.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        selectionButtons.innerHTML = this.renderPlayerButtons(count);
     }
     
     handleSelectPlayer(playerIndex, playerCount, aiMode = false) {
@@ -890,6 +916,50 @@ class UI {
         this.renderPlayersList();
     }
 
+    showPlayerInfo(e, player) {
+        e.stopPropagation();
+        
+        this.hidePlayerInfo();
+        
+        const tooltip = document.createElement('div');
+        tooltip.className = 'player-info-tooltip';
+        tooltip.id = 'player-info-tooltip';
+        
+        let statusText = '';
+        if (player.isDead) {
+            statusText = `<span class="player-dead">${player.name}｜💀 已死亡</span>`;
+        } else if (player.isWinner) {
+            statusText = `<span class="player-winner">${player.name}｜🏆 获胜</span>`;
+        } else {
+            let ghostText = '';
+            if (player.hasGhost) {
+                const ghostTypeText = player.ghostType === 1 ? '普通' : '贴身';
+                const ghostHearts = '🩸'.repeat(player.ghostHealth);
+                ghostText = `｜👻：${ghostTypeText}（${ghostHearts}）`;
+            }
+            statusText = `<span>${player.name}｜📍：${player.position}｜🩸：${player.health}${ghostText}</span>`;
+        }
+        
+        tooltip.innerHTML = statusText;
+        tooltip.style.borderColor = player.color;
+        
+        const rect = e.target.getBoundingClientRect();
+        tooltip.style.left = `${rect.left}px`;
+        tooltip.style.top = `${rect.bottom + 10}px`;
+        
+        document.body.appendChild(tooltip);
+        this.playerInfoTooltip = tooltip;
+        
+        document.addEventListener('click', this.hidePlayerInfo.bind(this), { once: true });
+    }
+    
+    hidePlayerInfo() {
+        if (this.playerInfoTooltip) {
+            this.playerInfoTooltip.remove();
+            this.playerInfoTooltip = null;
+        }
+    }
+    
     onDiceRoll(value, player) {
         const p = player || this.game.getCurrentPlayer();
         this.diceValueElement.textContent = `${p.name}向前走${value}步`;

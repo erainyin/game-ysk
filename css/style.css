@@ -135,12 +135,18 @@ body {
 }
 
 .player-selector {
+    display: none;
+}
+
+.player-count-selector {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
 }
 
-.player-selector label {
+.player-count-selector label {
     font-weight: bold;
     color: #333;
 }
@@ -181,7 +187,7 @@ body {
 }
 
 .player-tag.active {
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 4px rgb(0 255 88);
     transform: scale(1.1);
 }
 
@@ -197,6 +203,21 @@ body {
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
+}
+
+.player-info-tooltip {
+    position: fixed;
+    background: white;
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-width: 250px;
+    pointer-events: none;
 }
 
 .game-status {
@@ -302,7 +323,7 @@ body {
 }
 
 .cell.danger-zone {
-    box-shadow: 0 0 0 3px #f39c12;
+    box-shadow: 0 0 0 2px #f39c12;
 }
 
 .bomb-animation {
@@ -664,7 +685,7 @@ a.btn-mapeditor {
 }
 
 .ai-checkbox-container {
-    margin-top: 25px;
+    margin-bottom: 25px;
     text-align: center;
 }
 
@@ -689,30 +710,54 @@ a.btn-mapeditor {
 }
 
 @media (max-width: 768px) {
+    body{
+        padding: 0px;
+    }
+    .game-container {
+        padding: 0 0 20px 0;
+        background: none;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        outline: none;
+    }
     .cell {
         width: 35px;
         height: 35px;
         font-size: 10px;
     }
-    
+    .board-container{margin-bottom:0;}
+    .board {
+        padding: 0px;
+        border-radius: 0;
+        background: none;
+    }
     .game-title {
         font-size: 1.8rem;
     }
-    
+    .game-status{
+        display: none;
+    }
     .header-controls {
         position: static;
-        justify-content: center;
-        margin-bottom: 15px;
+        justify-content: left;
+        padding: 10px;
+        background: rgba(0, 0, 0, .3);
     }
     
     .game-info {
         flex-direction: column;
-        gap: 10px;
+        background: none;
+        margin-bottom: 0;
+        align-items: flex-start;
     }
-    
+    .player-indicator{
+        color:#ffffff;
+    }
     .main-content {
         flex-direction: column;
         align-items: center;
+        gap:20px;
     }
     
     .side-panel {
@@ -721,24 +766,87 @@ a.btn-mapeditor {
         justify-content: center;
         align-items: center;
         min-width: auto;
+        gap:10px;
     }
     
     button {
         padding: 10px 20px;
         font-size: 0.9rem;
     }
-    
-    .dice {
-        font-size: 4rem;
+    .btn-dice{
+         position: fixed;
+         top:10px;
+         right:10px;
     }
-    
+    .dice-container{
+        gap: 10px;
+        flex-direction: row;
+        position: fixed;
+        top:70px;
+        right:10px;
+    }
+    .dice {
+        font-size: 32px;
+        color:#ffffff;
+    }
+    .dice-value{
+        font-size: 14px;
+        color:#ffffff;
+    }
+    .game-log{
+        height:80px;
+    }
     .selection-buttons {
         flex-direction: column;
     }
-    
+
     .ghost-btn, .move-btn {
         min-width: auto;
         padding: 20px 30px;
+    }
+    
+    .header-controls .btn-start,
+    .header-controls .btn-restart,
+    .header-controls .btn-mapeditor,
+    .header-controls .btn-map-select {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        font-size: 1.2rem;
+        text-indent: -9999px;
+        position: relative;
+    }
+    
+    .header-controls .btn-start::before,
+    .header-controls .btn-restart::before,
+    .header-controls .btn-mapeditor::before,
+    .header-controls .btn-map-select::before {
+        content: attr(data-emoji);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-indent: 0;
+    }
+    .players-list{
+        gap:5px;
+    }
+    .players-list .player-tag:not(.is-self) {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0;
+        cursor: pointer;
+    }
+    
+    .players-list .player-tag.is-self {
+        width: auto;
+        height: auto;
+        padding: 3px 6px;
+        border-radius: 20px;
+        font-size: 12px;
+        line-height: 12px;
     }
 }
 
@@ -857,4 +965,20 @@ a.btn-mapeditor {
 .map-select-modal .modal-buttons .btn-cancel {
     background: #ecf0f1;
     color: #2c3e50;
+}
+.selection-buttons{
+    gap: 10px;
+}
+.player-select-btn {
+    font-size: 14px;
+    padding: 10px 12px;
+    flex-direction: row;
+    text-align: center;
+
+}
+.player-select-name {
+    font-size: 16px;
+}
+.player-select-icon {
+    font-size: 16px;
 }
