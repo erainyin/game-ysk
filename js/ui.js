@@ -13,6 +13,7 @@ class UI {
         this.notificationsElement = document.getElementById('notifications');
         this.playerSelectorElement = document.getElementById('player-selector');
         this.gameLogElement = document.getElementById('game-log');
+        this.logData = {};
         this.cellInfoElement = document.getElementById('cell-info');
         this.playerCount = 2;
         this.isRollLocked = false;
@@ -616,7 +617,8 @@ class UI {
         this.isRollLocked = false;
         this.playerSelectorElement.style.display = 'none';
         this.btnMapSelect.disabled = true;
-        this.gameLogElement.value = '';
+        this.logData = {};
+        this.gameLogElement.innerHTML = '';
         
         this.renderBoard();
         
@@ -703,7 +705,8 @@ class UI {
         this.playerTokens = {};
         this.ghostTokens = {};
         this.isRollLocked = false;
-        this.gameLogElement.value = '';
+        this.logData = {};
+        this.gameLogElement.innerHTML = '';
         this.playerSelectorElement.style.display = 'flex';
         this.btnMapSelect.disabled = false;
         this.showSelectPlayerModal(2);
@@ -909,21 +912,64 @@ class UI {
     }
 
     addLog(logInfo) {
-        let displayText = '';
-        
         if (typeof logInfo === 'string') {
-            displayText = logInfo;
+            if (!this.logData['system']) {
+                this.logData['system'] = [];
+            }
+            this.logData['system'].unshift(logInfo);
         } else {
-            const { round, player, message, isMainRoll, startPos, rollValue } = logInfo;
+            const { round, player, message } = logInfo;
+            const roundKey = `round_${round}`;
             
-            if (isMainRoll) {
-                displayText = `[第${round}回合，${player}] ${message}`;
-            } else {
-                displayText = `[第${round}回合，${player}] ${message}`;
+            if (!this.logData[roundKey]) {
+                this.logData[roundKey] = {
+                    round: round,
+                    players: {}
+                };
+            }
+            
+            if (!this.logData[roundKey].players[player]) {
+                this.logData[roundKey].players[player] = [];
+            }
+            
+            this.logData[roundKey].players[player].unshift(message);
+        }
+        
+        this.renderLog();
+    }
+    
+    renderLog() {
+        let html = '';
+        
+        const roundKeys = Object.keys(this.logData).filter(key => key.startsWith('round_'));
+        roundKeys.sort((a, b) => parseInt(b.replace('round_', '')) - parseInt(a.replace('round_', '')));
+        
+        for (const key of roundKeys) {
+            const roundData = this.logData[key];
+            html += `<div class="round-group">`;
+            html += `<div class="round-header">[第${roundData.round}回合]</div>`;
+            html += `<div class="player-logs">`;
+            
+            const playerNames = Object.keys(roundData.players);
+            playerNames.sort();
+            
+            for (const playerName of playerNames) {
+                const messages = roundData.players[playerName];
+                for (const msg of messages) {
+                    html += `<div class="player-log-item"><span class="player-name">${playerName}：</span><span class="log-message">${msg}</span></div>`;
+                }
+            }
+            
+            html += `</div></div>`;
+        }
+        
+        if (this.logData['system'] && this.logData['system'].length > 0) {
+            for (const msg of this.logData['system']) {
+                html += `<div style="color: #28a745; font-weight: 600;">${msg}</div>`;
             }
         }
         
-        this.gameLogElement.value = displayText + '\n' + this.gameLogElement.value;
+        this.gameLogElement.innerHTML = html;
     }
 
     onStateChange(state) {

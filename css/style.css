@@ -467,8 +467,52 @@ a.btn-mapeditor {
     font-family: monospace;
     background: #f8f9fa;
     color: #333;
-    resize: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     line-height: 1.5;
+}
+
+.round-group {
+    background: #e9ecef;
+    border-radius: 6px;
+    padding: 8px;
+    border-left: 3px solid #495057;
+}
+
+.round-header {
+    font-weight: bold;
+    color: #495057;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.player-logs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.player-log-item {
+    padding-left: 16px;
+    position: relative;
+}
+
+.player-log-item::before {
+    content: '-';
+    position: absolute;
+    left: 4px;
+    color: #6c757d;
+}
+
+.player-name {
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.log-message {
+    color: #495057;
 }
 
 .dice {
