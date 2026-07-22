@@ -5,7 +5,6 @@ const FUNCTION_MAP = {
   'BL': { type: 'blood', icon: '❤️', bgColor: '#ffebee', direction: null },
   'FF': { type: 'fastforward', icon: '➡️', bgColor: '#e8f5e9', direction: 'forward' },
   'FB': { type: 'fastback', icon: '➡️', bgColor: '#d7ccc8', direction: 'backward' },
-  'FL': { type: 'flashforward', icon: '🚀', bgColor: '#e1f5fe', direction: 'forward' },
   'FLF': { type: 'flashforward', icon: '🚀', bgColor: '#e1f5fe', direction: 'forward' },
   'FLB': { type: 'flashback', icon: '🚀', bgColor: '#eceff1', direction: 'backward' },
   'BB': { type: 'bomb', icon: '💣', bgColor: '#fce4ec', direction: null },
@@ -14,7 +13,8 @@ const FUNCTION_MAP = {
   'CR': { type: 'changeorder', icon: '🔀', bgColor: '#fce4ec', direction: null },
   'BH': { type: 'blackhole', icon: '🕳️', bgColor: '#666666', direction: null },
   'TO': { type: 'goto', icon: '🌀', bgColor: '#fff3e0', direction: null },
-  'GST': { type: 'ghost', icon: '👻', bgColor: '#f3e5f5', direction: null }
+  'GST': { type: 'ghost', icon: '👻', bgColor: '#f3e5f5', direction: null },
+  'P': { type: 'pause', icon: '⏸️', bgColor: '#fff9c4', direction: null }
 };
 
 function parseCSV(csv) {
@@ -154,14 +154,15 @@ PROPERTY_CONFIG = {
   fastforward: { name: '加速前进', icon: '⚡', bgColor: '#e8f5e9', description: 'x为变化量，只有正值，为额外向前移动的步数' },
   fastback: { name: '加速后退', icon: '⬅️', bgColor: '#d7ccc8', description: 'x为变化量，只有正值，为额外向后移动的步数' },
   flashforward: { name: '超速前进', icon: '🚀', bgColor: '#e1f5fe', description: 'x为变化量，踩到后再向前移动当前掷骰子数量x倍的格子' },
-  flashback: { name: '超速后退', icon: '🔮', bgColor: '#eceff1', description: 'x为变化量，为额外向后移动的步数' },
+  flashback: { name: '超速后退', icon: '🔮', bgColor: '#eceff1', description: 'x为变化量，踩到后再向后移动当前掷骰子数量x倍的格子' },
   bomb: { name: '炸弹爆炸', icon: '💣', bgColor: '#fce4ec', description: 'x为爆炸范围，以格子为中心，前后各x格范围内的所有玩家受到伤害' },
   diediedie: { name: '死亡陷阱', icon: '💀', bgColor: '#333', description: '无变量，玩家踩到直接死亡' },
   undie: { name: '不死守护', icon: '🛡️', bgColor: '#e0f7fa', description: 'x为不死回合数，回合数内踩到DDD可不死' },
   changeorder: { name: '顺序变换', icon: '🔀', bgColor: '#fce4ec', description: '无变量，掷骰子顺序反转' },
   blackhole: { name: '黑洞', icon: '🕳️', bgColor: '#666666', description: 'x为黑洞编号，踩到后移动到当前骰子数对应的黑洞' },
   goto: { name: '格子跳转', icon: '🌀', bgColor: '#fff3e0', description: 'x为格子编号，直接跳转到对应格子' },
-  ghost: { name: '幽灵', icon: '👻', bgColor: '#f3e5f5', description: '踩到后可召唤幽灵' }
+  ghost: { name: '幽灵', icon: '👻', bgColor: '#f3e5f5', description: '踩到后可召唤幽灵' },
+  pause: { name: '暂停', icon: '⏸️', bgColor: '#fff9c4', description: 'x为暂停回合数，玩家将跳过x个回合' }
 };
 
 let currentMapFile = 'grid.csv';
