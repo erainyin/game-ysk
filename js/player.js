@@ -18,6 +18,8 @@ class Player {
         this.ghostPosition = 1;
         this.ghostCount = 0;
         this.maxGhostCount = 3;
+        this.skin = null;
+        this.speedBoostRemainingTurns = 0;
     }
 
     reset() {
@@ -35,6 +37,30 @@ class Player {
         this.ghostHealth = 0;
         this.ghostPosition = 1;
         this.ghostCount = 0;
+        this.skin = null;
+        this.speedBoostRemainingTurns = 0;
+    }
+
+    setSkin(skin) {
+        if (skin && skin.id === 'default') {
+            this.skin = null;
+            return;
+        }
+
+        this.skin = skin;
+
+        if (skin) {
+            skin.effects.forEach(effect => {
+                switch (effect.type) {
+                    case 'extra_health':
+                        this.health += effect.params.amount;
+                        break;
+                    case 'speed_boost':
+                        this.speedBoostRemainingTurns = effect.params.duration;
+                        break;
+                }
+            });
+        }
     }
 
     moveTo(position) {

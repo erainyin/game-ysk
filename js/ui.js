@@ -18,6 +18,7 @@ class UI {
         this.playerCount = 2;
         this.isRollLocked = false;
         this.currentMapFile = 'grid.csv';
+        this.playerSkins = {};
         
         this.game = new Game(2);
         this.playerTokens = {};
@@ -275,9 +276,20 @@ class UI {
                 token = document.createElement('div');
                 token.className = 'player-token';
                 token.id = `player-${player.id}-token`;
-                token.style.backgroundColor = player.color;
                 this.playerTokens[player.id] = token;
                 this.boardElement.appendChild(token);
+            }
+            
+            token.style.backgroundColor = player.color;
+            
+            if (player.skin && player.skin.id !== 'default') {
+                const skinIconPath = skinSystem.getIconPath(player.skin.id);
+                token.style.backgroundImage = `url(${skinIconPath})`;
+                token.style.backgroundSize = '70%';
+                token.style.backgroundPosition = 'center';
+                token.style.backgroundRepeat = 'no-repeat';
+            } else {
+                token.style.backgroundImage = '';
             }
 
             const group = positionGroups[player.position];
@@ -470,6 +482,12 @@ class UI {
                 tag.style.transition = 'none';
             }
             
+            let skinIcon = '';
+            if (player.skin && player.skin.id !== 'default') {
+                const skinIconPath = skinSystem.getIconPath(player.skin.id);
+                skinIcon = `<img class="skin-icon-mini" src="${skinIconPath}" alt="${player.skin.name}">`;
+            }
+            
             let statusText = '';
             if (player.isDead) {
                 statusText = `<span class="player-dead">${player.name}｜💀 已死亡</span>`;
@@ -482,7 +500,7 @@ class UI {
                     const ghostHearts = '🩸'.repeat(player.ghostHealth);
                     ghostText = `👻${ghostTypeText}${ghostHearts}`;
                 }
-                statusText = `<span>${player.name}：📍${player.position}🩸${player.health}${ghostText}</span>`;
+                statusText = `<span>${skinIcon}${player.name}：📍${player.position}🩸${player.health}${ghostText}</span>`;
             }
             
             tag.innerHTML = statusText;
@@ -567,6 +585,8 @@ class UI {
         `;
         document.body.appendChild(modal);
         this.selectionModal = modal;
+        
+        this.bindSkinSelectionEvents();
     }
     
     renderPlayerButtons(playerCount) {
@@ -574,13 +594,93 @@ class UI {
         for (let i = 0; i < playerCount; i++) {
             const color = CONFIG.PLAYER_COLORS[i];
             buttonsHtml += `
-                <button class="player-select-btn" style="background: ${color};" onclick="ui.handleSelectPlayer(${i}, ${playerCount}, document.getElementById('ai-mode').checked)">
-                    <span class="player-select-icon">👤</span>
-                    <span class="player-select-name">玩家${i + 1}</span>
-                </button>
+                <div class="player-selection-item">
+                    <button class="player-select-btn" style="background: ${color};" onclick="ui.handleSelectPlayer(${i}, ${playerCount}, document.getElementById('ai-mode').checked)">
+                        <span class="player-select-icon">👤</span>
+                        <span class="player-select-name">玩家${i + 1}</span>
+                    </button>
+                    <div class="skin-selector">
+                        <div class="skin-selector-label">选择皮肤：</div>
+                        <div class="skin-cards">
+                            ${this.renderSkinCards(i)}
+                        </div>
+                    </div>
+                </div>
             `;
         }
         return buttonsHtml;
+    }
+    
+    renderSkinCards(playerIndex) {
+        const skins = skinSystem.getAllSkins();
+        const defaultSkin = skins.find(s => s.id === 'default');
+        const selectedSkinId = this.playerSkins[playerIndex] || 'default';
+        const selectedSkin = skins.find(s => s.id === selectedSkinId);
+        
+        let html = `
+            <div class="skin-icons">
+        `;
+        
+        skins.forEach(skin => {
+            const isSelected = this.playerSkins[playerIndex] === skin.id;
+            const iconPath = skinSystem.getIconPath(skin.id);
+            html += `
+                <div class="skin-icon ${isSelected ? 'selected' : ''}" 
+                     data-player="${playerIndex}" 
+                     data-skin="${skin.id}">
+                    <img src="${iconPath}" alt="${skin.name}">
+                </div>
+            `;
+        });
+        
+        html += `
+            </div>
+            <div class="skin-detail" id="skin-detail-${playerIndex}">
+                <div class="skin-detail-icon">
+                    <img src="${skinSystem.getIconPath(selectedSkinId)}" alt="${selectedSkin.name}">
+                </div>
+                <div class="skin-detail-info">
+                    <div class="skin-detail-name">${selectedSkin.name}</div>
+                    <div class="skin-detail-desc">${selectedSkin.description}</div>
+                </div>
+            </div>
+        `;
+        
+        return html;
+    }
+    
+    bindSkinSelectionEvents() {
+        document.querySelectorAll('.skin-icon').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                const playerIndex = parseInt(e.currentTarget.dataset.player);
+                const skinId = e.currentTarget.dataset.skin;
+                
+                document.querySelectorAll(`.skin-icon[data-player="${playerIndex}"]`).forEach(c => {
+                    c.classList.remove('selected');
+                });
+                e.currentTarget.classList.add('selected');
+                
+                this.playerSkins[playerIndex] = skinId;
+                
+                this.updateSkinDetail(playerIndex, skinId);
+            });
+        });
+    }
+    
+    updateSkinDetail(playerIndex, skinId) {
+        const skin = skinSystem.getSkinById(skinId);
+        const detailElement = document.getElementById(`skin-detail-${playerIndex}`);
+        if (!detailElement || !skin) return;
+        
+        detailElement.innerHTML = `
+            <div class="skin-detail-icon">
+                <img src="${skinSystem.getIconPath(skinId)}" alt="${skin.name}">
+            </div>
+            <div class="skin-detail-info">
+                <div class="skin-detail-name">${skin.name}</div>
+                <div class="skin-detail-desc">${skin.description}</div>
+            </div>
+        `;
     }
     
     updatePlayerCount(count) {
@@ -589,6 +689,7 @@ class UI {
         playerCountBtns.forEach(btn => btn.classList.remove('active'));
         event.target.classList.add('active');
         selectionButtons.innerHTML = this.renderPlayerButtons(count);
+        this.bindSkinSelectionEvents();
     }
     
     handleSelectPlayer(playerIndex, playerCount, aiMode = false) {
@@ -623,6 +724,11 @@ class UI {
         this.renderBoard();
         
         this.game.start();
+        
+        for (let i = 0; i < playerCount; i++) {
+            const skinId = this.playerSkins[i] || 'default';
+            this.game.players[i].setSkin(skinSystem.getSkinById(skinId));
+        }
         
         this.game.players[playerIndex].name = '我';
         
@@ -1000,6 +1106,12 @@ class UI {
         tooltip.className = 'player-info-tooltip';
         tooltip.id = 'player-info-tooltip';
         
+        let skinIcon = '';
+        if (player.skin && player.skin.id !== 'default') {
+            const skinIconPath = skinSystem.getIconPath(player.skin.id);
+            skinIcon = `<img class="skin-icon-mini" src="${skinIconPath}" alt="${player.skin.name}">`;
+        }
+        
         let statusText = '';
         if (player.isDead) {
             statusText = `<span class="player-dead">${player.name}｜💀 已死亡</span>`;
@@ -1012,7 +1124,7 @@ class UI {
                 const ghostHearts = '🩸'.repeat(player.ghostHealth);
                 ghostText = `｜👻：${ghostTypeText}（${ghostHearts}）`;
             }
-            statusText = `<span>${player.name}｜📍：${player.position}｜🩸：${player.health}${ghostText}</span>`;
+            statusText = `<span>${skinIcon}${player.name}｜📍：${player.position}｜🩸：${player.health}${ghostText}</span>`;
         }
         
         tooltip.innerHTML = statusText;

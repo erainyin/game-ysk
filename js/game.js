@@ -139,10 +139,16 @@ class Game {
         
         const rollingPlayer = currentPlayer;
         this.dice.roll((value) => {
-            this.lastRollValue = value;
-            this.pendingRollValue = value;
+            let finalValue = value;
+            if (rollingPlayer.speedBoostRemainingTurns > 0) {
+                finalValue = value * 2;
+                this.log(`${rollingPlayer.name} 速度翻倍！${value}×2=${finalValue}`, true);
+            }
+
+            this.lastRollValue = finalValue;
+            this.pendingRollValue = finalValue;
             this.pendingRollPlayer = rollingPlayer;
-            this.onDiceRoll && this.onDiceRoll(value, rollingPlayer);
+            this.onDiceRoll && this.onDiceRoll(finalValue, rollingPlayer);
             
             if (rollingPlayer.hasGhost && rollingPlayer.ghostType === 1) {
                 this.isSelectingMoveTarget = true;
@@ -151,10 +157,10 @@ class Game {
                         this.selectMoveTarget(Math.random() < 0.5 ? 'player' : 'ghost');
                     }, 400);
                 } else {
-                    this.onMoveSelect && this.onMoveSelect(rollingPlayer, value);
+                    this.onMoveSelect && this.onMoveSelect(rollingPlayer, finalValue);
                 }
             } else {
-                this.movePlayer(rollingPlayer, value);
+                this.movePlayer(rollingPlayer, finalValue);
             }
         });
     }
@@ -227,6 +233,8 @@ class Game {
                     player.moveTo(endPos);
                     this.onPlayerMove && this.onPlayerMove(player, startPos, endPos, endPos - startPos);
                     
+                    this.applyMoveEffects(player, endPos);
+                    
                     this.checkOvertake(player, startPos, endPos);
                     
                     if (endPos >= this.board.totalCells) {
@@ -248,6 +256,42 @@ class Game {
                     this.movePlayerStepByStep(player, startPos, endPos, currentStep + 1);
             }
         }, 100);
+    }
+    
+    applyMoveEffects(player, newPosition) {
+        if (!player.skin) return;
+        
+        player.skin.effects.forEach(effect => {
+            switch (effect.type) {
+                case 'area_damage':
+                    this.handleAreaDamage(player, newPosition, effect.params.range);
+                    break;
+            }
+        });
+    }
+    
+    handleAreaDamage(sourcePlayer, centerPos, range) {
+        const affectedPlayers = this.players.filter(p => 
+            !p.isDead && 
+            !p.isWinner && 
+            p.id !== sourcePlayer.id &&
+            p.position >= centerPos - range &&
+            p.position <= centerPos + range
+        );
+        
+        if (affectedPlayers.length > 0) {
+            this.notify(`${sourcePlayer.name} 的坦克光环生效！`, 'warning');
+            
+            affectedPlayers.forEach(target => {
+                target.changeHealth(-1);
+                this.notify(`${target.name} 被坦克光环伤害！血量-1`, 'danger');
+            });
+            
+            const alivePlayers = this.players.filter(p => !p.isDead);
+            if (alivePlayers.length <= 1) {
+                this.checkGameEnd();
+            }
+        }
     }
     
     moveGhostStepByStep(player, startPos, endPos, currentStep) {//幽灵移动分步
@@ -659,6 +703,13 @@ class Game {
         const previousPlayer = this.players[this.currentPlayerIndex];
         if (previousPlayer && previousPlayer.undieTurns > 0 && !previousPlayer.isDead && previousPlayer.hasRolled && !previousPlayer.justGotUndie) {
             previousPlayer.undieTurns--;
+        }
+
+        if (previousPlayer && previousPlayer.speedBoostRemainingTurns > 0) {
+            previousPlayer.speedBoostRemainingTurns--;
+            if (previousPlayer.speedBoostRemainingTurns === 0) {
+                this.notify(`${previousPlayer.name} 的加速效果已结束！`, 'info');
+            }
         }
         
         const oldIndex = this.currentPlayerIndex;

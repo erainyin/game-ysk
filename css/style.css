@@ -357,6 +357,7 @@ body {
     z-index: 10;
     transition: all 0.25s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
 .player-token-badge {
@@ -719,11 +720,126 @@ a.btn-mapeditor {
 }
 
 .player-select-icon {
-    font-size: 2.5rem;
+    font-size: 1.5rem;
 }
 
 .player-select-name {
     font-size: 1.2rem;
+}
+
+.player-selection-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.skin-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.skin-selector-label {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.skin-icons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.skin-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+}
+
+.skin-icon:hover {
+    border-color: #3498db;
+    transform: scale(1.1);
+}
+
+.skin-icon.selected {
+    border-color: #e74c3c;
+    background: #fef5f5;
+}
+
+.skin-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.skin-detail {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    color: white;
+    min-width: 200px;
+    margin-top: 4px;
+}
+
+.skin-detail-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.skin-detail-icon img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.skin-detail-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.skin-detail-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.skin-detail-desc {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.skin-icon-mini {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    border-radius: 4px;
+    vertical-align: middle;
+    object-fit: contain;
 }
 
 .ai-checkbox-container {
