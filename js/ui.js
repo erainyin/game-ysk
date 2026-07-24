@@ -725,8 +725,18 @@ class UI {
         
         this.game.start();
         
+        const skins = skinSystem.getAllSkins();
+        const nonDefaultSkins = skins.filter(s => s.id !== 'default');
+        
         for (let i = 0; i < playerCount; i++) {
-            const skinId = this.playerSkins[i] || 'default';
+            let skinId = this.playerSkins[i];
+            
+            if (!skinId && aiMode && i !== playerIndex) {
+                const randomIndex = Math.floor(Math.random() * nonDefaultSkins.length);
+                skinId = nonDefaultSkins[randomIndex].id;
+            }
+            
+            skinId = skinId || 'default';
             this.game.players[i].setSkin(skinSystem.getSkinById(skinId));
         }
         
