@@ -60,7 +60,7 @@ class UI {
             onStateChange: (state) => this.onStateChange(state),
             onPlayerMove: (player, oldPosition, newPosition, steps) => this.onPlayerMove(player, oldPosition, newPosition, steps),
             onDiceRoll: (value, player) => this.onDiceRoll(value, player),
-            onGameEnd: (player) => this.onGameEnd(player),
+            onGameEnd: (player, achievements) => this.onGameEnd(player, achievements),
             onNotification: (message, type) => this.showNotification(message, type),
             onLog: (message) => this.addLog(message),
             onBombExplode: (positions) => this.playBombAnimation(positions),
@@ -561,6 +561,8 @@ class UI {
         
         const modal = document.createElement('div');
         modal.className = 'selection-modal';
+        // 保存当前选择的人数
+        this.playerCount = playerCount;
         
         let buttonsHtml = this.renderPlayerButtons(playerCount);
         
@@ -584,7 +586,7 @@ class UI {
                     ${buttonsHtml}
                 </div>
                 <div class="modal-action-bar">
-                    <button class="btn-start-game" onclick="ui.startSelectedGame(${playerCount})">开始游戏</button>
+                    <button class="btn-start-game" onclick="ui.startSelectedGame()">开始游戏</button>
                 </div>
             </div>
         `;
@@ -718,9 +720,13 @@ class UI {
     
     updatePlayerCount(count) {
         const selectionButtons = document.getElementById('selection-buttons');
+        // 更新内部记录的人数
+        this.playerCount = count;
         const playerCountBtns = document.querySelectorAll('.player-count-btn');
-        playerCountBtns.forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        playerCountBtns.forEach(btn => {
+            if (parseInt(btn.dataset.count) === count) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
         selectionButtons.innerHTML = this.renderPlayerButtons(count);
         this.bindSkinSelectionEvents();
     }
@@ -735,6 +741,8 @@ class UI {
     }
 
     startSelectedGame(playerCount) {
+        // playerCount optional; prefer current selected value
+        const count = typeof playerCount === 'number' ? playerCount : (this.playerCount || 2);
         const aiMode = document.getElementById('ai-mode')?.checked || false;
         const playerIndex = this.selectedPlayerIndex;
 
@@ -748,14 +756,14 @@ class UI {
         this.aiMode = aiMode;
         this.playerIndex = playerIndex;
 
-        this.game = new Game(playerCount);
-        this.game.setAIPlayers(aiMode ? Array.from({ length: playerCount }, (_, index) => index).filter(index => index !== playerIndex) : []);
+        this.game = new Game(count);
+        this.game.setAIPlayers(aiMode ? Array.from({ length: count }, (_, index) => index).filter(index => index !== playerIndex) : []);
         this.game.setAIMode(aiMode, playerIndex);
         this.game.setCallbacks({
             onStateChange: (state) => this.onStateChange(state),
             onPlayerMove: (player, oldPosition, newPosition, steps) => this.onPlayerMove(player, oldPosition, newPosition, steps),
             onDiceRoll: (value, player) => this.onDiceRoll(value, player),
-            onGameEnd: (player) => this.onGameEnd(player),
+            onGameEnd: (player, achievements) => this.onGameEnd(player, achievements),
             onNotification: (message, type) => this.showNotification(message, type),
             onLog: (message) => this.addLog(message),
             onBombExplode: (positions) => this.playBombAnimation(positions),
@@ -766,7 +774,7 @@ class UI {
         this.playerTokens = {};
         this.ghostTokens = {};
         this.isRollLocked = false;
-        this.playerSelectorElement.style.display = 'none';
+        // this.playerSelectorElement.style.display = 'none';
         this.btnMapSelect.disabled = true;
         this.logData = {};
         this.gameLogElement.innerHTML = '';
@@ -778,7 +786,7 @@ class UI {
         const skins = skinSystem.getAllSkins();
         const nonDefaultSkins = skins.filter(s => s.id !== 'default');
 
-        for (let i = 0; i < playerCount; i++) {
+        for (let i = 0; i < count; i++) {
             let skinId = this.playerSkins[i];
 
             if (!skinId && aiMode && i !== playerIndex) {
@@ -793,7 +801,7 @@ class UI {
         this.game.players[playerIndex].name = '我';
 
         this.onStateChange();
-        this.addLog(`游戏开始！${playerCount}位玩家准备就绪${aiMode ? '（人机大战模式）' : ''}`);
+        this.addLog(`游戏开始！${count}位玩家准备就绪${aiMode ? '（人机大战模式）' : ''}`);
     }
     
     setRollControlsEnabled(enabled) {
@@ -837,7 +845,7 @@ class UI {
     }
 
     handleRestart() {
-        this.playerSelectorElement.style.display = 'none';
+        // this.playerSelectorElement.style.display = 'none';
         this.showRestartConfirmModal();
     }
     
@@ -874,7 +882,7 @@ class UI {
         this.isRollLocked = false;
         this.logData = {};
         this.gameLogElement.innerHTML = '';
-        this.playerSelectorElement.style.display = 'flex';
+        // this.playerSelectorElement.style.display = 'flex';
         this.btnMapSelect.disabled = false;
         this.showSelectPlayerModal(2);
     }
@@ -889,6 +897,7 @@ class UI {
     async loadMapList() {
         const defaultMaps = [{
             name: '默认地图',
+            displayName: '默认地图',
             path: 'grid.csv'
         }];
 
@@ -907,18 +916,28 @@ class UI {
                 .filter(href => typeof href === 'string' && href.toLowerCase().endsWith('.csv'))
                 .map(href => {
                     const sanitizedHref = href.split('?')[0].split('#')[0];
-                    const fileName = sanitizedHref.split('/').filter(Boolean).pop() || sanitizedHref;
+                    const rawFileName = sanitizedHref.split('/').filter(Boolean).pop() || sanitizedHref;
+                    let fileName;
+                    try {
+                        fileName = decodeURIComponent(rawFileName);
+                    } catch (e) {
+                        fileName = rawFileName;
+                    }
+
                     const normalizedPath = fileName.toLowerCase() === 'grid.csv'
                         ? 'grid.csv'
-                        : `map/${fileName}`;
+                        : `map/${rawFileName}`;
+
+                    const displayName = fileName.replace(/\.csv$/i, '');
 
                     return {
                         name: fileName,
+                        displayName: displayName,
                         path: normalizedPath
                     };
                 })
                 .filter((map, index, self) => self.findIndex(item => item.path === map.path) === index)
-                .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN', { sensitivity: 'base' }));
+                .sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-Hans-CN', { sensitivity: 'base' }));
 
             return [...defaultMaps, ...maps];
         } catch (error) {
@@ -941,7 +960,7 @@ class UI {
                 <ul class="map-list">
                     ${maps.map(map => `
                         <li class="map-item ${map.path === currentPath ? 'selected' : ''}" data-path="${map.path}">
-                            <span class="map-name">${map.name}</span>
+                            <span class="map-name">${map.displayName || map.name}</span>
                             ${map.path === currentPath ? '<span class="map-check">✓</span>' : ''}
                         </li>
                     `).join('')}
@@ -1071,9 +1090,9 @@ class UI {
     handlePlayerCountChange(count) {
         this.playerCount = count;
         document.querySelectorAll('.player-count-btn').forEach(btn => {
-            btn.classList.remove('active');
+            if (parseInt(btn.dataset.count) === count) btn.classList.add('active');
+            else btn.classList.remove('active');
         });
-        event.target.classList.add('active');
     }
 
     getPlayerCount() {
@@ -1220,25 +1239,66 @@ class UI {
         this.diceElement.textContent = diceFaces[value];
     }
 
-    onGameEnd(player) {
+    onGameEnd(player, achievements = []) {
         this.btnDice.disabled = true;
         this.btnStart.disabled = true;
-        
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+
+        let contentHtml = '<div class="modal-content">';
+        contentHtml += `<button class="modal-close-btn" onclick="ui.closeGameEndModal()" aria-label="关闭">×</button>`;
+
         if (!player) {
-            this.gameStatusElement.textContent = '💀 你输了！';
+            contentHtml += `<div class="game-end-winner">💀 你输了！</div>`;
             this.addLog('你死亡了，游戏结束！');
-            
-            setTimeout(() => {
-                alert('你输了！');
-            }, 500);
         } else {
-            this.gameStatusElement.textContent = `🎉 ${player.name} 获胜！`;
+            contentHtml += `<div class="game-end-winner">🏆 ${player.name} 获得胜利！</div>`;
             this.addLog(`${player.name}到达终点，游戏胜利！`);
-            
-            setTimeout(() => {
-                alert(`${player.name} 获胜！恭喜！`);
-            }, 500);
+
+            if (achievements && achievements.length > 0) {
+                contentHtml += `<div class="achievements-section">`;
+                contentHtml += `<div class="achievements-title">🎖️ 获得成就：</div>`;
+                contentHtml += `<div class="achievements-list">`;
+                achievements.forEach(a => {
+                    contentHtml += `
+                        <div class="achievement-item">
+                            <div class="achievement-icon">${a.icon}</div>
+                            <div class="achievement-info">
+                                <div class="achievement-name">${a.name}</div>
+                                <div class="achievement-desc">${a.description}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                contentHtml += `</div></div>`;
+            }
         }
+
+        contentHtml += `
+            <div class="game-end-buttons">
+                <button class="btn-start-game" onclick="ui.handleRestartFromEnd()">再来一局</button>
+                <button class="btn-restart-cancel" onclick="ui.closeGameEndModal()">返回首页</button>
+            </div>`;
+
+        contentHtml += '</div>';
+
+        modal.innerHTML = contentHtml;
+        document.body.appendChild(modal);
+        this.gameEndModal = modal;
+    }
+
+    closeGameEndModal() {
+        if (this.gameEndModal) {
+            this.gameEndModal.remove();
+            this.gameEndModal = null;
+        }
+    }
+
+    handleRestartFromEnd() {
+        this.closeGameEndModal();
+        // reload page or restart
+        this.btnRestart && this.btnRestart.click();
     }
 
     showNotification(message, type) {

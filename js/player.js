@@ -20,6 +20,21 @@ class Player {
         this.maxGhostCount = 3;
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
+
+        // 统计数据
+        this.stats = {
+            totalRolls: 0,
+            totalMoves: 0,
+            damageTaken: 0,
+            minimumHealth: this.health,
+            blackholeCount: 0,
+            ghostKills: 0,
+            bombKills: 0,
+            maxHealth: this.health,
+            ghostSummons: 0,
+            undieUses: 0,
+            overtakeCount: 0,
+        };
     }
 
     reset() {
@@ -39,6 +54,21 @@ class Player {
         this.ghostCount = 0;
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
+
+        // 重置统计数据
+        this.stats = {
+            totalRolls: 0,
+            totalMoves: 0,
+            damageTaken: 0,
+            minimumHealth: this.health,
+            blackholeCount: 0,
+            ghostKills: 0,
+            bombKills: 0,
+            maxHealth: this.health,
+            ghostSummons: 0,
+            undieUses: 0,
+            overtakeCount: 0,
+        };
     }
 
     setSkin(skin) {
@@ -76,6 +106,7 @@ class Player {
 
     rollDice() {
         this.hasRolled = true;
+        this.recordRoll();
     }
 
     resetRoll() {
@@ -87,7 +118,20 @@ class Player {
     }
 
     changeHealth(delta) {
+        if (delta < 0) {
+            this.stats.damageTaken += Math.abs(delta);
+        }
+
         this.health += delta;
+
+        if (this.health < this.stats.minimumHealth) {
+            this.stats.minimumHealth = this.health;
+        }
+
+        if (this.health > this.stats.maxHealth) {
+            this.stats.maxHealth = this.health;
+        }
+
         if (this.health <= 0) {
             this.health = 0;
             this.isDead = true;
@@ -96,6 +140,12 @@ class Player {
 
     setHealth(value) {
         this.health = value;
+        if (this.health < this.stats.minimumHealth) {
+            this.stats.minimumHealth = this.health;
+        }
+        if (this.health > this.stats.maxHealth) {
+            this.stats.maxHealth = this.health;
+        }
         if (this.health <= 0) {
             this.health = 0;
             this.isDead = true;
@@ -114,4 +164,19 @@ class Player {
             this.ghostPosition = 1;
         }
     }
+
+    // 统计相关方法
+    recordRoll() { this.stats.totalRolls++; }
+    recordMove() { this.stats.totalMoves++; }
+    recordDamage(amount) {
+        this.stats.damageTaken += amount;
+        if (this.health < this.stats.minimumHealth) this.stats.minimumHealth = this.health;
+    }
+    recordBlackhole() { this.stats.blackholeCount++; }
+    recordGhostKill() { this.stats.ghostKills++; }
+    recordBombKill() { this.stats.bombKills++; }
+    updateMaxHealth() { if (this.health > this.stats.maxHealth) this.stats.maxHealth = this.health; }
+    recordGhostSummon() { this.stats.ghostSummons++; }
+    recordUndieUse() { this.stats.undieUses++; }
+    recordOvertake() { this.stats.overtakeCount++; }
 }

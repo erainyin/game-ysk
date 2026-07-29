@@ -39,7 +39,7 @@ body {
     align-items: flex-end;
     gap: 8px;
     pointer-events: none;
-    z-index: 100;
+    z-index: 1001;
 }
 
 .notification {
@@ -974,7 +974,7 @@ a.btn-mapeditor {
     background: #e74c3c;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 25px;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
@@ -992,7 +992,7 @@ a.btn-mapeditor {
     background: #95a5a6;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 25px;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
@@ -1104,6 +1104,84 @@ a.btn-mapeditor {
 .map-select-modal .modal-buttons .btn-cancel {
     background: #ecf0f1;
     color: #2c3e50;
+}
+
+/* Achievement styles */
+.achievements-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.achievements-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 15px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    animation: achievementPop 0.3s ease-out;
+}
+
+@keyframes achievementPop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.achievement-icon {
+    font-size: 32px;
+}
+
+.achievement-info {
+    flex: 1;
+}
+
+.achievement-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.achievement-desc {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+.game-end-winner {
+    font-size: 24px;
+    font-weight: bold;
+    color: #d35400;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.game-end-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
 }
 
 @media (max-width: 768px) {

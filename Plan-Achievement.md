@@ -705,3 +705,36 @@ onGameEnd(winner, achievements = []) {
 3. **异常处理**：在条件函数中添加 try-catch，避免单个成就判定失败影响其他成就
 4. **扩展性**：成就规则与游戏逻辑解耦，添加新成就无需修改游戏核心逻辑
 5. **本地存储**：可后续扩展将获得的成就保存到 localStorage，实现跨游戏记录
+
+
+------
+
+开发日志
+
+【0729】
+我已按 Plan-Achievement.md 实现成就系统并完成相关联动修改，下面是变更摘要与下一步建议。
+
+修改文件: style.css, player.js, achievements.js (新增), game.js, ui.js, index.html
+
+主要实现:
+
+Player：新增 stats 字段并实现记录方法（recordRoll(), recordMove(), recordDamage() 等），在 reset() / changeHealth() / rollDice() 等处更新统计。
+新增 AchievementSystem（achievements.js），按文档加载成就规则并提供 checkAchievements(winner, game)。
+Game：在关键事件处记录统计（黑洞、炸弹击杀、召唤幽灵、不死使用、超车、移动完成等），并在游戏结束时通过 achievementSystem.checkAchievements() 判定成就，再把成就数组传给回调。
+UI：接收 onGameEnd(player, achievements)，展示结束弹窗并列出获得的成就（带图标、名称、描述）；增加关闭/再来一局按钮；保留原有通知/日志逻辑。
+CSS：添加成就弹窗样式，保持与现有 modal 风格一致。
+index.html：新增脚本引入 achievements.js（在 game.js 之前）。
+注意 / 未完全实现的点:
+
+“幽灵击杀（ghostKills）” 的归因在现有逻辑里较难自动准确判定（谁导致了幽灵死亡）。目前记录了幽灵召唤、幽灵相关事件，但若需要严格统计“由某玩家直接消灭敌方幽灵”的数值，我可以按你希望的归因规则补充（例如：把导致幽灵死亡的上一名伤害者记录为击杀者）。
+我已把成就判定限定在游戏结束时一次性执行，符合文档建议。
+下一步建议（可选）:
+
+将已解锁成就持久化到 localStorage，实现跨局面板历史记录与成就展示。
+明确幽灵击杀归因，我来实现 ghostKills 的准确统计。
+在结束弹窗加入成就解锁动画（小弹出与粒子）。
+需要我现在：
+
+实现并归因幽灵击杀（ghostKills）？
+把成就持久化到 localStorage 并在主界面显示历史成就？
+回复“1”或“2”或“都要”，我就接着实现。

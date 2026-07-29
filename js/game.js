@@ -231,6 +231,8 @@ class Game {
             
             if (hasReached) {
                     player.moveTo(endPos);
+                    // 记录一次完整移动
+                    if (typeof player.recordMove === 'function') player.recordMove();
                     this.onPlayerMove && this.onPlayerMove(player, startPos, endPos, endPos - startPos);
                     
                     this.applyMoveEffects(player, endPos);
@@ -360,6 +362,7 @@ class Game {
                     otherPlayer.changeHealth(-1);
                     this.notify(`${movingPlayer.name} 超过了 ${otherPlayer.name}！${otherPlayer.name} 血量减1！`, 'danger');
                     this.log(`超过${otherPlayer.name}，${otherPlayer.name}血量减1，当前血量${otherPlayer.health}`);
+                    if (typeof movingPlayer.recordOvertake === 'function') movingPlayer.recordOvertake();
                 }
             });
         }
@@ -448,6 +451,7 @@ class Game {
                 player.justGotUndie = true;
                 this.notify(`${player.name} 获得不死守护！${value}回合内踩到DDD可不死！`, 'success');
                 this.log(`触发[UND${value}]，获得${value}回合不死守护`);
+                if (typeof player.recordUndieUse === 'function') player.recordUndieUse();
                 return false;
             case 'changeorder':
                 this.players.reverse();
@@ -464,6 +468,7 @@ class Game {
                     }
                 }
                 if (targetPosition !== -1 && targetPosition !== player.position) {
+                    if (typeof player.recordBlackhole === 'function') player.recordBlackhole();
                     const oldPos = player.position;
                     player.position = targetPosition;
                     this.notify(`${player.name} 被黑洞吸入！移动到第${targetPosition}格！`, 'warning');
@@ -529,6 +534,7 @@ class Game {
         const ghostTypeName = ghostType === 1 ? '普通幽灵' : '贴身幽灵';
         this.notify(`${player.name} 召唤了${ghostTypeName}！当前${ghostTypeName}血量：${player.ghostHealth}`, 'success');
         this.log(`触发[GST]，召唤${ghostTypeName}，当前血量${player.ghostHealth}`);
+        if (typeof player.recordGhostSummon === 'function') player.recordGhostSummon();
         
         if (!player.isDead) {
             this.nextTurn();
@@ -650,8 +656,12 @@ class Game {
         if (affectedPlayers.length > 0) {
             this.notify(`💥 炸弹爆炸！范围 ${range} 格`, 'danger');
             affectedPlayers.forEach(p => {
+                const wasAlive = !p.isDead;
                 p.changeHealth(-1);
                 this.notify(`${p.name} 被炸弹炸伤！血量减1！`, 'danger');
+                if (wasAlive && p.isDead) {
+                    if (typeof player.recordBombKill === 'function') player.recordBombKill();
+                }
             });
 
             const alivePlayers = this.players.filter(p => !p.isDead);
@@ -666,7 +676,8 @@ class Game {
         
         if (winners.length > 0) {
             this.gameState = 'ended';
-            this.onGameEnd && this.onGameEnd(winners[0]);
+            const achievements = (typeof achievementSystem !== 'undefined') ? achievementSystem.checkAchievements(winners[0], this) : [];
+            this.onGameEnd && this.onGameEnd(winners[0], achievements);
             this.notifyStateChange();
             return;
         }
@@ -675,17 +686,19 @@ class Game {
         
         if (alivePlayers.length === 0) {
             this.gameState = 'ended';
+            this.onGameEnd && this.onGameEnd(null, []);
             this.notifyStateChange();
         } else if (alivePlayers.length === 1) {
             alivePlayers[0].win();
             this.gameState = 'ended';
-            this.onGameEnd && this.onGameEnd(alivePlayers[0]);
+            const achievements = (typeof achievementSystem !== 'undefined') ? achievementSystem.checkAchievements(alivePlayers[0], this) : [];
+            this.onGameEnd && this.onGameEnd(alivePlayers[0], achievements);
             this.notifyStateChange();
         } else if (this.isAIMode && this.humanPlayerIndex >= 0) {
             const humanPlayer = this.players[this.humanPlayerIndex];
             if (humanPlayer && humanPlayer.isDead) {
                 this.gameState = 'ended';
-                this.onGameEnd && this.onGameEnd(null);
+                this.onGameEnd && this.onGameEnd(null, []);
                 this.notifyStateChange();
                 return;
             }
