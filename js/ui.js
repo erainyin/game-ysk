@@ -743,7 +743,8 @@ class UI {
     startSelectedGame(playerCount) {
         // playerCount optional; prefer current selected value
         const count = typeof playerCount === 'number' ? playerCount : (this.playerCount || 2);
-        const aiMode = document.getElementById('ai-mode')?.checked || false;
+        const aiModeElement = document.getElementById('ai-mode');
+        const aiMode = aiModeElement ? aiModeElement.checked : false;
         const playerIndex = this.selectedPlayerIndex;
 
         if (playerIndex === undefined || playerIndex === null) {
@@ -895,54 +896,25 @@ class UI {
     }
     
     async loadMapList() {
-        const defaultMaps = [{
-            name: '默认地图',
-            displayName: '默认地图',
-            path: 'grid.csv'
-        }];
-
         try {
-            const response = await fetch('map/', { cache: 'no-store' });
+            const response = await fetch('map/maplist.json', { cache: 'no-store' });
             if (!response.ok) {
-                throw new Error('Failed to load map directory');
+                throw new Error('Failed to load map list');
             }
 
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const links = Array.from(doc.querySelectorAll('a[href]'));
-            const maps = links
-                .map(link => link.getAttribute('href'))
-                .filter(href => typeof href === 'string' && href.toLowerCase().endsWith('.csv'))
-                .map(href => {
-                    const sanitizedHref = href.split('?')[0].split('#')[0];
-                    const rawFileName = sanitizedHref.split('/').filter(Boolean).pop() || sanitizedHref;
-                    let fileName;
-                    try {
-                        fileName = decodeURIComponent(rawFileName);
-                    } catch (e) {
-                        fileName = rawFileName;
-                    }
+            const maps = await response.json();
+            if (!Array.isArray(maps)) {
+                throw new Error('Invalid map list format');
+            }
 
-                    const normalizedPath = fileName.toLowerCase() === 'grid.csv'
-                        ? 'grid.csv'
-                        : `map/${rawFileName}`;
-
-                    const displayName = fileName.replace(/\.csv$/i, '');
-
-                    return {
-                        name: fileName,
-                        displayName: displayName,
-                        path: normalizedPath
-                    };
-                })
-                .filter((map, index, self) => self.findIndex(item => item.path === map.path) === index)
-                .sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-Hans-CN', { sensitivity: 'base' }));
-
-            return [...defaultMaps, ...maps];
+            return maps.sort((a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name, 'zh-Hans-CN', { sensitivity: 'base' }));
         } catch (error) {
-            console.warn('Error loading map list from map directory, using fallback list:', error);
-            return defaultMaps;
+            console.warn('Error loading map list from maplist.json, using fallback list:', error);
+            return [{
+                name: '默认地图',
+                displayName: '默认地图',
+                path: 'grid.csv'
+            }];
         }
     }
     

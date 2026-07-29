@@ -1,0 +1,72 @@
+[
+  {
+    "name": "默认地图",
+    "displayName": "默认地图",
+    "path": "grid.csv"
+  },
+  {
+    "name": "守护圣域",
+    "displayName": "守护圣域",
+    "path": "map/Map-守护圣域.csv"
+  },
+  {
+    "name": "幽灵边境",
+    "displayName": "幽灵边境",
+    "path": "map/Map-幽灵边境.csv"
+  },
+  {
+    "name": "时间漩涡",
+    "displayName": "时间漩涡",
+    "path": "map/Map-时间漩涡.csv"
+  },
+  {
+    "name": "死亡陷阱",
+    "displayName": "死亡陷阱",
+    "path": "map/Map-死亡陷阱.csv"
+  },
+  {
+    "name": "混沌秘典",
+    "displayName": "混沌秘典",
+    "path": "map/Map-混沌秘典.csv"
+  },
+  {
+    "name": "炸裂战场",
+    "displayName": "炸裂战场",
+    "path": "map/Map-炸裂战场.csv"
+  },
+  {
+    "name": "生命之源",
+    "displayName": "生命之源",
+    "path": "map/Map-生命之源.csv"
+  },
+  {
+    "name": "疾速闪电",
+    "displayName": "疾速闪电",
+    "path": "map/Map-疾速闪电.csv"
+  },
+  {
+    "name": "黑洞风暴",
+    "displayName": "黑洞风暴",
+    "path": "map/Map-黑洞风暴.csv"
+  },
+  {
+    "name": "Map1",
+    "displayName": "Map1",
+    "path": "map/Map1.csv"
+  },
+  {
+    "name": "Map2-noGSTs",
+    "displayName": "Map2-noGSTs",
+    "path": "map/Map2-noGSTs.csv"
+  },
+  {
+    "name": "Map3-easy4newplayer",
+    "displayName": "Map3-easy4newplayer",
+    "path": "map/Map3-easy4newplayer.csv"
+  },
+  {
+    "name": "Map4-hard",
+    "displayName": "Map4-hard",
+    "path": "map/Map4-hard.csv"
+  }
+]
