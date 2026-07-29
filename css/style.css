@@ -401,12 +401,12 @@ a.btn-mapeditor {
     display: inline-block;
     text-decoration: none;
 }
-.btn-start {
+.btn-start, .btn-start-game {
     background: linear-gradient(135deg, #27ae60, #2ecc71);
     color: white;
 }
 
-.btn-start:hover {
+.btn-start:hover, .btn-start-game:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 20px rgba(46, 204, 113, 0.4);
 }
@@ -603,6 +603,7 @@ a.btn-mapeditor {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 20px;
     animation: fadeIn 0.3s ease;
 }
 
@@ -618,6 +619,11 @@ a.btn-mapeditor {
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
+    max-width: min(92vw, 980px);
+    max-height: min(88vh, 860px);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes slideUp {
@@ -631,16 +637,49 @@ a.btn-mapeditor {
     }
 }
 
+.modal-content {
+    position: relative;
+}
+
 .modal-content h3 {
     margin-bottom: 25px;
     color: #333;
     font-size: 1.5rem;
 }
 
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: #f1f3f5;
+    padding:0;
+    color: #666;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
 .selection-buttons {
     display: flex;
     gap: 20px;
     justify-content: center;
+    flex-wrap: wrap;
+    max-height: min(56vh, 520px, calc(88vh - 260px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: auto;
+    padding: 8px 4px 12px;
+    scrollbar-width: thin;
 }
 
 .ghost-btn, .move-btn {
@@ -719,6 +758,12 @@ a.btn-mapeditor {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
+.player-select-btn.selected-player {
+    outline: 3px solid #fff;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.35);
+    transform: translateY(-3px);
+}
+
 .player-select-icon {
     font-size: 1.5rem;
 }
@@ -788,6 +833,30 @@ a.btn-mapeditor {
     border-radius: 4px;
 }
 
+.modal-action-bar {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+/* .btn-start-game {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #3498db, #2ecc71);
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.25);
+}
+
+.btn-start-game:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(52, 152, 219, 0.35);
+} */
+
 .skin-detail {
     display: flex;
     align-items: center;
@@ -796,8 +865,25 @@ a.btn-mapeditor {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 10px;
     color: white;
-    min-width: 200px;
+    max-width: 200px;
     margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+    .skin-detail {
+        display: none;
+        position: absolute;
+        z-index: 1200;
+        min-width: 180px;
+        max-width: 220px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+    }
+
+    .skin-detail.active {
+        display: flex;
+        transform: translateY(-8px);
+    }
 }
 
 .skin-detail-icon {

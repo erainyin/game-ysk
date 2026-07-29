@@ -19,6 +19,7 @@ class UI {
         this.isRollLocked = false;
         this.currentMapFile = 'grid.csv';
         this.playerSkins = {};
+        this.selectedPlayerIndex = null;
         
         this.game = new Game(2);
         this.playerTokens = {};
@@ -565,6 +566,7 @@ class UI {
         
         modal.innerHTML = `
             <div class="modal-content">
+                <button class="modal-close-btn" onclick="ui.hideSelectionModal()" aria-label="关闭">×</button>
                 <h3>选择你要扮演的角色</h3>
                 <div class="player-count-selector">
                     <label>玩家数量：</label>
@@ -581,6 +583,9 @@ class UI {
                 <div class="selection-buttons" id="selection-buttons">
                     ${buttonsHtml}
                 </div>
+                <div class="modal-action-bar">
+                    <button class="btn-start-game" onclick="ui.startSelectedGame(${playerCount})">开始游戏</button>
+                </div>
             </div>
         `;
         document.body.appendChild(modal);
@@ -593,11 +598,13 @@ class UI {
         let buttonsHtml = '';
         for (let i = 0; i < playerCount; i++) {
             const color = CONFIG.PLAYER_COLORS[i];
+            const isSelected = this.selectedPlayerIndex === i;
+            const buttonText = isSelected ? '我' : `玩家${i + 1}`;
             buttonsHtml += `
                 <div class="player-selection-item">
-                    <button class="player-select-btn" style="background: ${color};" onclick="ui.handleSelectPlayer(${i}, ${playerCount}, document.getElementById('ai-mode').checked)">
+                    <button class="player-select-btn ${isSelected ? 'selected-player' : ''}" style="background: ${color};" onclick="ui.selectPlayer(${i}, ${playerCount})">
                         <span class="player-select-icon">👤</span>
-                        <span class="player-select-name">玩家${i + 1}</span>
+                        <span class="player-select-name">${buttonText}</span>
                     </button>
                     <div class="skin-selector">
                         <div class="skin-selector-label">选择皮肤：</div>
@@ -662,16 +669,17 @@ class UI {
                 
                 this.playerSkins[playerIndex] = skinId;
                 
-                this.updateSkinDetail(playerIndex, skinId);
+                this.updateSkinDetail(playerIndex, skinId, e.currentTarget);
             });
         });
     }
     
-    updateSkinDetail(playerIndex, skinId) {
+    updateSkinDetail(playerIndex, skinId, triggerElement = null) {
         const skin = skinSystem.getSkinById(skinId);
         const detailElement = document.getElementById(`skin-detail-${playerIndex}`);
         if (!detailElement || !skin) return;
-        
+
+        const isMobile = window.innerWidth < 768;
         detailElement.innerHTML = `
             <div class="skin-detail-icon">
                 <img src="${skinSystem.getIconPath(skinId)}" alt="${skin.name}">
@@ -681,6 +689,31 @@ class UI {
                 <div class="skin-detail-desc">${skin.description}</div>
             </div>
         `;
+
+        if (isMobile) {
+            this.hideSkinDetailTooltips();
+            detailElement.classList.add('active');
+
+            if (triggerElement && this.selectionModal) {
+                const modalContent = this.selectionModal.querySelector('.modal-content');
+                if (modalContent) {
+                    const modalRect = modalContent.getBoundingClientRect();
+                    const rect = triggerElement.getBoundingClientRect();
+                    const left = rect.left - modalRect.left + rect.width / 2 - 110;
+                    const top = rect.top - modalRect.top - 90;
+                    detailElement.style.left = `${Math.max(8, Math.min(left, modalRect.width - 220))}px`;
+                    detailElement.style.top = `${Math.max(8, top)}px`;
+                }
+            }
+        } else {
+            detailElement.classList.remove('active');
+        }
+    }
+
+    hideSkinDetailTooltips() {
+        document.querySelectorAll('.skin-detail.active').forEach(detail => {
+            detail.classList.remove('active');
+        });
     }
     
     updatePlayerCount(count) {
@@ -692,12 +725,29 @@ class UI {
         this.bindSkinSelectionEvents();
     }
     
-    handleSelectPlayer(playerIndex, playerCount, aiMode = false) {
+    selectPlayer(playerIndex, playerCount) {
+        this.selectedPlayerIndex = playerIndex;
+        const selectionButtons = document.getElementById('selection-buttons');
+        if (selectionButtons) {
+            selectionButtons.innerHTML = this.renderPlayerButtons(playerCount);
+            this.bindSkinSelectionEvents();
+        }
+    }
+
+    startSelectedGame(playerCount) {
+        const aiMode = document.getElementById('ai-mode')?.checked || false;
+        const playerIndex = this.selectedPlayerIndex;
+
+        if (playerIndex === undefined || playerIndex === null) {
+            this.showNotification('请先选择你要扮演的角色', 'warning');
+            return;
+        }
+
         this.hideSelectionModal();
-        
+
         this.aiMode = aiMode;
         this.playerIndex = playerIndex;
-        
+
         this.game = new Game(playerCount);
         this.game.setAIPlayers(aiMode ? Array.from({ length: playerCount }, (_, index) => index).filter(index => index !== playerIndex) : []);
         this.game.setAIMode(aiMode, playerIndex);
@@ -712,7 +762,7 @@ class UI {
             onGhostSelect: (player) => this.showGhostSelection(player),
             onMoveSelect: (player, value) => this.showMoveSelection(player, value)
         });
-        
+
         this.playerTokens = {};
         this.ghostTokens = {};
         this.isRollLocked = false;
@@ -720,28 +770,28 @@ class UI {
         this.btnMapSelect.disabled = true;
         this.logData = {};
         this.gameLogElement.innerHTML = '';
-        
+
         this.renderBoard();
-        
+
         this.game.start();
-        
+
         const skins = skinSystem.getAllSkins();
         const nonDefaultSkins = skins.filter(s => s.id !== 'default');
-        
+
         for (let i = 0; i < playerCount; i++) {
             let skinId = this.playerSkins[i];
-            
+
             if (!skinId && aiMode && i !== playerIndex) {
                 const randomIndex = Math.floor(Math.random() * nonDefaultSkins.length);
                 skinId = nonDefaultSkins[randomIndex].id;
             }
-            
+
             skinId = skinId || 'default';
             this.game.players[i].setSkin(skinSystem.getSkinById(skinId));
         }
-        
+
         this.game.players[playerIndex].name = '我';
-        
+
         this.onStateChange();
         this.addLog(`游戏开始！${playerCount}位玩家准备就绪${aiMode ? '（人机大战模式）' : ''}`);
     }
@@ -787,6 +837,7 @@ class UI {
     }
 
     handleRestart() {
+        this.playerSelectorElement.style.display = 'none';
         this.showRestartConfirmModal();
     }
     
@@ -836,41 +887,43 @@ class UI {
     }
     
     async loadMapList() {
+        const defaultMaps = [{
+            name: '默认地图',
+            path: 'grid.csv'
+        }];
+
         try {
-            const response = await fetch('map/');
+            const response = await fetch('map/', { cache: 'no-store' });
             if (!response.ok) {
                 throw new Error('Failed to load map directory');
             }
+
             const html = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const links = doc.querySelectorAll('a[href$=".csv"]');
-            const maps = [];
-            
-            links.forEach(link => {
-                const href = link.getAttribute('href');
-                const name = href.replace('.csv', '');
-                maps.push({
-                    name: name,
-                    path: 'map/' + href
-                });
-            });
-            
-            maps.unshift({
-                name: '默认地图',
-                path: 'grid.csv'
-            });
-            
-            return maps;
+            const links = Array.from(doc.querySelectorAll('a[href]'));
+            const maps = links
+                .map(link => link.getAttribute('href'))
+                .filter(href => typeof href === 'string' && href.toLowerCase().endsWith('.csv'))
+                .map(href => {
+                    const sanitizedHref = href.split('?')[0].split('#')[0];
+                    const fileName = sanitizedHref.split('/').filter(Boolean).pop() || sanitizedHref;
+                    const normalizedPath = fileName.toLowerCase() === 'grid.csv'
+                        ? 'grid.csv'
+                        : `map/${fileName}`;
+
+                    return {
+                        name: fileName,
+                        path: normalizedPath
+                    };
+                })
+                .filter((map, index, self) => self.findIndex(item => item.path === map.path) === index)
+                .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN', { sensitivity: 'base' }));
+
+            return [...defaultMaps, ...maps];
         } catch (error) {
-            console.error('Error loading map list:', error);
-            return [
-                { name: '默认地图', path: 'grid.csv' },
-                { name: 'grid1', path: 'map/grid1.csv' },
-                { name: 'grid2', path: 'map/grid2.csv' },
-                { name: 'grid3', path: 'map/grid3.csv' },
-                { name: 'grid4', path: 'map/grid4.csv' }
-            ];
+            console.warn('Error loading map list from map directory, using fallback list:', error);
+            return defaultMaps;
         }
     }
     
