@@ -1,4 +1,24 @@
 [
+      {
+    "name": "Map1",
+    "displayName": "Map1",
+    "path": "map/Map1.csv"
+  },
+  {
+    "name": "Map2-noGSTs",
+    "displayName": "Map2-noGSTs",
+    "path": "map/Map2-noGSTs.csv"
+  },
+  {
+    "name": "Map3-easy4newplayer",
+    "displayName": "Map3-easy4newplayer",
+    "path": "map/Map3-easy4newplayer.csv"
+  },
+  {
+    "name": "Map4-hard",
+    "displayName": "Map4-hard",
+    "path": "map/Map4-hard.csv"
+  },
   {
     "name": "默认地图",
     "displayName": "默认地图",
@@ -48,25 +68,5 @@
     "name": "黑洞风暴",
     "displayName": "黑洞风暴",
     "path": "map/Map-黑洞风暴.csv"
-  },
-  {
-    "name": "Map1",
-    "displayName": "Map1",
-    "path": "map/Map1.csv"
-  },
-  {
-    "name": "Map2-noGSTs",
-    "displayName": "Map2-noGSTs",
-    "path": "map/Map2-noGSTs.csv"
-  },
-  {
-    "name": "Map3-easy4newplayer",
-    "displayName": "Map3-easy4newplayer",
-    "path": "map/Map3-easy4newplayer.csv"
-  },
-  {
-    "name": "Map4-hard",
-    "displayName": "Map4-hard",
-    "path": "map/Map4-hard.csv"
   }
 ]
