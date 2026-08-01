@@ -65,7 +65,8 @@ class UI {
             onLog: (message) => this.addLog(message),
             onBombExplode: (positions) => this.playBombAnimation(positions),
             onGhostSelect: (player) => this.showGhostSelection(player),
-            onMoveSelect: (player, value) => this.showMoveSelection(player, value)
+            onMoveSelect: (player, value) => this.showMoveSelection(player, value),
+            onCardPurchase: () => this.showPurchaseModal()
         });
     }
 
@@ -769,7 +770,8 @@ class UI {
             onLog: (message) => this.addLog(message),
             onBombExplode: (positions) => this.playBombAnimation(positions),
             onGhostSelect: (player) => this.showGhostSelection(player),
-            onMoveSelect: (player, value) => this.showMoveSelection(player, value)
+            onMoveSelect: (player, value) => this.showMoveSelection(player, value),
+            onCardPurchase: () => this.showPurchaseModal()
         });
 
         this.playerTokens = {};
@@ -782,6 +784,8 @@ class UI {
 
         this.renderBoard();
 
+        // 进入卡牌购买阶段（先于第一回合，阻断AI回合与掷骰）
+        this.game.purchasePhase = true;
         this.game.start();
 
         const skins = skinSystem.getAllSkins();
@@ -803,6 +807,9 @@ class UI {
 
         this.onStateChange();
         this.addLog(`游戏开始！${count}位玩家准备就绪${aiMode ? '（人机大战模式）' : ''}`);
+
+        // 启动购买阶段：AI自动购买 + 显示人类玩家购买弹窗
+        this.game.startPurchasePhase();
     }
     
     setRollControlsEnabled(enabled) {
@@ -812,21 +819,24 @@ class UI {
 
     handleAIPlayerTurn() {
         if (!this.aiMode || this.game.gameState !== 'playing') return;
-        
+        if (this.game.purchasePhase) return;
+
         const currentPlayer = this.game.getCurrentPlayer();
         if (!currentPlayer || currentPlayer.isDead) return;
-        
+
         if (currentPlayer.id === this.playerIndex) return;
-        
+
         if (currentPlayer.hasRolled) return;
-        
+
         if (this.isAIProcessing) return;
         this.isAIProcessing = true;
-        
+
         setTimeout(() => {
-            if (this.game.gameState === 'playing') {
+            if (this.game.gameState === 'playing' && !this.game.purchasePhase) {
                 const player = this.game.getCurrentPlayer();
                 if (player && !player.isDead && player.id !== this.playerIndex && !player.hasRolled) {
+                    // AI先使用卡牌，再掷骰子
+                    this.game.aiUseCards(player);
                     this.game.rollDice();
                 }
             }
@@ -836,7 +846,7 @@ class UI {
 
     handleRollDice() {
         const currentPlayer = this.game.getCurrentPlayer();
-        if (!currentPlayer || this.game.gameState !== 'playing' || this.isRollLocked || this.btnDice.disabled || currentPlayer.hasRolled) {
+        if (!currentPlayer || this.game.gameState !== 'playing' || this.game.purchasePhase || this.isRollLocked || this.btnDice.disabled || currentPlayer.hasRolled) {
             return;
         }
 
@@ -877,15 +887,8 @@ class UI {
     
     confirmRestart() {
         this.hideRestartConfirmModal();
-        this.game.restart();
-        this.playerTokens = {};
-        this.ghostTokens = {};
-        this.isRollLocked = false;
-        this.logData = {};
-        this.gameLogElement.innerHTML = '';
-        // this.playerSelectorElement.style.display = 'flex';
-        this.btnMapSelect.disabled = false;
-        this.showSelectPlayerModal(2);
+        // 直接刷新页面，重置所有游戏状态
+        window.location.reload();
     }
     
     async handleMapSelect() {
@@ -1180,8 +1183,19 @@ class UI {
             }
             statusText = `<span>${skinIcon}${player.name}｜📍：${player.position}｜🩸：${player.health}${ghostText}</span>`;
         }
-        
-        tooltip.innerHTML = statusText;
+
+        // 卡牌信息：剩余点数 + 手牌
+        const cardCount = (player.cards || []).length;
+        let cardInfo = '';
+        if (!player.isDead && !player.isWinner) {
+            const cardsText = (player.cards || []).map(c => `${c.emoji}${c.name}`).join('、');
+            cardInfo = `<div class="player-info-cards">
+                <div class="player-info-points">💰 点数：${player.points}</div>
+                <div class="player-info-hand">🃏 手牌（${cardCount}张）：${cardsText || '无'}</div>
+            </div>`;
+        }
+
+        tooltip.innerHTML = statusText + cardInfo;
         tooltip.style.borderColor = player.color;
         
         const rect = e.target.getBoundingClientRect();
@@ -1313,30 +1327,325 @@ class UI {
                 this.diceElement.textContent = '🎲';
                 this.btnDice.style.background = '';
                 this.btnDice.style.backgroundImage = '';
+                {
+                    const hc = document.getElementById('hand-cards-container');
+                    if (hc) hc.style.display = 'none';
+                }
                 break;
                 
             case 'playing':
                 this.btnStart.disabled = true;
                 this.btnStart.textContent = '游戏进行中';
                 this.gameStatusElement.textContent = '游戏进行中';
-                if (state.currentPlayer) {
+                if (this.game.purchasePhase) {
+                    this.playerIndicatorElement.textContent = '🛒 卡牌购买阶段';
+                    this.setRollControlsEnabled(false);
+                } else if (state.currentPlayer) {
                     this.playerIndicatorElement.textContent = `当前玩家：${state.currentPlayer.name}`;
                     this.btnDice.style.background = state.currentPlayer.color;
                     this.btnDice.style.backgroundImage = 'none';
                     this.btnDice.textContent = `${state.currentPlayer.name}掷骰子`;
-                    
+
                     const canRoll = !state.currentPlayer.hasRolled && !this.isRollLocked && !(this.aiMode && state.currentPlayer.id !== this.playerIndex);
                     this.setRollControlsEnabled(canRoll);
                 } else {
                     this.setRollControlsEnabled(false);
                 }
+                this.renderHandCards();
                 break;
                 
             case 'ended':
                 this.btnStart.disabled = false;
                 this.btnStart.textContent = '开始游戏';
                 this.btnDice.disabled = true;
+                {
+                    const hc = document.getElementById('hand-cards-container');
+                    if (hc) hc.style.display = 'none';
+                }
                 break;
+        }
+    }
+
+    // ===== 卡牌系统 UI 方法 =====
+
+    showPurchaseModal() {//显示卡牌购买弹窗
+        // 非人机模式：为每个非AI玩家依次购买（本地多人）
+        // 人机模式：仅人类玩家购买，AI已自动购买
+        if (this.aiMode) {
+            this.currentPurchasePlayerIndex = this.playerIndex;
+            this.renderPurchaseModal(this.playerIndex);
+        } else {
+            this.currentPurchasePlayerIndex = 0;
+            this.renderPurchaseModal(0);
+        }
+    }
+
+    renderPurchaseModal(playerIndex) {//渲染购买弹窗
+        if (this.purchaseModal) this.purchaseModal.remove();
+
+        const player = this.game.players[playerIndex];
+        if (!player) return;
+
+        const allCards = cardSystem.getAllCards();
+        const attackCards = allCards.filter(c => c.type === 'attack');
+        const defenseCards = allCards.filter(c => c.type === 'defense');
+
+        const renderCardItem = (card) => {
+            const canAfford = player.points >= card.cost;
+            return `
+                <div class="purchase-card-item ${canAfford ? '' : 'disabled'}"
+                     data-card-id="${card.id}"
+                     data-player="${playerIndex}">
+                    <div class="purchase-card-emoji">${card.emoji}</div>
+                    <div class="purchase-card-name">${card.name}</div>
+                    <div class="purchase-card-cost">${card.cost}点</div>
+                </div>
+            `;
+        };
+
+        const isLast = this.aiMode ? true : (playerIndex >= this.game.playerCount - 1);
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+        modal.innerHTML = `
+            <div class="modal-content purchase-modal-content">
+                <div class="purchase-header">
+                    <h3>🛒 卡牌购买阶段 - ${player.name}</h3>
+                    <div class="purchase-points">💰 剩余点数：<span id="purchase-points-value">${player.points}</span></div>
+                </div>
+                <div class="purchase-desc-box" id="purchase-desc-box">
+                    <div class="purchase-desc-emoji" id="purchase-desc-emoji">❓</div>
+                    <div class="purchase-desc-text">
+                        <div class="purchase-desc-title" id="purchase-desc-title">将鼠标移到卡牌上查看详情</div>
+                        <div class="purchase-desc-body" id="purchase-desc-body">
+                            点击卡牌列表中的卡牌可以购买，点击已购卡牌可以取消购买。
+                        </div>
+                    </div>
+                </div>
+                <div class="purchase-section">
+                    <div class="purchase-section-label">⚔️ 攻击型卡牌</div>
+                    <div class="purchase-cards-grid" id="purchase-grid-attack">
+                        ${attackCards.map(renderCardItem).join('')}
+                    </div>
+                </div>
+                <div class="purchase-section">
+                    <div class="purchase-section-label">🛡️ 防御型卡牌</div>
+                    <div class="purchase-cards-grid" id="purchase-grid-defense">
+                        ${defenseCards.map(renderCardItem).join('')}
+                    </div>
+                </div>
+                <div class="purchase-hand">
+                    <div class="purchase-hand-label">🃏 已购卡牌（${player.cards.length}张）：</div>
+                    <div class="purchase-hand-list" id="purchase-hand-list">
+                        ${player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${c.emoji}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>'}
+                    </div>
+                </div>
+                <div class="modal-action-bar">
+                    <button class="btn-start-game" onclick="ui.finishPurchase(${playerIndex}, ${isLast})">${isLast ? '开始游戏' : '下一位玩家'}</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        this.purchaseModal = modal;
+
+        // 绑定购买点击 + 悬停显示详情
+        const bindCardInteractions = (container) => {
+            container.querySelectorAll('.purchase-card-item').forEach(item => {
+                const cardId = item.dataset.cardId;
+                const pIdx = parseInt(item.dataset.player);
+                const cardDef = cardSystem.getCardById(cardId);
+
+                // 悬停/点击显示详情
+                const showDesc = () => this.updatePurchaseDesc(cardDef);
+                item.addEventListener('mouseenter', showDesc);
+                item.addEventListener('click', (e) => {
+                    const p = this.game.players[pIdx];
+                    if (!p.purchaseCard) { /* guard */ }
+                    if (this.game.purchaseCard(p, cardId)) {
+                        this.showNotification(`${p.name} 购买了 ${cardDef.name}`, 'success');
+                        this.refreshPurchaseModal(pIdx);
+                    } else {
+                        this.showNotification('点数不足', 'warning');
+                    }
+                    showDesc();
+                });
+            });
+        };
+        bindCardInteractions(modal.querySelector('#purchase-grid-attack'));
+        bindCardInteractions(modal.querySelector('#purchase-grid-defense'));
+
+        // 初始显示第一张攻击卡的详情
+        this.updatePurchaseDesc(attackCards[0] || defenseCards[0]);
+    }
+
+    updatePurchaseDesc(cardDef) {//更新顶部卡牌详情文本框
+        if (!this.purchaseModal || !cardDef) return;
+        const emojiEl = this.purchaseModal.querySelector('#purchase-desc-emoji');
+        const titleEl = this.purchaseModal.querySelector('#purchase-desc-title');
+        const bodyEl = this.purchaseModal.querySelector('#purchase-desc-body');
+        if (emojiEl) emojiEl.textContent = cardDef.emoji;
+        if (titleEl) titleEl.textContent = `${cardDef.name}（${cardDef.cost}点）`;
+        if (bodyEl) bodyEl.textContent = cardDef.description;
+    }
+
+    refreshPurchaseModal(playerIndex) {//刷新购买弹窗数据
+        const player = this.game.players[playerIndex];
+        if (!player || !this.purchaseModal) return;
+        const pointsEl = this.purchaseModal.querySelector('#purchase-points-value');
+        if (pointsEl) pointsEl.textContent = player.points;
+        const handListEl = this.purchaseModal.querySelector('#purchase-hand-list');
+        if (handListEl) {
+            handListEl.innerHTML = player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${c.emoji}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>';
+            // 绑定取消购买（退回）
+            handListEl.querySelectorAll('.purchase-hand-card').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const instanceId = parseFloat(el.dataset.instanceId);
+                    const refunded = player.refundCard(instanceId);
+                    if (refunded) {
+                        this.showNotification(`退回 ${refunded.name}，返还 ${cardSystem.getCardById(refunded.id).cost} 点`, 'info');
+                        this.refreshPurchaseModal(playerIndex);
+                    }
+                });
+            });
+        }
+        // 更新可购买状态
+        this.purchaseModal.querySelectorAll('.purchase-card-item').forEach(item => {
+            const card = cardSystem.getCardById(item.dataset.cardId);
+            const canAfford = player.points >= card.cost;
+            item.classList.toggle('disabled', !canAfford);
+        });
+        const handLabel = this.purchaseModal.querySelector('.purchase-hand-label');
+        if (handLabel) handLabel.textContent = `🃏 已购卡牌（${player.cards.length}张）：`;
+    }
+
+    finishPurchase(playerIndex, isLast) {//完成当前玩家购买
+        if (this.purchaseModal) {
+            this.purchaseModal.remove();
+            this.purchaseModal = null;
+        }
+        if (isLast) {
+            // 所有玩家购买完成，进入游戏
+            this.game.finishPurchasePhase();
+            this.renderHandCards();
+        } else {
+            // 下一位玩家购买
+            this.currentPurchasePlayerIndex = playerIndex + 1;
+            this.renderPurchaseModal(this.currentPurchasePlayerIndex);
+        }
+    }
+
+    renderHandCards() {//渲染人类玩家手牌
+        const container = document.getElementById('hand-cards-container');
+        const handEl = document.getElementById('hand-cards');
+        if (!container || !handEl) return;
+
+        // 仅显示人类玩家（AI模式）或当前玩家（非AI模式）的手牌
+        const showPlayer = this.aiMode
+            ? this.game.players[this.playerIndex]
+            : this.game.getCurrentPlayer();
+
+        if (!showPlayer || this.game.gameState !== 'playing' || this.game.purchasePhase) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const cards = showPlayer.cards || [];
+        if (cards.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        // 仅在掷骰前可使用，且每回合限1张
+        const canUse = !showPlayer.hasRolled && !this.game.purchasePhase && !showPlayer.hasUsedCardThisTurn;
+        container.style.display = 'block';
+
+        const usedHint = showPlayer.hasUsedCardThisTurn && !showPlayer.hasRolled
+            ? '<span class="hand-cards-used-hint">（本回合已用1张）</span>' : '';
+
+        const labelEl = container.querySelector('.hand-cards-label');
+        if (labelEl) {
+            labelEl.innerHTML = `🃏 手牌（掷骰前可使用，每回合限1张）${usedHint}`;
+        }
+
+        handEl.innerHTML = cards.map(card => `
+            <div class="hand-card ${canUse ? '' : 'disabled'}"
+                 data-instance-id="${card.instanceId}"
+                 data-card-id="${card.id}"
+                 title="${card.name}\n${card.description}">
+                <span class="hand-card-emoji">${card.emoji}</span>
+                <span class="hand-card-name">${card.name}</span>
+            </div>
+        `).join('');
+
+        if (canUse) {
+            handEl.querySelectorAll('.hand-card').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const instanceId = parseFloat(e.currentTarget.dataset.instanceId);
+                    const cardId = e.currentTarget.dataset.cardId;
+                    this.usePlayerCard(showPlayer, instanceId, cardId);
+                });
+            });
+        }
+    }
+
+    usePlayerCard(player, instanceId, cardId) {//使用卡牌入口
+        const card = cardSystem.getCardById(cardId);
+        if (!card) return;
+
+        if (card.targetType === 'self') {
+            // 自身卡牌直接使用
+            this.game.useCard(player, instanceId, null);
+            this.onStateChange();
+        } else if (card.targetType === 'enemy') {
+            // 需要选择目标
+            this.showCardTargetSelection(player, instanceId, card);
+        }
+    }
+
+    showCardTargetSelection(player, instanceId, card) {//显示目标选择弹窗
+        if (this.targetModal) this.targetModal.remove();
+
+        const enemies = this.game.players.filter(p => !p.isDead && p.id !== player.id);
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="ui.hideCardTargetSelection()" aria-label="关闭">×</button>
+                <h3>选择目标 - ${card.emoji}${card.name}</h3>
+                <div class="target-card-desc">${card.description}</div>
+                <div class="target-list">
+                    ${enemies.map(p => `
+                        <div class="target-item" data-target-id="${p.id}" style="border-color:${p.color};">
+                            <span class="target-color-dot" style="background:${p.color};"></span>
+                            <span class="target-name">${p.name}</span>
+                            <span class="target-info">📍${p.position} 🩸${p.health}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="modal-action-bar">
+                    <button class="btn-restart-cancel" onclick="ui.hideCardTargetSelection()">取消</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        this.targetModal = modal;
+
+        modal.querySelectorAll('.target-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const targetId = parseInt(e.currentTarget.dataset.targetId);
+                this.hideCardTargetSelection();
+                this.game.useCard(player, instanceId, targetId);
+                this.onStateChange();
+            });
+        });
+    }
+
+    hideCardTargetSelection() {//关闭目标选择弹窗
+        if (this.targetModal) {
+            this.targetModal.remove();
+            this.targetModal = null;
         }
     }
 }

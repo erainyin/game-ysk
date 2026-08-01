@@ -21,6 +21,12 @@ class Player {
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
 
+        // 卡牌系统相关
+        this.points = 10;                 // 当前点数（用于购买卡牌）
+        this.cards = [];                  // 手牌列表
+        this.activeStatuses = [];         // 激活中的状态效果
+        this.hasUsedCardThisTurn = false; // 本回合是否已使用过卡牌（每回合限1张）
+
         // 统计数据
         this.stats = {
             totalRolls: 0,
@@ -54,6 +60,12 @@ class Player {
         this.ghostCount = 0;
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
+
+        // 卡牌系统相关重置
+        this.points = 10;
+        this.cards = [];
+        this.activeStatuses = [];
+        this.hasUsedCardThisTurn = false;
 
         // 重置统计数据
         this.stats = {
@@ -111,6 +123,7 @@ class Player {
 
     resetRoll() {
         this.hasRolled = false;
+        this.hasUsedCardThisTurn = false;  // 新回合重置卡牌使用次数
     }
 
     win() {
@@ -133,6 +146,9 @@ class Player {
         }
 
         if (this.health <= 0) {
+            if (this.tryUndyingSave()) {
+                return;
+            }
             this.health = 0;
             this.isDead = true;
         }
@@ -147,9 +163,28 @@ class Player {
             this.stats.maxHealth = this.health;
         }
         if (this.health <= 0) {
+            if (this.tryUndyingSave()) {
+                return;
+            }
             this.health = 0;
             this.isDead = true;
         }
+    }
+
+    // 卡牌「不死之身」状态挽救死亡，返回 true 表示已挽救
+    tryUndyingSave() {
+        const undying = this.getStatus('undying');
+        if (undying && undying.amount > 0) {
+            undying.amount--;
+            if (undying.amount <= 0) {
+                this.removeStatusObject(undying);
+            }
+            this.health = 1;
+            this.isDead = false;
+            this._undyingTriggered = true;
+            return true;
+        }
+        return false;
     }
 
     changeGhostHealth(delta) {
@@ -163,6 +198,53 @@ class Player {
             this.ghostType = 0;
             this.ghostPosition = 1;
         }
+    }
+
+    // ===== 卡牌系统方法 =====
+    addCard(card) {
+        this.cards.push({ ...card, instanceId: Date.now() + Math.random() });
+    }
+
+    removeCard(instanceId) {
+        const index = this.cards.findIndex(c => c.instanceId === instanceId);
+        if (index !== -1) {
+            return this.cards.splice(index, 1)[0];
+        }
+        return null;
+    }
+
+    // 购买阶段退回卡牌（返还点数）
+    refundCard(instanceId) {
+        const index = this.cards.findIndex(c => c.instanceId === instanceId);
+        if (index !== -1) {
+            const card = this.cards.splice(index, 1)[0];
+            const def = cardSystem.getCardById(card.id);
+            if (def) {
+                this.points += def.cost;
+            }
+            return card;
+        }
+        return null;
+    }
+
+    addStatus(status) {
+        this.activeStatuses.push(status);
+    }
+
+    hasStatus(type) {
+        return this.activeStatuses.some(s => s.type === type);
+    }
+
+    getStatus(type) {
+        return this.activeStatuses.find(s => s.type === type);
+    }
+
+    removeStatus(type) {
+        this.activeStatuses = this.activeStatuses.filter(s => s.type !== type);
+    }
+
+    removeStatusObject(statusObj) {
+        this.activeStatuses = this.activeStatuses.filter(s => s !== statusObj);
     }
 
     // 统计相关方法

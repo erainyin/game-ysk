@@ -220,6 +220,25 @@ body {
     pointer-events: none;
 }
 
+.player-info-cards {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #ccc;
+    font-weight: normal;
+    font-size: 12px;
+    color: #555;
+    line-height: 1.6;
+}
+
+.player-info-points {
+    color: #e67e22;
+}
+
+.player-info-hand {
+    color: #8e44ad;
+    word-break: break-all;
+}
+
 .game-status {
     display: none;
 }
@@ -1347,4 +1366,380 @@ a.btn-mapeditor {
 .player-select-icon {
     font-size: 16px;
 }
+}
+
+/* ===== 卡牌系统样式 ===== */
+
+/* 手牌区域 */
+.hand-cards-container {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+.hand-cards-label {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.hand-cards-used-hint {
+    color: #e74c3c;
+    font-size: 0.72rem;
+    font-weight: normal;
+}
+
+.hand-cards {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.hand-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 56px;
+}
+
+.hand-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    background: #ebf5fb;
+}
+
+.hand-card.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    border-color: #ccc;
+}
+
+.hand-card.disabled:hover {
+    transform: none;
+    box-shadow: none;
+    background: white;
+}
+
+.hand-card-emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.hand-card-name {
+    font-size: 0.7rem;
+    color: #333;
+    font-weight: 500;
+}
+
+/* 购买弹窗 - 自适应页面宽度 */
+.purchase-modal-content {
+    width: 95vw;
+    max-width: 960px;
+    max-height: 92vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.purchase-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.purchase-header h3 {
+    margin: 0;
+}
+
+/* 顶部固定详情文本框 */
+.purchase-desc-box {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #fef9e7, #ebf5fb);
+    border: 2px solid #d5b895;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.purchase-desc-emoji {
+    font-size: 2.2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.purchase-desc-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.purchase-desc-title {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.purchase-desc-body {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.5;
+}
+
+.purchase-points {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #f39c12;
+    text-align: center;
+    margin-bottom: 16px;
+    padding: 8px;
+    background: #fef9e7;
+    border-radius: 8px;
+}
+
+.purchase-section {
+    margin-bottom: 16px;
+}
+
+.purchase-section-label {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.purchase-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+}
+
+.purchase-card-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    border: 2px solid #bdc3c7;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.purchase-card-item:hover {
+    border-color: #3498db;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+}
+
+.purchase-card-item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.purchase-card-item.disabled:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #bdc3c7;
+}
+
+.purchase-card-emoji {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.purchase-card-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.purchase-card-cost {
+    font-size: 0.75rem;
+    color: #e67e22;
+    font-weight: bold;
+}
+
+.purchase-hand {
+    margin-top: 16px;
+    padding: 10px;
+    background: #f4ecf7;
+    border-radius: 8px;
+}
+
+.purchase-hand-label {
+    font-size: 0.85rem;
+    color: #8e44ad;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.purchase-hand-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.purchase-hand-card {
+    font-size: 0.78rem;
+    background: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #d2b4de;
+    color: #6c3483;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.purchase-hand-card:hover {
+    background: #fadbd8;
+    border-color: #e74c3c;
+    color: #c0392b;
+}
+
+.purchase-hand-remove {
+    color: #bbb;
+    font-weight: bold;
+    font-size: 0.7rem;
+}
+
+.purchase-hand-card:hover .purchase-hand-remove {
+    color: #e74c3c;
+}
+
+.purchase-hand-empty {
+    font-size: 0.78rem;
+    color: #999;
+}
+
+/* 目标选择弹窗 */
+.target-card-desc {
+    font-size: 0.85rem;
+    color: #666;
+    text-align: center;
+    margin-bottom: 16px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.target-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.target-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 2px solid #bdc3c7;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.target-item:hover {
+    background: #ebf5fb;
+    transform: translateX(4px);
+}
+
+.target-color-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.target-name {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 0.95rem;
+}
+
+.target-info {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-left: auto;
+}
+
+/* 移动端卡牌适配 */
+@media (max-width: 768px) {
+    .hand-cards-container {
+        padding: 6px;
+        margin-bottom: 8px;
+    }
+
+    .hand-card {
+        min-width: 48px;
+        padding: 4px 6px;
+    }
+
+    .hand-card-emoji {
+        font-size: 1.2rem;
+    }
+
+    .hand-card-name {
+        font-size: 0.65rem;
+    }
+
+    .purchase-cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+        gap: 6px;
+    }
+
+    .purchase-card-emoji {
+        font-size: 1.5rem;
+    }
+
+    .purchase-modal-content {
+        width: 98vw;
+        max-width: 98vw;
+        max-height: 95vh;
+    }
+
+    .purchase-desc-box {
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+        padding: 8px 10px;
+    }
+
+    .purchase-desc-emoji {
+        font-size: 1.6rem;
+    }
+
+    .purchase-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
 }

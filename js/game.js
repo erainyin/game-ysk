@@ -26,6 +26,8 @@ class Game {
         this.pendingTimeouts = [];
         this.isAIMode = false;
         this.humanPlayerIndex = -1;
+        this.purchasePhase = false;       // 卡牌购买阶段标志
+        this.onCardPurchase = null;       // 卡牌购买阶段回调（UI）
     }
 
     setCallbacks(callbacks) {//设置回调函数
@@ -38,6 +40,7 @@ class Game {
         if (callbacks.onBombExplode) this.onBombExplode = callbacks.onBombExplode;
         if (callbacks.onGhostSelect) this.onGhostSelect = callbacks.onGhostSelect;
         if (callbacks.onMoveSelect) this.onMoveSelect = callbacks.onMoveSelect;
+        if (callbacks.onCardPurchase) this.onCardPurchase = callbacks.onCardPurchase;
     }
 
     setAIPlayers(playerIds = []) {//设置AI玩家
@@ -108,6 +111,7 @@ class Game {
         this.pendingRollPlayer = null;
         this.isSelectingGhost = false;
         this.isSelectingMoveTarget = false;
+        this.purchasePhase = false;
         this.notifyStateChange();
     }
 
@@ -129,6 +133,7 @@ class Game {
         if (this.gameState !== 'playing' || this.dice.isRollingNow() || this.isSelectingMoveTarget) {
             return;
         }
+        if (this.purchasePhase) return;
 
         const currentPlayer = this.getCurrentPlayer();
         if (!currentPlayer || currentPlayer.hasRolled) {
@@ -136,7 +141,7 @@ class Game {
         }
 
         currentPlayer.rollDice();
-        
+
         const rollingPlayer = currentPlayer;
         this.dice.roll((value) => {
             let finalValue = value;
@@ -145,11 +150,21 @@ class Game {
                 this.log(`${rollingPlayer.name} 速度翻倍！${value}×2=${finalValue}`, true);
             }
 
+            // 减速诅咒状态（卡牌）
+            const slowStatus = rollingPlayer.getStatus('slow');
+            if (slowStatus) {
+                const before = finalValue;
+                finalValue = Math.floor(finalValue / 2);
+                this.notify(`${rollingPlayer.name} 被减速诅咒！骰子数减半：${before}→${finalValue}`, 'warning');
+                this.log(`被减速诅咒，骰子数减半：${before}→${finalValue}`, true);
+                rollingPlayer.removeStatusObject(slowStatus);
+            }
+
             this.lastRollValue = finalValue;
             this.pendingRollValue = finalValue;
             this.pendingRollPlayer = rollingPlayer;
             this.onDiceRoll && this.onDiceRoll(finalValue, rollingPlayer);
-            
+
             if (rollingPlayer.hasGhost && rollingPlayer.ghostType === 1) {
                 this.isSelectingMoveTarget = true;
                 if (this.isAIPlayer(rollingPlayer)) {
@@ -286,7 +301,9 @@ class Game {
             
             affectedPlayers.forEach(target => {
                 target.changeHealth(-1);
-                this.notify(`${target.name} 被坦克光环伤害！血量-1`, 'danger');
+                if (!this.notifyUndyingIfTriggered(target)) {
+                    this.notify(`${target.name} 被坦克光环伤害！血量-1`, 'danger');
+                }
             });
             
             const alivePlayers = this.players.filter(p => !p.isDead);
@@ -360,7 +377,9 @@ class Game {
                 
                 if (otherPlayer.position > oldPosition && otherPlayer.position <= newPosition) {
                     otherPlayer.changeHealth(-1);
-                    this.notify(`${movingPlayer.name} 超过了 ${otherPlayer.name}！${otherPlayer.name} 血量减1！`, 'danger');
+                    if (!this.notifyUndyingIfTriggered(otherPlayer)) {
+                        this.notify(`${movingPlayer.name} 超过了 ${otherPlayer.name}！${otherPlayer.name} 血量减1！`, 'danger');
+                    }
                     this.log(`超过${otherPlayer.name}，${otherPlayer.name}血量减1，当前血量${otherPlayer.health}`);
                     if (typeof movingPlayer.recordOvertake === 'function') movingPlayer.recordOvertake();
                 }
@@ -386,8 +405,12 @@ class Game {
         switch (type) {
             case 'blood':
                 player.changeHealth(value);
-                this.notify(`${player.name} ${value > 0 ? '血量加' + value : '血量减' + Math.abs(value)}！`, value > 0 ? 'success' : 'danger');
-                this.log(`触发[BL${value > 0 ? '+' : ''}${value}]，血量变为${player.health}`);
+                if (value < 0 && this.notifyUndyingIfTriggered(player)) {
+                    this.log(`触发[BL${value > 0 ? '+' : ''}${value}]，不死之身卡牌生效，血量变为${player.health}`);
+                } else {
+                    this.notify(`${player.name} ${value > 0 ? '血量加' + value : '血量减' + Math.abs(value)}！`, value > 0 ? 'success' : 'danger');
+                    this.log(`触发[BL${value > 0 ? '+' : ''}${value}]，血量变为${player.health}`);
+                }
                 return false;
             case 'diediedie':
                 if (player.ghostType === 2 && player.ghostHealth > 0) {
@@ -405,8 +428,12 @@ class Game {
                     this.log(`触发[DDD]，不死守护生效，剩余${player.undieTurns}回合`);
                 } else {
                     player.setHealth(0);
-                    this.notify(`${player.name} 触发死亡陷阱！直接死亡！`, 'danger');
-                    this.log(`触发[DDD]，直接死亡！`);
+                    if (this.notifyUndyingIfTriggered(player)) {
+                        this.log(`触发[DDD]，不死之身卡牌生效，存活`);
+                    } else {
+                        this.notify(`${player.name} 触发死亡陷阱！直接死亡！`, 'danger');
+                        this.log(`触发[DDD]，直接死亡！`);
+                    }
                 }
                 return false;
             case 'fastforward':
@@ -658,7 +685,11 @@ class Game {
             affectedPlayers.forEach(p => {
                 const wasAlive = !p.isDead;
                 p.changeHealth(-1);
-                this.notify(`${p.name} 被炸弹炸伤！血量减1！`, 'danger');
+                if (this.notifyUndyingIfTriggered(p)) {
+                    // 不死之身挽救
+                } else {
+                    this.notify(`${p.name} 被炸弹炸伤！血量减1！`, 'danger');
+                }
                 if (wasAlive && p.isDead) {
                     if (typeof player.recordBombKill === 'function') player.recordBombKill();
                 }
@@ -724,6 +755,20 @@ class Game {
                 this.notify(`${previousPlayer.name} 的加速效果已结束！`, 'info');
             }
         }
+
+        // 卡牌状态回合数递减（reflect / undying 有持续回合）
+        if (previousPlayer && previousPlayer.activeStatuses && previousPlayer.activeStatuses.length > 0) {
+            previousPlayer.activeStatuses.forEach(status => {
+                if (status.remainingTurns && status.remainingTurns > 0) {
+                    status.remainingTurns--;
+                }
+            });
+            const expired = previousPlayer.activeStatuses.filter(s => s.remainingTurns !== undefined && s.remainingTurns <= 0 && s.type !== 'shield');
+            expired.forEach(s => {
+                previousPlayer.removeStatusObject(s);
+                this.notify(`${previousPlayer.name} 的${this.statusName(s.type)}状态已结束`, 'info');
+            });
+        }
         
         const oldIndex = this.currentPlayerIndex;
         
@@ -746,6 +791,298 @@ class Game {
         currentPlayer.resetRoll();
         currentPlayer.justGotUndie = false;
         this.notifyStateChange();
+    }
+
+    // ===== 卡牌系统方法 =====
+
+    statusName(type) {//卡牌状态中文名
+        const names = {
+            shield: '护盾',
+            reflect: '反弹',
+            undying: '不死之身',
+            slow: '减速'
+        };
+        return names[type] || type;
+    }
+
+    notifyUndyingIfTriggered(player) {//检查不死之身是否触发并通知
+        if (player._undyingTriggered) {
+            player._undyingTriggered = false;
+            this.notify(`${player.name} 的不死之身生效，存活下来！`, 'success');
+            return true;
+        }
+        return false;
+    }
+
+    isNegativeStatus(status) {//判断是否为负面状态
+        return ['slow'].includes(status.type);
+    }
+
+    purchaseCard(player, cardId) {//购买卡牌
+        const card = cardSystem.getCardById(cardId);
+        if (!card || player.points < card.cost) return false;
+        player.points -= card.cost;
+        player.addCard(card);
+        return true;
+    }
+
+    aiPurchaseCards(player) {//AI自动购买卡牌
+        const allCards = cardSystem.getAllCards();
+        let budget = player.points;
+        // 优先保证攻防平衡：先买一张防御卡，再随机购买
+        const defenseCards = allCards.filter(c => c.type === 'defense' && c.cost <= budget);
+        if (defenseCards.length > 0 && Math.random() < 0.7) {
+            const pick = defenseCards[Math.floor(Math.random() * defenseCards.length)];
+            this.purchaseCard(player, pick.id);
+            budget = player.points;
+        }
+        // 用剩余点数随机购买
+        let safety = 20;
+        while (budget >= 2 && safety-- > 0) {
+            const affordable = allCards.filter(c => c.cost <= budget);
+            if (affordable.length === 0) break;
+            const pick = affordable[Math.floor(Math.random() * affordable.length)];
+            this.purchaseCard(player, pick.id);
+            budget = player.points;
+        }
+    }
+
+    startPurchasePhase() {//进入卡牌购买阶段
+        this.purchasePhase = true;
+        // AI玩家自动购买
+        this.players.forEach(p => {
+            if (this.isAIPlayer(p)) {
+                this.aiPurchaseCards(p);
+            }
+        });
+        if (this.onCardPurchase) this.onCardPurchase();
+    }
+
+    finishPurchasePhase() {//结束卡牌购买阶段，进入游戏
+        this.purchasePhase = false;
+        this.notifyStateChange();
+    }
+
+    useCard(player, cardInstanceId, targetPlayerId = null) {//使用卡牌
+        if (this.purchasePhase) return;
+        if (this.gameState !== 'playing') return;
+        // 仅当前回合玩家可使用，且掷骰子前
+        const currentPlayer = this.getCurrentPlayer();
+        if (!currentPlayer || currentPlayer.id !== player.id) return;
+        if (player.hasRolled) return;
+        // 每回合限用1张卡牌
+        if (player.hasUsedCardThisTurn) {
+            this.notify(`${player.name} 本回合已使用过卡牌，每回合限用1张`, 'warning');
+            return;
+        }
+
+        const cardIndex = player.cards.findIndex(c => c.instanceId === cardInstanceId);
+        if (cardIndex === -1) return;
+
+        const card = player.cards[cardIndex];
+        const target = targetPlayerId !== null
+            ? this.players.find(p => p.id === targetPlayerId)
+            : null;
+
+        // 需要目标的攻击卡必须选定有效目标
+        if (card.targetType === 'enemy' && (!target || target.isDead || target.id === player.id)) {
+            return;
+        }
+
+        // 执行效果
+        card.effects.forEach(effect => {
+            this.executeCardEffect(card, effect, player, target);
+        });
+
+        // 移除卡牌
+        player.cards.splice(cardIndex, 1);
+        player.hasUsedCardThisTurn = true;  // 标记本回合已使用卡牌
+        this.log(`${player.name} 使用了 [${card.name}]`, true);
+        this.notifyStateChange();
+    }
+
+    executeCardEffect(card, effect, source, target) {//执行卡牌效果
+        switch (effect.type) {
+            case 'damage':
+                this.dealCardDamage(source, target, effect.params.amount);
+                break;
+            case 'heal':
+                source.changeHealth(effect.params.amount);
+                this.notify(`${source.name} 恢复了 ${effect.params.amount} 点血量`, 'success');
+                this.notifyUndyingIfTriggered(source);
+                break;
+            case 'move_self':
+                this.movePlayerInstant(source, effect.params.steps);
+                break;
+            case 'move_target':
+                this.movePlayerInstant(target, effect.params.steps);
+                this.notify(`${target.name} 被${card.name}移动了 ${effect.params.steps} 步`, 'warning');
+                break;
+            case 'swap_position':
+                this.swapPositions(source, target);
+                this.notify(`${source.name} 与 ${target.name} 交换了位置！`, 'warning');
+                break;
+            case 'steal_health':
+                const stolen = this.dealCardDamage(source, target, effect.params.amount);
+                if (stolen) {
+                    source.changeHealth(effect.params.amount);
+                    this.notify(`${source.name} 从 ${target.name} 偷取了 ${effect.params.amount} 点血量`, 'success');
+                    this.notifyUndyingIfTriggered(source);
+                }
+                break;
+            case 'shield':
+                source.addStatus({ type: 'shield', amount: effect.params.amount, remainingTurns: 0 });
+                this.notify(`${source.name} 获得护盾，可抵挡 ${effect.params.amount} 次伤害`, 'success');
+                break;
+            case 'reflect':
+                source.addStatus({ type: 'reflect', amount: 1, remainingTurns: effect.duration || 3 });
+                this.notify(`${source.name} 获得反弹状态，持续 ${effect.duration || 3} 回合`, 'success');
+                break;
+            case 'undying':
+                source.addStatus({ type: 'undying', amount: effect.params.amount, remainingTurns: effect.duration || 3 });
+                this.notify(`${source.name} 获得不死之身，持续 ${effect.duration || 3} 回合`, 'success');
+                break;
+            case 'slow_target':
+                target.addStatus({ type: 'slow', amount: 0, remainingTurns: effect.duration || 1 });
+                this.notify(`${target.name} 被减速诅咒！下回合掷骰减半`, 'warning');
+                break;
+            case 'purify':
+                source.activeStatuses = (source.activeStatuses || []).filter(s => !this.isNegativeStatus(s));
+                this.notify(`${source.name} 净化了所有负面状态`, 'success');
+                break;
+            case 'place_bomb':
+                this.handleCardBomb(source, target, effect.params);
+                break;
+        }
+    }
+
+    dealCardDamage(source, target, amount) {//卡牌伤害（处理护盾/反弹/不死），返回是否实际造成伤害
+        // 护盾抵挡
+        const shield = target.getStatus('shield');
+        if (shield && shield.amount > 0) {
+            shield.amount--;
+            if (shield.amount <= 0) {
+                target.removeStatusObject(shield);
+            }
+            this.notify(`${target.name} 的护盾抵挡了 ${amount} 点伤害！`, 'info');
+            return false;
+        }
+
+        // 反弹
+        const reflect = target.getStatus('reflect');
+        if (reflect) {
+            target.removeStatusObject(reflect);
+            this.notify(`${target.name} 反弹了攻击！${source.name} 受到 ${amount} 点伤害`, 'warning');
+            // 反弹伤害不递归，直接扣血
+            source.changeHealth(-amount);
+            this.notifyUndyingIfTriggered(source);
+            this.checkCardDamageGameEnd();
+            return false;
+        }
+
+        // 正常伤害
+        target.changeHealth(-amount);
+        this.notify(`${target.name} 受到 ${amount} 点卡牌伤害`, 'danger');
+        this.notifyUndyingIfTriggered(target);
+        this.checkCardDamageGameEnd();
+        return true;
+    }
+
+    checkCardDamageGameEnd() {//卡牌伤害后检查游戏结束
+        const alivePlayers = this.players.filter(p => !p.isDead);
+        if (alivePlayers.length <= 1) {
+            this.checkGameEnd();
+        }
+    }
+
+    movePlayerInstant(player, steps) {//卡牌瞬移（不触发格子属性，不记录掷骰）
+        const oldPosition = player.position;
+        const newPosition = this.board.getFinalPosition(oldPosition, steps);
+        player.moveTo(newPosition);
+        if (this.onPlayerMove) {
+            this.onPlayerMove(player, oldPosition, newPosition, newPosition - oldPosition);
+        }
+        this.notify(`${player.name} 被/使用卡牌移动到位置 ${newPosition}`, 'info');
+
+        // 到达终点判定
+        if (newPosition >= this.board.totalCells) {
+            player.win();
+            this.checkGameEnd();
+        }
+    }
+
+    swapPositions(source, target) {//交换两名玩家位置
+        const sourcePos = source.position;
+        const targetPos = target.position;
+        source.moveTo(targetPos);
+        target.moveTo(sourcePos);
+        if (this.onPlayerMove) {
+            this.onPlayerMove(source, sourcePos, targetPos, targetPos - sourcePos);
+            this.onPlayerMove(target, targetPos, sourcePos, sourcePos - targetPos);
+        }
+    }
+
+    handleCardBomb(source, target, params) {//卡牌炸弹
+        const bombPosition = target.position;
+        const range = params.range;
+        const damage = params.damage;
+        const affectedPositions = [];
+
+        for (let i = -range; i <= range; i++) {
+            const pos = bombPosition + i;
+            if (pos >= 1 && pos <= this.board.totalCells) {
+                affectedPositions.push(pos);
+            }
+        }
+
+        if (this.onBombExplode) {
+            this.onBombExplode(affectedPositions);
+        }
+
+        const affectedPlayers = this.players.filter(p => !p.isDead && !p.isWinner && affectedPositions.includes(p.position));
+        if (affectedPlayers.length > 0) {
+            this.notify(`💥 ${source.name} 引爆炸弹！范围 ${range} 格，${damage} 点伤害`, 'danger');
+            affectedPlayers.forEach(p => {
+                // 使用 dealCardDamage 让护盾/反弹生效，但攻击者固定为 source
+                this.dealCardDamage(source, p, damage);
+            });
+            this.checkCardDamageGameEnd();
+        }
+    }
+
+    aiUseCards(player) {//AI在回合开始时使用卡牌
+        if (this.purchasePhase) return;
+        if (!player.cards || player.cards.length === 0) return;
+
+        // 防御优先：血量低时使用治疗
+        if (player.health <= 2) {
+            const healCard = player.cards.find(c => c.id === 'heal');
+            if (healCard && Math.random() < 0.8) {
+                this.useCard(player, healCard.instanceId);
+            }
+            const shieldCard = player.cards.find(c => c.id === 'shield');
+            if (shieldCard && Math.random() < 0.5) {
+                this.useCard(player, shieldCard.instanceId);
+            }
+        }
+
+        // 攻击：有概率使用攻击卡，目标选血量最低的敌方
+        if (Math.random() < 0.5) {
+            const attackCard = player.cards.find(c => c.type === 'attack');
+            if (attackCard) {
+                const enemies = this.players.filter(p => !p.isDead && p.id !== player.id);
+                if (enemies.length > 0) {
+                    const target = enemies.reduce((min, p) => p.health < min.health ? p : min);
+                    this.useCard(player, attackCard.instanceId, target.id);
+                }
+            }
+        }
+
+        // 闪现：领先时不用，落后时有概率用
+        const blinkCard = player.cards.find(c => c.id === 'blink');
+        if (blinkCard && Math.random() < 0.3) {
+            this.useCard(player, blinkCard.instanceId);
+        }
     }
 
     notifyStateChange() {//通知状态改变
