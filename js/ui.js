@@ -1479,14 +1479,24 @@ class UI {
             <div class="modal-content purchase-modal-content">
                 <div class="purchase-header">
                     <h3>🛒 卡牌购买阶段 - ${player.name}</h3>
-                    <div class="purchase-points">💰 剩余点数：<span id="purchase-points-value">${player.points}</span></div>
                 </div>
-                <div class="purchase-desc-box" id="purchase-desc-box">
-                    <div class="purchase-desc-emoji" id="purchase-desc-emoji">❓</div>
-                    <div class="purchase-desc-text">
-                        <div class="purchase-desc-title" id="purchase-desc-title">将鼠标移到卡牌上查看详情</div>
-                        <div class="purchase-desc-body" id="purchase-desc-body">
-                            点击卡牌列表中的卡牌可以购买，点击已购卡牌可以取消购买。
+                <div class="purchase-top-bar">
+                    <div class="purchase-top-info">
+                        <div class="purchase-hand">
+                            <div class="purchase-hand-label">                        <div class="purchase-points">💰 剩余点数：<span id="purchase-points-value">${player.points}</span></div>
+🃏 已购卡牌（${player.cards.length}张）：</div>
+                            <div class="purchase-hand-list" id="purchase-hand-list">
+                                ${player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${c.emoji}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="purchase-desc-box" id="purchase-desc-box">
+                        <div class="purchase-desc-emoji" id="purchase-desc-emoji">❓</div>
+                        <div class="purchase-desc-text">
+                            <div class="purchase-desc-title" id="purchase-desc-title">将鼠标移到卡牌上查看详情</div>
+                            <div class="purchase-desc-body" id="purchase-desc-body">
+                                点击卡牌列表中的卡牌可以购买，点击已购卡牌可以取消购买。
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1500,12 +1510,6 @@ class UI {
                     <div class="purchase-section-label">🛡️ 防御型卡牌</div>
                     <div class="purchase-cards-grid" id="purchase-grid-defense">
                         ${defenseCards.map(renderCardItem).join('')}
-                    </div>
-                </div>
-                <div class="purchase-hand">
-                    <div class="purchase-hand-label">🃏 已购卡牌（${player.cards.length}张）：</div>
-                    <div class="purchase-hand-list" id="purchase-hand-list">
-                        ${player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${c.emoji}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>'}
                     </div>
                 </div>
                 <div class="modal-action-bar">

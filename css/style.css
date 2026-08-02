@@ -32,11 +32,11 @@ body {
 
 .notifications {
     position: fixed;
-    right: 20px;
+    left: 20px;
     bottom: 20px;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 8px;
     pointer-events: none;
     z-index: 1001;
@@ -1290,14 +1290,14 @@ a.btn-mapeditor {
     }
     .btn-dice{
          position: fixed;
-         top:10px;
+         bottom:10px;
          right:10px;
     }
     .dice-container{
         gap: 10px;
         flex-direction: row;
         position: fixed;
-        top:70px;
+        bottom:40px;
         right:10px;
     }
     .dice {
@@ -1486,6 +1486,26 @@ a.btn-mapeditor {
     margin: 0;
 }
 
+/* 顶部固定信息条：整合点数、已购卡牌、卡牌说明 */
+.purchase-top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #ffffff;
+    padding: 10px 0 12px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #e8e8e8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.purchase-top-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
 /* 顶部固定详情文本框 */
 .purchase-desc-box {
     display: flex;
@@ -1495,10 +1515,6 @@ a.btn-mapeditor {
     background: linear-gradient(135deg, #fef9e7, #ebf5fb);
     border: 2px solid #d5b895;
     border-radius: 10px;
-    margin-bottom: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 2;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
@@ -1527,14 +1543,14 @@ a.btn-mapeditor {
 }
 
 .purchase-points {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: bold;
     color: #f39c12;
-    text-align: center;
-    margin-bottom: 16px;
-    padding: 8px;
+    padding: 6px 12px;
     background: #fef9e7;
     border-radius: 8px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .purchase-section {
@@ -1605,8 +1621,9 @@ a.btn-mapeditor {
 }
 
 .purchase-hand {
-    margin-top: 16px;
-    padding: 10px;
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
     background: #f4ecf7;
     border-radius: 8px;
 }
@@ -1782,6 +1799,9 @@ a.btn-mapeditor {
 
 /* 移动端卡牌适配 */
 @media (max-width: 768px) {
+    .skin-icons {
+        max-width: 100%;
+    }
     .hand-cards-container {
         padding: 6px;
         margin-bottom: 8px;
@@ -1816,7 +1836,6 @@ a.btn-mapeditor {
     }
 
     .purchase-desc-box {
-        flex-direction: column;
         gap: 6px;
         align-items: flex-start;
         padding: 8px 10px;
@@ -1830,5 +1849,15 @@ a.btn-mapeditor {
         flex-direction: column;
         align-items: flex-start;
         gap: 6px;
+    }
+
+    .purchase-top-info {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .purchase-points {
+        text-align: center;
     }
 }
