@@ -43,6 +43,16 @@ class SkinSystem {
                 effects: [
                     { type: 'extra_health', params: { amount: 3 } }
                 ]
+            },
+            {
+                id: 'double_defence',
+                name: '两次防',
+                description: '全局可防御2次对手卡牌的负面效果（如火球术、减速等攻击型卡牌），自动抵消',
+                icon: 'double_defence.png',
+                color: '#2980b9',
+                effects: [
+                    { type: 'double_defence', params: { charges: 2 } }
+                ]
             }
         ];
     }

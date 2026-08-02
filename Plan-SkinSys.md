@@ -24,6 +24,7 @@
 | `area_damage` | 移动后对周围玩家造成伤害 | `range`（伤害范围，前后各N格） |
 | `speed_boost` | 前N回合移动速度翻倍 | `duration`（持续回合数） |
 | `extra_health` | 额外初始血量 | `amount`（额外血量值） |
+| `double_defence` | 全局可抵消N次对手卡牌的负面效果 | `charges`（抵消次数） |
 | `ghost_protect` | 幽灵保护次数增加 | `amount`（额外保护次数） |
 | `damage_reduction` | 受到伤害减少百分比 | `reduction`（减少百分比，0-1） |
 | `extra_roll` | 每回合额外掷骰子次数 | `amount`（额外次数） |
@@ -40,6 +41,7 @@ game-ysk/
 │       ├── tank.png          # 坦克皮肤图标
 │       ├── thief.png         # 飞贼皮肤图标
 │       ├── warrior.png       # 勇者皮肤图标
+│       ├── double_defence.png # 两次防皮肤图标
 │       ├── guardian.png      # 守护者皮肤图标
 │       └── iron_wall.png     # 铁壁皮肤图标
 ```
@@ -103,7 +105,27 @@ game-ysk/
   ```
 - **触发时机**：玩家创建时
 
-### 皮肤4：守护者 (guardian)
+### 皮肤4：两次防 (double_defence)
+
+- **名称**：两次防
+- **描述**：全局可防御2次对手卡牌的负面效果（如火球术、减速等攻击型卡牌），自动抵消
+- **图标**：`double_defence.png`
+- **颜色**：`#2980b9`
+- **效果**：
+  ```javascript
+  {
+      type: 'double_defence',
+      params: { charges: 2 }
+  }
+  ```
+- **触发时机**：对手使用攻击型卡牌（`targetType === 'enemy'`）对本玩家生效前
+- **效果说明**：
+  - 当对手使用攻击型卡牌（火球术、减速诅咒、交换位置、偷取生命、推后、炸弹）针对本玩家时，自动消耗1次防御次数，抵消该卡牌的全部负面效果
+  - 卡牌仍会被消耗（对手 wasted 一张卡），但本玩家不受任何影响
+  - 全局共2次，用尽后效果消失
+  - 与护盾/反弹状态独立，优先于它们判定
+
+### 皮肤5：守护者 (guardian)
 
 - **名称**：守护者
 - **描述**：贴身幽灵保护次数上限+1（最多4次）
@@ -118,7 +140,7 @@ game-ysk/
   ```
 - **触发时机**：玩家召唤贴身幽灵时
 
-### 皮肤5：铁壁 (iron_wall)
+### 皮肤6：铁壁 (iron_wall)
 
 - **名称**：铁壁
 - **描述**：受到的所有伤害减少50%
@@ -488,6 +510,16 @@ class SkinSystem {
                 ]
             },
             {
+                id: 'double_defence',
+                name: '两次防',
+                description: '全局可防御2次对手卡牌的负面效果（如火球术、减速等攻击型卡牌），自动抵消',
+                icon: 'double_defence.png',
+                color: '#2980b9',
+                effects: [
+                    { type: 'double_defence', params: { charges: 2 } }
+                ]
+            },
+            {
                 id: 'guardian',
                 name: '守护者',
                 description: '贴身幽灵保护次数上限+1（最多4次）',
@@ -538,6 +570,7 @@ const skinSystem = new SkinSystem();
 | `tank.png` | 坦克皮肤图标 |
 | `thief.png` | 飞贼皮肤图标 |
 | `warrior.png` | 勇者皮肤图标 |
+| `double_defence.png` | 两次防皮肤图标 |
 | `guardian.png` | 守护者皮肤图标 |
 | `iron_wall.png` | 铁壁皮肤图标 |
 
@@ -567,9 +600,9 @@ class Player {
             this.skin = null;
             return;
         }
-        
+
         this.skin = skin;
-        
+
         // 应用初始效果
         if (skin) {
             skin.effects.forEach(effect => {
@@ -583,9 +616,21 @@ class Player {
                     case 'speed_boost':
                         this.speedBoostRemainingTurns = effect.params.duration;
                         break;
+                    case 'double_defence':
+                        this.doubleDefenceCharges = effect.params.charges;
+                        break;
                 }
             });
         }
+    }
+
+    // 两次防皮肤：尝试抵消一次对手卡牌的负面效果，返回 true 表示抵消成功
+    tryDoubleDefence() {
+        if (this.doubleDefenceCharges > 0) {
+            this.doubleDefenceCharges--;
+            return true;
+        }
+        return false;
     }
 }
 ```
@@ -681,10 +726,30 @@ class Player {
            this.onPlayerMove && this.onPlayerMove(player, startPos, endPos, endPos - startPos);
            
            this.applyMoveEffects(player, endPos);  // 新增
-           
+
            this.checkOvertake(player, startPos, endPos);
            // ... 后续逻辑 ...
        }
+   }
+   ```
+
+5. **修改 useCard() 方法，应用两次防抵消（卡牌系统）**：
+   ```javascript
+   useCard(player, cardInstanceId, targetPlayerId = null) {
+       // ... 前置校验 ...
+
+       // 两次防皮肤：攻击型卡牌对目标生效前，检查目标是否可抵消
+       if (card.targetType === 'enemy' && target && target.tryDoubleDefence()) {
+           this.log(`${player.name} 使用了 [${card.name}]，但 ${target.name} 的【两次防】抵消了负面效果！（剩余 ${target.doubleDefenceCharges} 次）`, true);
+           this.notify(`${target.name} 的【两次防】抵消了 ${card.name}！`, 'info');
+           // 卡牌仍然消耗（已使用），但不产生负面效果
+           player.cards.splice(cardIndex, 1);
+           player.hasUsedCardThisTurn = true;
+           this.notifyStateChange();
+           return;
+       }
+
+       // 执行效果 ...
    }
    ```
 

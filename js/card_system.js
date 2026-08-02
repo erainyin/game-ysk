@@ -16,7 +16,7 @@ class CardSystem {
                 icon: 'fireball.png',
                 emoji: '🔥',
                 type: 'attack',
-                cost: 3,
+                cost: 2,
                 targetType: 'enemy',
                 effects: [{ type: 'damage', params: { amount: 2 } }]
             },
@@ -49,7 +49,7 @@ class CardSystem {
                 icon: 'life_drain.png',
                 emoji: '🧛',
                 type: 'attack',
-                cost: 3,
+                cost: 4,
                 targetType: 'enemy',
                 effects: [{ type: 'steal_health', params: { amount: 2 } }]
             },
@@ -127,7 +127,7 @@ class CardSystem {
                 icon: 'reflect.png',
                 emoji: '🔁',
                 type: 'defense',
-                cost: 3,
+                cost: 2,
                 targetType: 'self',
                 effects: [{ type: 'reflect', params: {}, duration: 3 }]
             },

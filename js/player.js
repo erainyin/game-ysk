@@ -20,6 +20,7 @@ class Player {
         this.maxGhostCount = 3;
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
+        this.doubleDefenceCharges = 0;  // 两次防皮肤：剩余防御次数
 
         // 卡牌系统相关
         this.points = 10;                 // 当前点数（用于购买卡牌）
@@ -60,6 +61,7 @@ class Player {
         this.ghostCount = 0;
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
+        this.doubleDefenceCharges = 0;
 
         // 卡牌系统相关重置
         this.points = 10;
@@ -100,9 +102,21 @@ class Player {
                     case 'speed_boost':
                         this.speedBoostRemainingTurns = effect.params.duration;
                         break;
+                    case 'double_defence':
+                        this.doubleDefenceCharges = effect.params.charges;
+                        break;
                 }
             });
         }
+    }
+
+    // 两次防皮肤：尝试抵消一次对手卡牌的负面效果，返回 true 表示抵消成功
+    tryDoubleDefence() {
+        if (this.doubleDefenceCharges > 0) {
+            this.doubleDefenceCharges--;
+            return true;
+        }
+        return false;
     }
 
     moveTo(position) {

@@ -889,6 +889,17 @@ class Game {
             return;
         }
 
+        // 两次防皮肤：攻击型卡牌对目标生效前，检查目标是否可抵消
+        if (card.targetType === 'enemy' && target && target.tryDoubleDefence()) {
+            this.log(`${player.name} 使用了 [${card.name}]，但 ${target.name} 的【两次防】抵消了负面效果！（剩余 ${target.doubleDefenceCharges} 次）`, true);
+            this.notify(`${target.name} 的【两次防】抵消了 ${card.name}！`, 'info');
+            // 卡牌仍然消耗（已使用），但不产生负面效果
+            player.cards.splice(cardIndex, 1);
+            player.hasUsedCardThisTurn = true;
+            this.notifyStateChange();
+            return;
+        }
+
         // 执行效果
         card.effects.forEach(effect => {
             this.executeCardEffect(card, effect, player, target);
