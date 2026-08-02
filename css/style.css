@@ -552,10 +552,19 @@ a.btn-mapeditor {
     cursor: pointer;
     transition: transform 0.3s ease;
     animation: pulse 2s infinite;
+    margin-top:20px;
 }
 
 .dice:hover {
     transform: scale(1.1);
+}
+
+/* 骰子点数图片：尺寸跟随 .dice 的 font-size（1em），桌面 6rem / 移动 32px 自适应 */
+.dice-face-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    display: block;
 }
 
 .dice.rolling {
@@ -1297,12 +1306,20 @@ a.btn-mapeditor {
         gap: 10px;
         flex-direction: row;
         position: fixed;
-        bottom:40px;
+        bottom:50px;
         right:10px;
+        background: rgba(0, 0, 0, .6);
+        padding: 5px 20px;
+        border-radius: 50px;
     }
     .dice {
         font-size: 32px;
         color:#ffffff;
+        margin-top:0;
+    }
+    .dice-face-img{
+        width: 24px;
+        height: 24px;
     }
     .dice-value{
         font-size: 14px;
@@ -1362,7 +1379,10 @@ a.btn-mapeditor {
         font-size: 0;
         cursor: pointer;
     }
-    
+    .player-token{
+        width: 20px;
+        height: 20px;
+    }
     .players-list .player-tag.is-self {
         width: auto;
         height: auto;
@@ -1584,6 +1604,7 @@ a.btn-mapeditor {
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    position: relative;
 }
 
 .purchase-card-item:hover {
@@ -1616,8 +1637,14 @@ a.btn-mapeditor {
 
 .purchase-card-cost {
     font-size: 0.75rem;
-    color: #e67e22;
+    color: #ffffff;
     font-weight: bold;
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background-color: rgba(230, 126, 34, 0.8);
 }
 
 .purchase-hand {

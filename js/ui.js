@@ -1289,13 +1289,22 @@ class UI {
         
         this.diceElement.classList.remove('rolling');
         
-        const diceFaces = ['🎲', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-        this.diceElement.textContent = diceFaces[value];
+        const diceFaces = [
+            '🎲',
+            '<img src="assets/dice/1_dot.png" class="dice-face-img" alt="1">',
+            '<img src="assets/dice/2_dots.png" class="dice-face-img" alt="2">',
+            '<img src="assets/dice/3_dots.png" class="dice-face-img" alt="3">',
+            '<img src="assets/dice/4_dots.png" class="dice-face-img" alt="4">',
+            '<img src="assets/dice/5_dots.png" class="dice-face-img" alt="5">',
+            '<img src="assets/dice/6_dots.png" class="dice-face-img" alt="6">'
+        ];
+        this.diceElement.innerHTML = diceFaces[value];
     }
 
     onGameEnd(player, achievements = []) {
         this.btnDice.disabled = true;
         this.btnStart.disabled = true;
+        this.btnMapSelect.disabled = false;
 
         const modal = document.createElement('div');
         modal.className = 'selection-modal';
@@ -1386,6 +1395,7 @@ class UI {
         switch (state.state) {
             case 'waiting':
                 this.btnStart.disabled = false;
+                this.btnMapSelect.disabled = false;
                 this.btnStart.textContent = '开始游戏';
                 this.setRollControlsEnabled(false);
                 this.gameStatusElement.textContent = '点击开始游戏';
@@ -1424,6 +1434,7 @@ class UI {
                 
             case 'ended':
                 this.btnStart.disabled = false;
+                this.btnMapSelect.disabled = false;
                 this.btnStart.textContent = '开始游戏';
                 this.btnDice.disabled = true;
                 {
