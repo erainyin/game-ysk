@@ -1637,6 +1637,73 @@ a.btn-mapeditor {
     color: #999;
 }
 
+/* 龙皮肤斜行弹窗 */
+.dragon-modal-content {
+    max-width: 520px;
+}
+
+.dragon-modal-content h3 {
+    margin: 0 0 8px;
+    color: #27ae60;
+}
+
+.dragon-desc {
+    font-size: 0.85rem;
+    color: #555;
+    margin: 0 0 14px;
+    line-height: 1.5;
+}
+
+.dragon-cells {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.dragon-cell-btn {
+    padding: 10px 16px;
+    border: 2px solid #27ae60;
+    background: #eafaf1;
+    color: #1e8449;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.9rem;
+}
+
+.dragon-cell-btn:hover {
+    background: #27ae60;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+}
+
+.dragon-no-cells {
+    color: #999;
+    font-size: 0.85rem;
+    padding: 12px;
+}
+
+.btn-dice-roll {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.15s ease;
+}
+
+.btn-dice-roll:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
+}
+
 /* 目标选择弹窗 */
 .target-card-desc {
     font-size: 0.85rem;

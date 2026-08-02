@@ -25,6 +25,7 @@
 | `speed_boost` | 前N回合移动速度翻倍 | `duration`（持续回合数） |
 | `extra_health` | 额外初始血量 | `amount`（额外血量值） |
 | `double_defence` | 全局可抵消N次对手卡牌的负面效果 | `charges`（抵消次数） |
+| `dragon_diagonal` | 全局可斜行N次（移动到对角格子） | `charges`（斜行次数） |
 | `ghost_protect` | 幽灵保护次数增加 | `amount`（额外保护次数） |
 | `damage_reduction` | 受到伤害减少百分比 | `reduction`（减少百分比，0-1） |
 | `extra_roll` | 每回合额外掷骰子次数 | `amount`（额外次数） |
@@ -42,6 +43,7 @@ game-ysk/
 │       ├── thief.png         # 飞贼皮肤图标
 │       ├── warrior.png       # 勇者皮肤图标
 │       ├── double_defence.png # 两次防皮肤图标
+│       ├── dragon.png        # 龙皮肤图标
 │       ├── guardian.png      # 守护者皮肤图标
 │       └── iron_wall.png     # 铁壁皮肤图标
 ```
@@ -125,7 +127,32 @@ game-ysk/
   - 全局共2次，用尽后效果消失
   - 与护盾/反弹状态独立，优先于它们判定
 
-### 皮肤5：守护者 (guardian)
+### 皮肤5：龙 (dragon)
+
+- **名称**：龙
+- **描述**：全局可斜着走1次：每回合掷骰前可选择移动到对角格子，或正常掷骰。用过后只能掷骰
+- **图标**：`dragon.png`
+- **颜色**：`#27ae60`
+- **效果**：
+  ```javascript
+  {
+      type: 'dragon_diagonal',
+      params: { charges: 1 }
+  }
+  ```
+- **触发时机**：玩家回合的掷骰阶段（掷骰前）
+- **效果说明**：
+  - 当本玩家回合进入掷骰阶段时，若仍有斜行次数，弹出对话框显示：
+    - 当前位置在 2D 网格上的 4 个对角格子（`(row±1, col±1)`）的编号，作为可点击按钮
+    - 一个「🎲 投掷骰子」按钮
+  - **选择格子**：直接移动到该格子位置（瞬移），消耗1次斜行次数，触发落点效果（坦克光环/超越判定/格子属性/终点判定），本回合结束
+  - **选择投掷骰子**：关闭对话框，按正常流程掷骰移动（不消耗斜行次数）
+  - **边界处理**：棋子在棋盘边缘时，被挡住的方向（超出网格范围）不显示，只显示有效的对角格子
+  - **次数用尽**：斜行次数归零后，不再弹窗，每回合只能正常掷骰
+  - **AI 决策**：AI 玩家自动决策，仅当最靠前的对角格子能推进时，50% 概率使用斜行，否则掷骰
+  - **坐标转换**：使用 `board.getPositionByNumber`（编号→行列）与 `board.getNumberByPosition`（行列→编号）在蛇形(zigzag)布局上换算
+
+### 皮肤6：守护者 (guardian)
 
 - **名称**：守护者
 - **描述**：贴身幽灵保护次数上限+1（最多4次）
@@ -138,9 +165,9 @@ game-ysk/
       params: { amount: 1 }
   }
   ```
-- **触发时机**：玩家召唤贴身幽灵时d
+- **触发时机**：玩家召唤贴身幽灵时
 
-### 皮肤6：铁壁 (iron_wall)
+### 皮肤7：铁壁 (iron_wall)
 
 - **名称**：铁壁
 - **描述**：受到的所有伤害减少50%
@@ -520,6 +547,16 @@ class SkinSystem {
                 ]
             },
             {
+                id: 'dragon',
+                name: '龙',
+                description: '全局可斜着走1次：每回合掷骰前可选择移动到对角格子，或正常掷骰。用过后只能掷骰',
+                icon: 'dragon.png',
+                color: '#27ae60',
+                effects: [
+                    { type: 'dragon_diagonal', params: { charges: 1 } }
+                ]
+            },
+            {
                 id: 'guardian',
                 name: '守护者',
                 description: '贴身幽灵保护次数上限+1（最多4次）',
@@ -571,6 +608,7 @@ const skinSystem = new SkinSystem();
 | `thief.png` | 飞贼皮肤图标 |
 | `warrior.png` | 勇者皮肤图标 |
 | `double_defence.png` | 两次防皮肤图标 |
+| `dragon.png` | 龙皮肤图标 |
 | `guardian.png` | 守护者皮肤图标 |
 | `iron_wall.png` | 铁壁皮肤图标 |
 
@@ -619,6 +657,9 @@ class Player {
                     case 'double_defence':
                         this.doubleDefenceCharges = effect.params.charges;
                         break;
+                    case 'dragon_diagonal':
+                        this.dragonDiagonalCharges = effect.params.charges;
+                        break;
                 }
             });
         }
@@ -630,6 +671,14 @@ class Player {
             this.doubleDefenceCharges--;
             return true;
         }
+        return false;
+    }
+
+    // 龙皮肤：是否还有斜行次数
+    hasDragonDiagonal() { return this.dragonDiagonalCharges > 0; }
+    // 龙皮肤：消耗一次斜行次数
+    useDragonDiagonal() {
+        if (this.dragonDiagonalCharges > 0) { this.dragonDiagonalCharges--; return true; }
         return false;
     }
 }
@@ -751,6 +800,80 @@ class Player {
 
        // 执行效果 ...
    }
+   ```
+
+6. **新增龙皮肤斜行方法（getDiagonalCells / movePlayerDiagonal / dragonDecideForAI）**：
+   ```javascript
+   // 获取当前位置可斜行的对角格子编号列表
+   getDiagonalCells(player) {
+       const { row, col } = this.board.getPositionByNumber(player.position);
+       const cells = [];
+       const directions = [[-1,-1],[-1,1],[1,-1],[1,1]];
+       for (const [dr, dc] of directions) {
+           const nr = row + dr, nc = col + dc;
+           // 边界检查：被挡住的方向（棋盘边缘）跳过
+           if (nr >= 0 && nr < this.board.rows && nc >= 0 && nc < this.board.cols) {
+               const cellNum = this.board.getNumberByPosition(nr, nc);
+               if (cellNum !== player.position && cellNum >= 1 && cellNum <= this.board.totalCells) {
+                   cells.push(cellNum);
+               }
+           }
+       }
+       return cells;
+   }
+
+   // 执行斜行到指定格子（消耗次数，触发落点效果，结束当前回合）
+   movePlayerDiagonal(player, targetPos) {
+       if (!player.hasDragonDiagonal()) return;
+       const startPos = player.position;
+       player.hasRolled = true;            // 占用本回合掷骰行动
+       player.useDragonDiagonal();         // 消耗斜行次数
+       if (typeof player.recordMove === 'function') player.recordMove();
+       this.log(`🐉 ${player.name} 龙之斜行！${startPos}->${targetPos}`, true);
+
+       player.moveTo(targetPos);
+       this.onPlayerMove && this.onPlayerMove(player, startPos, targetPos, targetPos - startPos);
+       this.applyMoveEffects(player, targetPos);
+       this.checkOvertake(player, startPos, targetPos);
+
+       if (targetPos >= this.board.totalCells) {
+           player.win();
+           this.checkGameEnd();
+       } else {
+           const propertyHandled = this.processCellProperty(player, targetPos);
+           if (!player.isDead && !propertyHandled) this.nextTurn();
+           else if (player.isDead) this.checkGameEnd();
+       }
+   }
+
+   // AI 决策是否使用斜行，返回目标格子编号，null 表示改为掷骰
+   dragonDecideForAI(player) {
+       if (!player.hasDragonDiagonal()) return null;
+       const cells = this.getDiagonalCells(player);
+       if (cells.length === 0) return null;
+       const best = cells.reduce((b, c) => c > b ? c : b, cells[0]);
+       if (best > player.position && Math.random() < 0.5) return best;
+       return null;
+   }
+   ```
+
+7. **修改 UI 的 handleRollDice() 和 AI 回合，接入龙皮肤选择**：
+   ```javascript
+   handleRollDice() {
+       // ... 前置校验 ...
+       // 龙皮肤：人类玩家掷骰前可选择斜行或掷骰
+       if (currentPlayer.hasDragonDiagonal && currentPlayer.hasDragonDiagonal()) {
+           this.showDragonDiagonalDialog(currentPlayer);
+           return;
+       }
+       this.isRollLocked = true;
+       this.setRollControlsEnabled(false);
+       this.game.rollDice();
+   }
+   // showDragonDiagonalDialog 渲染对话框：对角格子按钮 + 投掷骰子按钮
+   // AI 回合：const diagTarget = this.game.dragonDecideForAI(player);
+   //         if (diagTarget) this.game.movePlayerDiagonal(player, diagTarget);
+   //         else this.game.rollDice();
    ```
 
 ### 步骤5：修改 Player.changeHealth()，应用伤害减免

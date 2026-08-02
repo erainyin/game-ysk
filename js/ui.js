@@ -837,7 +837,13 @@ class UI {
                 if (player && !player.isDead && player.id !== this.playerIndex && !player.hasRolled) {
                     // AI先使用卡牌，再掷骰子
                     this.game.aiUseCards(player);
-                    this.game.rollDice();
+                    // 龙皮肤：AI 决策是否斜行
+                    const diagTarget = this.game.dragonDecideForAI(player);
+                    if (diagTarget) {
+                        this.game.movePlayerDiagonal(player, diagTarget);
+                    } else {
+                        this.game.rollDice();
+                    }
                 }
             }
             this.isAIProcessing = false;
@@ -850,9 +856,63 @@ class UI {
             return;
         }
 
+        // 龙皮肤：人类玩家掷骰前可选择斜行或掷骰
+        if (typeof currentPlayer.hasDragonDiagonal === 'function' && currentPlayer.hasDragonDiagonal()) {
+            this.showDragonDiagonalDialog(currentPlayer);
+            return;
+        }
+
         this.isRollLocked = true;
         this.setRollControlsEnabled(false);
         this.game.rollDice();
+    }
+
+    // 龙皮肤：显示斜行选择对话框
+    showDragonDiagonalDialog(player) {
+        if (this.dragonModal) this.dragonModal.remove();
+        const cells = this.game.getDiagonalCells(player);
+
+        const cellsHtml = cells.length > 0
+            ? cells.map(c => `<button class="dragon-cell-btn" data-cell="${c}">格子 ${c}</button>`).join('')
+            : '<div class="dragon-no-cells">当前位置无可用斜向格子，请掷骰子</div>';
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+        modal.innerHTML = `
+            <div class="modal-content dragon-modal-content">
+                <h3>🐉 龙之斜行</h3>
+                <p class="dragon-desc">选择一个斜向格子移动（仅本次可用，用后只能掷骰），或投掷骰子正常移动。</p>
+                <div class="dragon-cells">${cellsHtml}</div>
+                <div class="modal-action-bar">
+                    <button class="btn-dice-roll" id="dragon-roll-btn">🎲 投掷骰子</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        this.dragonModal = modal;
+
+        const proceedRoll = () => {
+            modal.remove();
+            this.dragonModal = null;
+            this.isRollLocked = true;
+            this.setRollControlsEnabled(false);
+            this.game.rollDice();
+        };
+        const proceedDiagonal = (cellNum) => {
+            modal.remove();
+            this.dragonModal = null;
+            this.isRollLocked = true;
+            this.setRollControlsEnabled(false);
+            this.game.movePlayerDiagonal(player, cellNum);
+        };
+
+        modal.querySelectorAll('.dragon-cell-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                proceedDiagonal(parseInt(e.currentTarget.dataset.cell));
+            });
+        });
+        const rollBtn = modal.querySelector('#dragon-roll-btn');
+        if (rollBtn) rollBtn.addEventListener('click', proceedRoll);
     }
 
     handleRestart() {

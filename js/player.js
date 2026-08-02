@@ -21,6 +21,7 @@ class Player {
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
         this.doubleDefenceCharges = 0;  // 两次防皮肤：剩余防御次数
+        this.dragonDiagonalCharges = 0; // 龙皮肤：剩余斜行次数
 
         // 卡牌系统相关
         this.points = 10;                 // 当前点数（用于购买卡牌）
@@ -62,6 +63,7 @@ class Player {
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
         this.doubleDefenceCharges = 0;
+        this.dragonDiagonalCharges = 0;
 
         // 卡牌系统相关重置
         this.points = 10;
@@ -105,6 +107,9 @@ class Player {
                     case 'double_defence':
                         this.doubleDefenceCharges = effect.params.charges;
                         break;
+                    case 'dragon_diagonal':
+                        this.dragonDiagonalCharges = effect.params.charges;
+                        break;
                 }
             });
         }
@@ -114,6 +119,20 @@ class Player {
     tryDoubleDefence() {
         if (this.doubleDefenceCharges > 0) {
             this.doubleDefenceCharges--;
+            return true;
+        }
+        return false;
+    }
+
+    // 龙皮肤：是否还有斜行次数
+    hasDragonDiagonal() {
+        return this.dragonDiagonalCharges > 0;
+    }
+
+    // 龙皮肤：消耗一次斜行次数
+    useDragonDiagonal() {
+        if (this.dragonDiagonalCharges > 0) {
+            this.dragonDiagonalCharges--;
             return true;
         }
         return false;

@@ -53,6 +53,16 @@ class SkinSystem {
                 effects: [
                     { type: 'double_defence', params: { charges: 2 } }
                 ]
+            },
+            {
+                id: 'dragon',
+                name: '龙',
+                description: '全局可斜着走1次：每回合掷骰前可选择移动到对角格子，或正常掷骰。用过后只能掷骰',
+                icon: 'dragon.png',
+                color: '#27ae60',
+                effects: [
+                    { type: 'dragon_diagonal', params: { charges: 1 } }
+                ]
             }
         ];
     }

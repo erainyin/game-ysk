@@ -1022,6 +1022,69 @@ class Game {
         }
     }
 
+    // 龙皮肤：获取当前位置可斜行的对角格子编号列表
+    getDiagonalCells(player) {
+        const { row, col } = this.board.getPositionByNumber(player.position);
+        const cells = [];
+        const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+        for (const [dr, dc] of directions) {
+            const nr = row + dr, nc = col + dc;
+            // 边界检查：被挡住的方向（棋盘边缘）跳过
+            if (nr >= 0 && nr < this.board.rows && nc >= 0 && nc < this.board.cols) {
+                const cellNum = this.board.getNumberByPosition(nr, nc);
+                if (cellNum !== player.position && cellNum >= 1 && cellNum <= this.board.totalCells) {
+                    cells.push(cellNum);
+                }
+            }
+        }
+        return cells;
+    }
+
+    // 龙皮肤：执行斜行到指定格子（消耗次数，触发落点效果，结束当前回合）
+    movePlayerDiagonal(player, targetPos) {
+        if (!player.hasDragonDiagonal()) return;
+        const startPos = player.position;
+        player.hasRolled = true;            // 占用本回合掷骰行动
+        player.useDragonDiagonal();         // 消耗斜行次数
+        if (typeof player.recordMove === 'function') player.recordMove();
+
+        this.log(`🐉 ${player.name} 龙之斜行！位置 ${startPos} -> ${targetPos}（剩余斜行 ${player.dragonDiagonalCharges} 次）`, true);
+        this.notify(`${player.name} 使用【龙】斜行到格子 ${targetPos}`, 'info');
+
+        player.moveTo(targetPos);
+        this.onPlayerMove && this.onPlayerMove(player, startPos, targetPos, targetPos - startPos);
+
+        // 与正常移动一致：触发移动后效果、超越判定、格子属性
+        this.applyMoveEffects(player, targetPos);
+        this.checkOvertake(player, startPos, targetPos);
+
+        if (targetPos >= this.board.totalCells) {
+            player.win();
+            this.checkGameEnd();
+        } else {
+            const propertyHandled = this.processCellProperty(player, targetPos);
+            if (!player.isDead && !propertyHandled) {
+                this.nextTurn();
+            } else if (player.isDead) {
+                this.checkGameEnd();
+            }
+        }
+    }
+
+    // 龙皮肤：AI 决策是否使用斜行，返回目标格子编号，null 表示改为掷骰
+    dragonDecideForAI(player) {
+        if (!player.hasDragonDiagonal()) return null;
+        const cells = this.getDiagonalCells(player);
+        if (cells.length === 0) return null;
+        // 选择最靠前（编号最大）的格子
+        const best = cells.reduce((b, c) => c > b ? c : b, cells[0]);
+        // 仅当能向前推进时，50% 概率使用斜行；否则掷骰
+        if (best > player.position && Math.random() < 0.5) {
+            return best;
+        }
+        return null;
+    }
+
     swapPositions(source, target) {//交换两名玩家位置
         const sourcePos = source.position;
         const targetPos = target.position;
