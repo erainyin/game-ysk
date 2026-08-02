@@ -1,13 +1,133 @@
 [
-      {
+  {
+    "name": "默认地图",
+    "displayName": "默认地图",
+    "path": "grid.csv"
+  },
+  {
+    "name": "01_血色迷宫",
+    "displayName": "01_血色迷宫",
+    "path": "map/01_血色迷宫.csv"
+  },
+  {
+    "name": "02_极速狂飙",
+    "displayName": "02_极速狂飙",
+    "path": "map/02_极速狂飙.csv"
+  },
+  {
+    "name": "03_死亡竞速",
+    "displayName": "03_死亡竞速",
+    "path": "map/03_死亡竞速.csv"
+  },
+  {
+    "name": "04_幽灵战场",
+    "displayName": "04_幽灵战场",
+    "path": "map/04_幽灵战场.csv"
+  },
+  {
+    "name": "05_炸弹乐园",
+    "displayName": "05_炸弹乐园",
+    "path": "map/05_炸弹乐园.csv"
+  },
+  {
+    "name": "06_时空裂隙",
+    "displayName": "06_时空裂隙",
+    "path": "map/06_时空裂隙.csv"
+  },
+  {
+    "name": "07_混沌之境",
+    "displayName": "07_混沌之境",
+    "path": "map/07_混沌之境.csv"
+  },
+  {
+    "name": "08_守护圣殿",
+    "displayName": "08_守护圣殿",
+    "path": "map/08_守护圣殿.csv"
+  },
+  {
+    "name": "09_超速风暴",
+    "displayName": "09_超速风暴",
+    "path": "map/09_超速风暴.csv"
+  },
+  {
+    "name": "10_生死一线",
+    "displayName": "10_生死一线",
+    "path": "map/10_生死一线.csv"
+  },
+  {
+    "name": "11_幽灵炸弹",
+    "displayName": "11_幽灵炸弹",
+    "path": "map/11_幽灵炸弹.csv"
+  },
+  {
+    "name": "12_血月诅咒",
+    "displayName": "12_血月诅咒",
+    "path": "map/12_血月诅咒.csv"
+  },
+  {
+    "name": "13_传送迷宫",
+    "displayName": "13_传送迷宫",
+    "path": "map/13_传送迷宫.csv"
+  },
+  {
+    "name": "14_极速死亡",
+    "displayName": "14_极速死亡",
+    "path": "map/14_极速死亡.csv"
+  },
+  {
+    "name": "15_混沌战场",
+    "displayName": "15_混沌战场",
+    "path": "map/15_混沌战场.csv"
+  },
+  {
+    "name": "16_幽灵守护",
+    "displayName": "16_幽灵守护",
+    "path": "map/16_幽灵守护.csv"
+  },
+  {
+    "name": "17_炸弹风暴",
+    "displayName": "17_炸弹风暴",
+    "path": "map/17_炸弹风暴.csv"
+  },
+  {
+    "name": "18_时空乱流",
+    "displayName": "18_时空乱流",
+    "path": "map/18_时空乱流.csv"
+  },
+  {
+    "name": "19_血色狂欢",
+    "displayName": "19_血色狂欢",
+    "path": "map/19_血色狂欢.csv"
+  },
+  {
+    "name": "20_终极试炼",
+    "displayName": "20_终极试炼",
+    "path": "map/20_终极试炼.csv"
+  },
+  {
+    "name": "Map-生命之源",
+    "displayName": "Map-生命之源",
+    "path": "map/Map-生命之源.csv"
+  },
+  {
+    "name": "Map-时间漩涡",
+    "displayName": "Map-时间漩涡",
+    "path": "map/Map-时间漩涡.csv"
+  },
+  {
+    "name": "Map-幽灵边境",
+    "displayName": "Map-幽灵边境",
+    "path": "map/Map-幽灵边境.csv"
+  },
+  {
+    "name": "Map-炸裂战场",
+    "displayName": "Map-炸裂战场",
+    "path": "map/Map-炸裂战场.csv"
+  },
+  {
     "name": "Map1",
     "displayName": "Map1",
     "path": "map/Map1.csv"
-  },
-  {
-    "name": "Map2-noGSTs",
-    "displayName": "Map2-noGSTs",
-    "path": "map/Map2-noGSTs.csv"
   },
   {
     "name": "Map3-easy4newplayer",
@@ -18,55 +138,5 @@
     "name": "Map4-hard",
     "displayName": "Map4-hard",
     "path": "map/Map4-hard.csv"
-  },
-  {
-    "name": "默认地图",
-    "displayName": "默认地图",
-    "path": "grid.csv"
-  },
-  {
-    "name": "守护圣域",
-    "displayName": "守护圣域",
-    "path": "map/Map-守护圣域.csv"
-  },
-  {
-    "name": "幽灵边境",
-    "displayName": "幽灵边境",
-    "path": "map/Map-幽灵边境.csv"
-  },
-  {
-    "name": "时间漩涡",
-    "displayName": "时间漩涡",
-    "path": "map/Map-时间漩涡.csv"
-  },
-  {
-    "name": "死亡陷阱",
-    "displayName": "死亡陷阱",
-    "path": "map/Map-死亡陷阱.csv"
-  },
-  {
-    "name": "混沌秘典",
-    "displayName": "混沌秘典",
-    "path": "map/Map-混沌秘典.csv"
-  },
-  {
-    "name": "炸裂战场",
-    "displayName": "炸裂战场",
-    "path": "map/Map-炸裂战场.csv"
-  },
-  {
-    "name": "生命之源",
-    "displayName": "生命之源",
-    "path": "map/Map-生命之源.csv"
-  },
-  {
-    "name": "疾速闪电",
-    "displayName": "疾速闪电",
-    "path": "map/Map-疾速闪电.csv"
-  },
-  {
-    "name": "黑洞风暴",
-    "displayName": "黑洞风暴",
-    "path": "map/Map-黑洞风暴.csv"
   }
 ]
