@@ -1141,23 +1141,23 @@ class UI {
             }
             this.logData['system'].unshift(logInfo);
         } else {
-            const { round, player, message } = logInfo;
+            const { round, player, message, isNotification } = logInfo;
             const roundKey = `round_${round}`;
-            
+
             if (!this.logData[roundKey]) {
                 this.logData[roundKey] = {
                     round: round,
                     players: {}
                 };
             }
-            
+
             if (!this.logData[roundKey].players[player]) {
                 this.logData[roundKey].players[player] = [];
             }
-            
-            this.logData[roundKey].players[player].unshift(message);
+
+            this.logData[roundKey].players[player].unshift({ message, isNotification: !!isNotification });
         }
-        
+
         this.renderLog();
     }
     
@@ -1179,7 +1179,15 @@ class UI {
             for (const playerName of playerNames) {
                 const messages = roundData.players[playerName];
                 for (const msg of messages) {
-                    html += `<div class="player-log-item"><span class="player-name">${playerName}：</span><span class="log-message">${msg}</span></div>`;
+                    // 兼容字符串（旧）与对象（新，含 isNotification 标记）两种存储格式
+                    const msgText = typeof msg === 'object' ? msg.message : msg;
+                    const isNotification = typeof msg === 'object' ? !!msg.isNotification : false;
+                    if (isNotification) {
+                        // 通知类消息：文本已含玩家名，不重复显示前缀，用 🔔 标记区分
+                        html += `<div class="player-log-item"><span class="log-message log-notification">🔔 ${msgText}</span></div>`;
+                    } else {
+                        html += `<div class="player-log-item"><span class="player-name">${playerName}：</span><span class="log-message">${msgText}</span></div>`;
+                    }
                 }
             }
             
@@ -1600,10 +1608,8 @@ class UI {
         const handEl = document.getElementById('hand-cards');
         if (!container || !handEl) return;
 
-        // 仅显示人类玩家（AI模式）或当前玩家（非AI模式）的手牌
-        const showPlayer = this.aiMode
-            ? this.game.players[this.playerIndex]
-            : this.game.getCurrentPlayer();
+        // 显示当前回合玩家的手牌（人机大战时，AI 回合也显示其手牌供查看）
+        const showPlayer = this.game.getCurrentPlayer();
 
         if (!showPlayer || this.game.gameState !== 'playing' || this.game.purchasePhase) {
             container.style.display = 'none';
@@ -1616,8 +1622,9 @@ class UI {
             return;
         }
 
-        // 仅在掷骰前可使用，且每回合限1张
-        const canUse = !showPlayer.hasRolled && !this.game.purchasePhase && !showPlayer.hasUsedCardThisTurn;
+        // 仅当当前玩家可被人类操控时（非AI模式，或AI模式下当前是玩家本人）才可使用卡牌
+        const isControllable = !this.aiMode || showPlayer.id === this.playerIndex;
+        const canUse = isControllable && !showPlayer.hasRolled && !this.game.purchasePhase && !showPlayer.hasUsedCardThisTurn;
         container.style.display = 'block';
 
         const usedHint = showPlayer.hasUsedCardThisTurn && !showPlayer.hasRolled
@@ -1625,7 +1632,11 @@ class UI {
 
         const labelEl = container.querySelector('.hand-cards-label');
         if (labelEl) {
-            labelEl.innerHTML = `🃏 手牌（掷骰前可使用，每回合限1张）${usedHint}`;
+            if (isControllable) {
+                labelEl.innerHTML = `🃏 ${showPlayer.name} 的手牌（掷骰前可使用，每回合限1张）${usedHint}`;
+            } else {
+                labelEl.innerHTML = `🃏 ${showPlayer.name} 的手牌（AI 回合，仅查看）`;
+            }
         }
 
         handEl.innerHTML = cards.map(card => `

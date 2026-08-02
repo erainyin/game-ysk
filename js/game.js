@@ -60,9 +60,11 @@ class Game {
         if (this.onNotification) {
             this.onNotification(message, type);
         }
+        // 通知信息同时记录到日志（标记为通知，不重复显示玩家名前缀）
+        this.log(message, false, true);
     }
 
-    log(message, isMainRoll = false) {//记录日志
+    log(message, isMainRoll = false, isNotification = false) {//记录日志
         if (this.onLog) {
             const player = this.getCurrentPlayer();
             const playerName = player ? player.name : '未知';
@@ -71,6 +73,7 @@ class Game {
                 player: playerName,
                 message: message,
                 isMainRoll: isMainRoll,
+                isNotification: isNotification,
                 startPos: this.currentRollStartPos,
                 rollValue: this.lastRollValue
             };
