@@ -162,6 +162,15 @@ class CardSystem {
         if (!card) return '';
         return this.iconPath + card.icon;
     }
+
+    // 返回卡片图标的 HTML：有图片则用 <img>，加载失败自动回退到 emoji
+    getIconHtml(card, className = 'card-icon-img') {
+        if (!card) return '';
+        if (card.icon) {
+            return `<img src="${this.iconPath}${card.icon}" class="${className}" alt="${card.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"><span class="card-icon-fallback" style="display:none;">${card.emoji}</span>`;
+        }
+        return card.emoji;
+    }
 }
 
 const cardSystem = new CardSystem();

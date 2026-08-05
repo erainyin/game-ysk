@@ -1256,7 +1256,7 @@ class UI {
         const cardCount = (player.cards || []).length;
         let cardInfo = '';
         if (!player.isDead && !player.isWinner) {
-            const cardsText = (player.cards || []).map(c => `${c.emoji}${c.name}`).join('、');
+            const cardsText = (player.cards || []).map(c => `${cardSystem.getIconHtml(c)}${c.name}`).join('、');
             cardInfo = `<div class="player-info-cards">
                 <div class="player-info-points">💰 点数：${player.points}</div>
                 <div class="player-info-hand">🃏 手牌（${cardCount}张）：${cardsText || '无'}</div>
@@ -1286,19 +1286,24 @@ class UI {
     onDiceRoll(value, player) {
         const p = player || this.game.getCurrentPlayer();
         this.diceValueElement.textContent = `${p.name}向前走${value}步`;
-        
+
         this.diceElement.classList.remove('rolling');
-        
-        const diceFaces = [
-            '🎲',
-            '<img src="assets/dice/1_dot.png" class="dice-face-img" alt="1">',
-            '<img src="assets/dice/2_dots.png" class="dice-face-img" alt="2">',
-            '<img src="assets/dice/3_dots.png" class="dice-face-img" alt="3">',
-            '<img src="assets/dice/4_dots.png" class="dice-face-img" alt="4">',
-            '<img src="assets/dice/5_dots.png" class="dice-face-img" alt="5">',
-            '<img src="assets/dice/6_dots.png" class="dice-face-img" alt="6">'
-        ];
-        this.diceElement.innerHTML = diceFaces[value];
+
+        // 骰子点数图片：1-6 单图；速度翻倍产生的 8/10/12 显示为两个骰子（4+4/5+5/6+6）
+        const diceImg = (n) => `<img src="assets/dice/${n}_${n === 1 ? 'dot' : 'dots'}.png" class="dice-face-img" alt="${n}">`;
+        let html;
+        if (value >= 1 && value <= 6) {
+            html = diceImg(value);
+        } else if (value === 8) {
+            html = `<span class="dice-face-multi">${diceImg(4)}${diceImg(4)}</span>`;
+        } else if (value === 10) {
+            html = `<span class="dice-face-multi">${diceImg(5)}${diceImg(5)}</span>`;
+        } else if (value === 12) {
+            html = `<span class="dice-face-multi">${diceImg(6)}${diceImg(6)}</span>`;
+        } else {
+            html = '🎲';
+        }
+        this.diceElement.innerHTML = html;
     }
 
     onGameEnd(player, achievements = []) {
@@ -1475,8 +1480,8 @@ class UI {
                 <div class="purchase-card-item ${canAfford ? '' : 'disabled'}"
                      data-card-id="${card.id}"
                      data-player="${playerIndex}">
-                    <div class="purchase-card-emoji">${card.emoji}</div>
-                    <div class="purchase-card-name">${card.name}</div>
+                    <div class="purchase-card-emoji">${cardSystem.getIconHtml(card)}</div>
+                    <!--<div class="purchase-card-name">${card.name}</div>-->
                     <div class="purchase-card-cost">${card.cost}点</div>
                 </div>
             `;
@@ -1497,7 +1502,7 @@ class UI {
                             <div class="purchase-hand-label">                        <div class="purchase-points">💰 剩余点数：<span id="purchase-points-value">${player.points}</span></div>
 🃏 已购卡牌（${player.cards.length}张）：</div>
                             <div class="purchase-hand-list" id="purchase-hand-list">
-                                ${player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${c.emoji}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>'}
+                                ${player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${cardSystem.getIconHtml(c)}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>'}
                             </div>
                         </div>
                     </div>
@@ -1566,7 +1571,7 @@ class UI {
         const emojiEl = this.purchaseModal.querySelector('#purchase-desc-emoji');
         const titleEl = this.purchaseModal.querySelector('#purchase-desc-title');
         const bodyEl = this.purchaseModal.querySelector('#purchase-desc-body');
-        if (emojiEl) emojiEl.textContent = cardDef.emoji;
+        if (emojiEl) emojiEl.innerHTML = cardSystem.getIconHtml(cardDef);
         if (titleEl) titleEl.textContent = `${cardDef.name}（${cardDef.cost}点）`;
         if (bodyEl) bodyEl.textContent = cardDef.description;
     }
@@ -1578,7 +1583,7 @@ class UI {
         if (pointsEl) pointsEl.textContent = player.points;
         const handListEl = this.purchaseModal.querySelector('#purchase-hand-list');
         if (handListEl) {
-            handListEl.innerHTML = player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${c.emoji}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>';
+            handListEl.innerHTML = player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${cardSystem.getIconHtml(c)}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>';
             // 绑定取消购买（退回）
             handListEl.querySelectorAll('.purchase-hand-card').forEach(el => {
                 el.addEventListener('click', (e) => {
@@ -1659,7 +1664,7 @@ class UI {
                  data-instance-id="${card.instanceId}"
                  data-card-id="${card.id}"
                  title="${card.name}\n${card.description}">
-                <span class="hand-card-emoji">${card.emoji}</span>
+                <span class="hand-card-emoji">${cardSystem.getIconHtml(card)}</span>
                 <span class="hand-card-name">${card.name}</span>
             </div>
         `).join('');
@@ -1699,7 +1704,7 @@ class UI {
         modal.innerHTML = `
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="ui.hideCardTargetSelection()" aria-label="关闭">×</button>
-                <h3>选择目标 - ${card.emoji}${card.name}</h3>
+                <h3>选择目标 - ${cardSystem.getIconHtml(card)}${card.name}</h3>
                 <div class="target-card-desc">${card.description}</div>
                 <div class="target-list">
                     ${enemies.map(p => `

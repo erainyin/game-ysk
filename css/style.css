@@ -567,6 +567,14 @@ a.btn-mapeditor {
     display: block;
 }
 
+/* 速度翻倍时双骰子并排容器（点数 8/10/12） */
+.dice-face-multi {
+    display: inline-flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
 .dice.rolling {
     animation: roll 0.5s linear infinite;
 }
@@ -1472,16 +1480,25 @@ a.btn-mapeditor {
     background: white;
 }
 
+/* 卡牌图标图片：尺寸跟随父容器 font-size（1em），加载失败回退到 emoji */
+.card-icon-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    vertical-align: middle;
+    display: inline-block;
+}
+
 .hand-card-emoji {
     font-size: 1.4rem;
     line-height: 1;
 }
 
-.hand-card-name {
+/* .hand-card-name {
     font-size: 0.7rem;
     color: #333;
     font-weight: 500;
-}
+} */
 
 /* 购买弹窗 - 自适应页面宽度 */
 .purchase-modal-content {
