@@ -1,3 +1,34 @@
+/* ============================================================
+   YSK 大作战 - 全局样式表
+   组织结构（对应 index.html 的 DOM 层级）：
+     1.  基础重置与全局
+     2.  通用按钮
+     3.  页面布局与头部控制 (.header-controls)
+     4.  通知系统 (.notifications)
+     5.  游戏容器与主内容区 (.game-container / .main-content)
+     6.  玩家信息区 (.game-info / .players-info)
+     7.  棋盘与格子 (.board-container / .board / .cell)
+     8.  玩家令牌与幽灵 (.player-token / .ghost-token)
+     9.  骰子区域 (.dice-container / .dice)
+     10. 游戏日志 (.game-log-container)
+     11. 格子信息提示 (.cell-info)
+     12. 规则说明 (.rules)
+     13. 弹窗系统通用 (.selection-modal / .modal-content)
+     14. 玩家选择弹窗 (.player-select-btn / .ghost-btn / .move-btn)
+     15. 皮肤选择系统 (.skin-selector / .skin-detail)
+     16. AI 模式复选框 (.ai-checkbox-container)
+     17. 地图选择弹窗 (.map-select-modal)
+     18. 成就系统 (.achievements-*)
+     19. 游戏结束界面 (.game-end-*)
+     20. 卡牌系统 - 手牌 / 购买 / 龙皮肤 / 目标选择
+     21. 动画关键帧汇总
+     22. 响应式适配（≤768px，整合自原 3 处媒体查询）
+   ============================================================ */
+
+
+/* ============================================================
+   1. 基础重置与全局
+   ============================================================ */
 * {
     margin: 0;
     padding: 0;
@@ -21,6 +52,157 @@ body {
     max-width: 1100px;
 }
 
+/* 兼容旧版标记，当前 index.html 未直接使用 */
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+
+/* ============================================================
+   2. 通用按钮
+   所有按钮/链接按钮共享的基础样式与各按钮变体
+   ============================================================ */
+button, .btn {
+    padding: 12px 30px;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    line-height: 1;
+}
+
+/* 头部：地图编辑器入口（链接形式） */
+.btn-mapeditor {
+    color: white;
+    border: 1px solid rgba(255, 255, 255, .5);
+    background: rgba(0, 0, 0, .2);
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-decoration: none;
+    padding: 11px;
+}
+
+/* 头部：地图选择按钮 */
+.btn-mapselect {
+    border: 1px solid rgba(255, 255, 255, .5);
+    background: rgba(0, 0, 0, .2);
+    color: white;
+    padding: 11px;
+}
+
+.btn-mapselect:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+}
+
+.btn-mapselect:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 头部：开始游戏按钮 */
+.btn-start, .btn-start-game {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+}
+
+.btn-start:hover, .btn-start-game:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(46, 204, 113, 0.4);
+}
+
+/* 头部：重新开始按钮 */
+.btn-restart {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+}
+
+.btn-restart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(155, 89, 182, 0.4);
+}
+
+/* 侧栏：掷骰子按钮 */
+.btn-dice {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.btn-dice:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(243, 156, 18, 0.4);
+}
+
+.btn-dice:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 重新开始确认弹窗：确认 / 取消按钮 */
+.btn-restart-confirm {
+    padding: 10px 24px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-restart-confirm:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4);
+}
+
+.btn-restart-cancel {
+    padding: 10px 24px;
+    background: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-restart-cancel:hover {
+    background: #7f8c8d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(149, 165, 166, 0.4);
+}
+
+/* 龙皮肤弹窗：掷骰按钮 */
+.btn-dice-roll {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.15s ease;
+}
+
+.btn-dice-roll:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
+}
+
+
+/* ============================================================
+   3. 页面布局与头部控制
+   对应 .header-controls（开始/重启/地图选择/地图编辑器）
+   ============================================================ */
 .header-controls {
     position: absolute;
     top: -60px;
@@ -30,6 +212,11 @@ body {
     gap: 10px;
 }
 
+
+/* ============================================================
+   4. 通知系统
+   固定在左下角的临时通知气泡（由 notify() 触发）
+   ============================================================ */
 .notifications {
     position: fixed;
     left: 20px;
@@ -52,27 +239,11 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
 
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-    }
-    to {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-}
-
+/* ============================================================
+   5. 游戏容器与主内容区
+   .game-container 为白色卡片容器；.main-content 横向布局棋盘与侧栏
+   ============================================================ */
 .game-container {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 20px;
@@ -106,6 +277,11 @@ body {
     background-clip: text;
 }
 
+
+/* ============================================================
+   6. 玩家信息区
+   对应 .game-info > .players-info（玩家指示器 + 玩家列表）
+   ============================================================ */
 .game-info {
     display: flex;
     justify-content: space-between;
@@ -138,6 +314,7 @@ body {
     display: none;
 }
 
+/* 玩家人数选择器（开始前的设置项） */
 .player-count-selector {
     display: flex;
     align-items: center;
@@ -153,9 +330,7 @@ body {
 
 .player-count-btn {
     padding: 8px 16px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    background: white;
+    border: 2px solid #eee;
     color: #333;
     font-size: 14px;
     cursor: pointer;
@@ -173,6 +348,7 @@ body {
     border-color: #667eea;
 }
 
+/* 玩家标签（出现在玩家列表中） */
 .player-tag {
     display: flex;
     align-items: center;
@@ -197,14 +373,10 @@ body {
 }
 
 .player-winner {
-    animation: pulse 1s infinite;
+    animation: winnerPulse 1s infinite;
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
+/* 玩家悬浮信息提示框（鼠标悬停在玩家标签上时显示） */
 .player-info-tooltip {
     position: fixed;
     background: white;
@@ -239,36 +411,22 @@ body {
     word-break: break-all;
 }
 
+/* 桌面端隐藏状态文字，移动端同样隐藏（保留占位） */
 .game-status {
     display: none;
 }
 
+
+/* ============================================================
+   7. 棋盘与格子
+   .board-container > .board > .row > .cell
+   ============================================================ */
 .board-container {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     margin-bottom: 20px;
     overflow-x: auto;
-}
-
-.cell-info {
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 12px 20px;
-    margin-top: 15px;
-    font-size: 14px;
-    color: #666;
-    align-self: stretch;
-    text-align: center;
-    transition: all 0.3s ease;
-    max-width: 468px;
-}
-
-.cell-info.active {
-    background: #e8f5e9;
-    border-color: #27ae60;
-    color: #27ae60;
 }
 
 .board {
@@ -306,10 +464,10 @@ body {
 .cell-number {
     font-size: 11px;
     line-height: 100%;
-    padding:2px;
+    padding: 2px;
     position: absolute;
-    top:0px;
-    left:0px;
+    top: 0px;
+    left: 0px;
     display: inline-block;
 }
 
@@ -334,15 +492,18 @@ body {
     transform: scale(1.05);
 }
 
+/* 功能格子高亮（BB/FF/Combo 等）：2px 红色描边 + 15% 红色透明背景 */
 .cell.highlighted {
     box-shadow: 0 0 0 2px #e74c3c;
     background-color: #FFD0D0 !important;
 }
 
+/* 危险区域（棋盘最后 1/5）：3px 黄色描边 */
 .cell.danger-zone {
     box-shadow: 0 0 0 2px #f39c12;
 }
 
+/* 炸弹动画图层：bb.gif，200% 放大由 JS 内联控制 */
 .bomb-animation {
     position: absolute;
     top: 0;
@@ -368,6 +529,10 @@ body {
     box-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
 }
 
+
+/* ============================================================
+   8. 玩家令牌与幽灵
+   ============================================================ */
 .player-token {
     width: 30px;
     height: 30px;
@@ -387,74 +552,22 @@ body {
     animation: badgePulse 2s infinite;
 }
 
-@keyframes badgePulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+/* 幽灵令牌（GST 模式） */
+.ghost-token {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 5;
+    transition: all 0.25s ease;
+    border: 3px dashed;
 }
 
-.controls {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
 
-button{
-    padding: 12px 30px;
-    font-size: 1rem;
-    font-weight: bold;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-a.btn-mapeditor {
-    padding: 12px 16px;
-    font-size: 1rem;
-    color:#fff;
-    font-weight: bold;
-    border: 1px solid rgba(255,255,255,.5);
-    background: rgba(0,0,0,.2);
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-block;
-    text-decoration: none;
-}
-.btn-start, .btn-start-game {
-    background: linear-gradient(135deg, #27ae60, #2ecc71);
-    color: white;
-}
-
-.btn-start:hover, .btn-start-game:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(46, 204, 113, 0.4);
-}
-
-.btn-dice {
-    background: linear-gradient(135deg, #f39c12, #e67e22);
-    color: white;
-}
-
-.btn-dice:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(243, 156, 18, 0.4);
-}
-
-.btn-dice:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.btn-restart {
-    background: linear-gradient(135deg, #9b59b6, #8e44ad);
-    color: white;
-}
-
-.btn-restart:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(155, 89, 182, 0.4);
-}
-
+/* ============================================================
+   9. 骰子区域
+   .dice-container 包含 .dice（点数图片）与 .dice-value（文字说明）
+   ============================================================ */
 .dice-container {
     display: flex;
     flex-direction: column;
@@ -463,6 +576,49 @@ a.btn-mapeditor {
     margin-bottom: 15px;
 }
 
+.dice {
+    font-size: 6rem;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    animation: pulse 2s infinite;
+    margin-top: 20px;
+}
+
+.dice:hover {
+    transform: scale(1.1);
+}
+
+/* 骰子点数图片：1-6 单图；桌面端 48x48 */
+.dice-face-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    display: block;
+}
+
+/* 速度翻倍时双骰子并排容器（点数 8/10/12，显示为 4+4/5+5/6+6） */
+.dice-face-multi {
+    display: inline-flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
+.dice.rolling {
+    animation: roll 0.5s linear infinite;
+}
+
+.dice-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+
+/* ============================================================
+   10. 游戏日志
+   按回合分组的滚动日志列表
+   ============================================================ */
 .game-log-container {
     width: 100%;
     display: flex;
@@ -494,6 +650,7 @@ a.btn-mapeditor {
     line-height: 1.5;
 }
 
+/* 单回合分组 */
 .round-group {
     background: #e9ecef;
     border-radius: 6px;
@@ -538,7 +695,6 @@ a.btn-mapeditor {
 /* 通知类日志：由 notify() 同步写入，用 🔔 标记，不显示玩家名前缀 */
 .log-notification {
     color: #b8860b;
-    font-style: italic;
     font-weight: 600;
     background: linear-gradient(90deg, rgba(255, 193, 7, 0.12), transparent);
     padding: 2px 6px;
@@ -547,57 +703,36 @@ a.btn-mapeditor {
     display: inline-block;
 }
 
-.dice {
-    font-size: 6rem;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-    animation: pulse 2s infinite;
-    margin-top:20px;
+
+/* ============================================================
+   11. 格子信息提示
+   侧栏底部，悬停格子时显示属性说明
+   ============================================================ */
+.cell-info {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-top: 15px;
+    font-size: 14px;
+    color: #666;
+    align-self: stretch;
+    text-align: center;
+    transition: all 0.3s ease;
+    max-width: 468px;
 }
 
-.dice:hover {
-    transform: scale(1.1);
+.cell-info.active {
+    background: #e8f5e9;
+    border-color: #27ae60;
+    color: #27ae60;
 }
 
-/* 骰子点数图片：尺寸跟随 .dice 的 font-size（1em），桌面 6rem / 移动 32px 自适应 */
-.dice-face-img {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
-    display: block;
-}
 
-/* 速度翻倍时双骰子并排容器（点数 8/10/12） */
-.dice-face-multi {
-    display: inline-flex;
-    gap: 4px;
-    justify-content: center;
-    align-items: center;
-}
-
-.dice.rolling {
-    animation: roll 0.5s linear infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-@keyframes roll {
-    0% { transform: rotate(0deg) scale(1.1); }
-    25% { transform: rotate(90deg) scale(1.1); }
-    50% { transform: rotate(180deg) scale(1.1); }
-    75% { transform: rotate(270deg) scale(1.1); }
-    100% { transform: rotate(360deg) scale(1.1); }
-}
-
-.dice-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #333;
-}
-
+/* ============================================================
+   12. 规则说明
+   开始前展示的规则面板（当前 index.html 未直接渲染，保留样式）
+   ============================================================ */
 .rules {
     background: #f8f9fa;
     padding: 20px;
@@ -630,16 +765,11 @@ a.btn-mapeditor {
     font-weight: bold;
 }
 
-.ghost-token {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    position: absolute;
-    z-index: 5;
-    transition: all 0.25s ease;
-    border: 3px dashed;
-}
 
+/* ============================================================
+   13. 弹窗系统通用
+   所有模态弹窗共享的遮罩与内容容器
+   ============================================================ */
 .selection-modal {
     position: fixed;
     top: 0;
@@ -655,11 +785,6 @@ a.btn-mapeditor {
     animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
 .modal-content {
     background: white;
     border-radius: 20px;
@@ -672,20 +797,6 @@ a.btn-mapeditor {
     overflow: auto;
     display: flex;
     flex-direction: column;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modal-content {
     position: relative;
 }
 
@@ -695,6 +806,7 @@ a.btn-mapeditor {
     font-size: 1.5rem;
 }
 
+/* 弹窗右上角关闭按钮 */
 .modal-close-btn {
     position: absolute;
     top: 15px;
@@ -704,7 +816,7 @@ a.btn-mapeditor {
     border: none;
     border-radius: 50%;
     background: #f1f3f5;
-    padding:0;
+    padding: 0;
     color: #666;
     font-size: 1.4rem;
     line-height: 1;
@@ -717,6 +829,14 @@ a.btn-mapeditor {
     color: #333;
 }
 
+/* 弹窗底部操作栏（如确认按钮） */
+.modal-action-bar {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+/* 弹窗内选项按钮的滚动容器 */
 .selection-buttons {
     display: flex;
     gap: 20px;
@@ -730,6 +850,56 @@ a.btn-mapeditor {
     scrollbar-width: thin;
 }
 
+
+/* ============================================================
+   14. 玩家选择弹窗
+   开始游戏时选择玩家 / 皮肤，以及幽灵与移动选择按钮
+   ============================================================ */
+.player-selection-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+/* 玩家选择按钮（带颜色背景） */
+.player-select-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 10px 0;
+    border: none;
+    border-radius: 15px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    width: 100%;
+}
+
+.player-select-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.player-select-btn.selected-player {
+    outline: 3px solid #0cf335;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.35);
+    transform: translateY(-3px);
+}
+
+.player-select-icon {
+    font-size: 1.5rem;
+}
+
+.player-select-name {
+    font-size: 1.2rem;
+}
+
+/* 幽灵/移动选择按钮（GST 阶段使用） */
 .ghost-btn, .move-btn {
     display: flex;
     flex-direction: column;
@@ -784,62 +954,16 @@ a.btn-mapeditor {
     font-weight: normal;
 }
 
-.player-select-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    padding: 10px 0;
-    border: none;
-    border-radius: 15px;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    /* min-width: 150px; */
-    color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    width: 100%;
-}
 
-.player-select-btn:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
-
-.player-select-btn.selected-player {
-    outline: 3px solid #fff;
-    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.35);
-    transform: translateY(-3px);
-}
-
-.player-select-icon {
-    font-size: 1.5rem;
-}
-
-.player-select-name {
-    font-size: 1.2rem;
-}
-
-.player-selection-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
+/* ============================================================
+   15. 皮肤选择系统
+   玩家选择弹窗内的皮肤图标选择器与详情卡片
+   ============================================================ */
 .skin-selector {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-}
-
-.skin-selector-label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 500;
 }
 
 .skin-icons {
@@ -848,8 +972,6 @@ a.btn-mapeditor {
     flex-wrap: wrap;
     justify-content: center;
     padding: 8px;
-    background: #f8f9fa;
-    border-radius: 10px;
     max-width: 200px;
 }
 
@@ -873,7 +995,7 @@ a.btn-mapeditor {
 
 .skin-icon.selected {
     border-color: #e74c3c;
-    background: #fef5f5;
+    background: rgba(0, 0, 0, .6);
 }
 
 .skin-icon img {
@@ -883,57 +1005,17 @@ a.btn-mapeditor {
     border-radius: 4px;
 }
 
-.modal-action-bar {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-}
-
-/* .btn-start-game {
-    padding: 12px 28px;
-    border: none;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #3498db, #2ecc71);
-    color: white;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.25);
-}
-
-.btn-start-game:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(52, 152, 219, 0.35);
-} */
-
+/* 皮肤详情卡片（选中皮肤后展示名称与效果） */
 .skin-detail {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 15px;
+    padding: 5px 10px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 10px;
     color: white;
-    max-width: 200px;
-    margin-top: 4px;
-}
-
-@media (max-width: 768px) {
-    .skin-detail {
-        display: none;
-        position: absolute;
-        z-index: 1200;
-        min-width: 180px;
-        max-width: 220px;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-        pointer-events: none;
-    }
-
-    .skin-detail.active {
-        display: flex;
-        transform: translateY(-8px);
-    }
+    max-width: 180px;
+    margin: 0 auto;
 }
 
 .skin-detail-icon {
@@ -969,6 +1051,7 @@ a.btn-mapeditor {
     opacity: 0.9;
 }
 
+/* 玩家标签中显示的迷你皮肤图标 */
 .skin-icon-mini {
     width: 16px;
     height: 16px;
@@ -978,15 +1061,23 @@ a.btn-mapeditor {
     object-fit: contain;
 }
 
+
+/* ============================================================
+   16. AI 模式复选框
+   玩家选择弹窗中的"AI 模式"开关
+   ============================================================ */
 .ai-checkbox-container {
-    margin-bottom: 25px;
     text-align: center;
+    background: #eee;
+    padding: 8px 16px;
+    border-radius: 25px;
+    width: auto;
 }
 
 .ai-checkbox-container label {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
     cursor: pointer;
     font-size: 1rem;
     color: #555;
@@ -1003,64 +1094,10 @@ a.btn-mapeditor {
     font-weight: 500;
 }
 
-.btn-map-select {
-    padding: 12px 16px;
-    font-size: 16px;
-    border: 1px solid rgba(255,255,255,.5);
-    background: rgba(0,0,0,.2);
-    color: white;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
 
-.btn-map-select:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
-}
-
-.btn-restart-confirm {
-    padding: 10px 24px;
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn-restart-confirm:hover {
-    background: #c0392b;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4);
-}
-
-.btn-restart-cancel {
-    padding: 10px 24px;
-    background: #95a5a6;
-    color: white;
-    border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn-restart-cancel:hover {
-    background: #7f8c8d;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(149, 165, 166, 0.4);
-}
-
-.btn-map-select:disabled {
-    background: #bdc3c7;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
+/* ============================================================
+   17. 地图选择弹窗
+   ============================================================ */
 .map-select-modal {
     position: fixed;
     top: 0;
@@ -1156,7 +1193,11 @@ a.btn-mapeditor {
     color: #2c3e50;
 }
 
-/* Achievement styles */
+
+/* ============================================================
+   18. 成就系统
+   游戏过程中触发的成就展示
+   ============================================================ */
 .achievements-section {
     margin-top: 20px;
     padding: 15px;
@@ -1184,19 +1225,8 @@ a.btn-mapeditor {
     padding: 10px 15px;
     background: white;
     border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     animation: achievementPop 0.3s ease-out;
-}
-
-@keyframes achievementPop {
-    0% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
 }
 
 .achievement-icon {
@@ -1219,6 +1249,10 @@ a.btn-mapeditor {
     margin-top: 2px;
 }
 
+
+/* ============================================================
+   19. 游戏结束界面
+   ============================================================ */
 .game-end-winner {
     font-size: 24px;
     font-weight: bold;
@@ -1234,193 +1268,12 @@ a.btn-mapeditor {
     margin-top: 20px;
 }
 
-@media (max-width: 768px) {
-    body{
-        padding: 0px;
-    }
-    .game-container {
-        padding: 0 0 20px 0;
-        background: none;
-        border-radius: 0;
-        box-shadow: none;
-        border: none;
-        outline: none;
-    }
-    .cell {
-        width: 35px;
-        height: 35px;
-        font-size: 10px;
-    }
-    .cell-number{
-        font-size: 0.5rem;
-        font-weight:normal;
-    }
-    .cell-property,.cell-number-value{
-        font-size: 0.75rem;
-    }
-    .board-container{margin-bottom:0;}
-    .board {
-        padding: 0px;
-        border-radius: 0;
-        background: none;
-    }
-    .game-title {
-        font-size: 1.8rem;
-    }
-    .game-status{
-        display: none;
-    }
-    .header-controls {
-        position: static;
-        justify-content: left;
-        padding: 10px;
-        background: rgba(0, 0, 0, .3);
-    }
-    
-    .game-info {
-        flex-direction: column;
-        background: none;
-        margin-bottom: 0;
-        align-items: flex-start;
-    }
-    .player-indicator{
-        color:#ffffff;
-    }
-    .main-content {
-        flex-direction: column;
-        align-items: center;
-        gap:20px;
-    }
-    
-    .side-panel {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        min-width: auto;
-        gap:10px;
-    }
-    
-    button {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-    }
-    .btn-dice{
-         position: fixed;
-         bottom:10px;
-         right:10px;
-    }
-    .dice-container{
-        gap: 10px;
-        flex-direction: row;
-        position: fixed;
-        bottom:50px;
-        right:10px;
-        background: rgba(0, 0, 0, .6);
-        padding: 5px 20px;
-        border-radius: 50px;
-    }
-    .dice {
-        font-size: 32px;
-        color:#ffffff;
-        margin-top:0;
-    }
-    .dice-face-img{
-        width: 24px;
-        height: 24px;
-    }
-    .dice-value{
-        font-size: 14px;
-        color:#ffffff;
-    }
-    .game-log{
-        height:80px;
-    }
-    .selection-buttons {
-        flex-direction: row;
-        height: 100%;
-        padding: 20px 0px;
-    }
-    .player-selection-item{
-        gap: 5px;
-        width: 100%;
-    }
-    .skin-selector{
-        width: 100%;
-    }
-    .ghost-btn, .move-btn {
-        min-width: auto;
-        padding: 20px 30px;
-    }
-    
-    .header-controls .btn-start,
-    .header-controls .btn-restart,
-    .header-controls .btn-mapeditor,
-    .header-controls .btn-map-select {
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        font-size: 1.2rem;
-        text-indent: -9999px;
-        position: relative;
-    }
-    
-    .header-controls .btn-start::before,
-    .header-controls .btn-restart::before,
-    .header-controls .btn-mapeditor::before,
-    .header-controls .btn-map-select::before {
-        content: attr(data-emoji);
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-indent: 0;
-    }
-    .players-list{
-        gap:5px;
-    }
-    .players-list .player-tag:not(.is-self) {
-        width: 20px;
-        height: 20px;
-        padding: 0;
-        border-radius: 50%;
-        font-size: 0;
-        cursor: pointer;
-    }
-    .player-token{
-        width: 20px;
-        height: 20px;
-    }
-    .players-list .player-tag.is-self {
-        width: auto;
-        height: auto;
-        padding: 3px 6px;
-        border-radius: 20px;
-        font-size: 12px;
-        line-height: 12px;
-    }
 
-.selection-buttons{
-    gap: 0;
-}
-.player-select-btn {
-    font-size: 14px;
-    padding: 10px 12px;
-    flex-direction: row;
-    text-align: center;
+/* ============================================================
+   20. 卡牌系统
+   ============================================================ */
 
-}
-.player-select-name {
-    font-size: 16px;
-}
-.player-select-icon {
-    font-size: 16px;
-}
-}
-
-/* ===== 卡牌系统样式 ===== */
-
-/* 手牌区域 */
+/* ----- 20.1 手牌区域（.side-panel 内，掷骰前可使用） ----- */
 .hand-cards-container {
     background: #f8f9fa;
     border-radius: 10px;
@@ -1480,7 +1333,7 @@ a.btn-mapeditor {
     background: white;
 }
 
-/* 卡牌图标图片：尺寸跟随父容器 font-size（1em），加载失败回退到 emoji */
+/* 卡牌图标图片：尺寸跟随父容器，加载失败回退到 emoji */
 .card-icon-img {
     width: 48px;
     height: 48px;
@@ -1494,13 +1347,9 @@ a.btn-mapeditor {
     line-height: 1;
 }
 
-/* .hand-card-name {
-    font-size: 0.7rem;
-    color: #333;
-    font-weight: 500;
-} */
+/* .hand-card-name 当前桌面端未启用，移动端媒体查询中有覆盖 */
 
-/* 购买弹窗 - 自适应页面宽度 */
+/* ----- 20.2 购买弹窗（自适应页面宽度） ----- */
 .purchase-modal-content {
     width: 95vw;
     max-width: 960px;
@@ -1528,7 +1377,7 @@ a.btn-mapeditor {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #ffffff;
+    background: white;
     padding: 10px 0 12px;
     margin-bottom: 12px;
     border-bottom: 2px solid #e8e8e8;
@@ -1603,6 +1452,7 @@ a.btn-mapeditor {
     border-bottom: 2px solid #ecf0f1;
 }
 
+/* 可购买卡牌网格 */
 .purchase-cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -1654,7 +1504,7 @@ a.btn-mapeditor {
 
 .purchase-card-cost {
     font-size: 0.75rem;
-    color: #ffffff;
+    color: white;
     font-weight: bold;
     position: absolute;
     top: 0;
@@ -1664,6 +1514,7 @@ a.btn-mapeditor {
     background-color: rgba(230, 126, 34, 0.8);
 }
 
+/* 已购手牌列表（可移除/退款） */
 .purchase-hand {
     flex: 1;
     min-width: 0;
@@ -1720,7 +1571,7 @@ a.btn-mapeditor {
     color: #999;
 }
 
-/* 龙皮肤斜行弹窗 */
+/* ----- 20.3 龙皮肤斜行弹窗 ----- */
 .dragon-modal-content {
     max-width: 520px;
 }
@@ -1770,24 +1621,7 @@ a.btn-mapeditor {
     padding: 12px;
 }
 
-.btn-dice-roll {
-    padding: 10px 22px;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: all 0.15s ease;
-}
-
-.btn-dice-roll:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
-}
-
-/* 目标选择弹窗 */
+/* ----- 20.4 目标选择弹窗（火球术等需指定目标） ----- */
 .target-card-desc {
     font-size: 0.85rem;
     color: #666;
@@ -1841,11 +1675,339 @@ a.btn-mapeditor {
     margin-left: auto;
 }
 
-/* 移动端卡牌适配 */
+
+/* ============================================================
+   21. 动画关键帧汇总
+   ============================================================ */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+}
+
+/* 玩家获胜标签的透明度呼吸动画（专供 .player-winner 使用） */
+@keyframes winnerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* 骰子待掷时的缩放脉动动画（专供 .dice 使用） */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes roll {
+    0% { transform: rotate(0deg) scale(1.1); }
+    25% { transform: rotate(90deg) scale(1.1); }
+    50% { transform: rotate(180deg) scale(1.1); }
+    75% { transform: rotate(270deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1.1); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes achievementPop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+
+/* ============================================================
+   22. 响应式适配（≤768px）
+   整合自原文件中 3 处分散的 @media (max-width: 768px) 块：
+     - 原 1：皮肤详情卡片 .skin-detail 移动端定位
+     - 原 2：整体布局/棋盘/骰子/玩家标签等核心适配
+     - 原 3：卡牌系统（手牌/购买弹窗）适配
+   按功能模块分组，便于后续维护。
+   ============================================================ */
 @media (max-width: 768px) {
+
+    /* ----- 22.1 全局与布局 ----- */
+    body {
+        padding: 0px;
+    }
+
+    .game-container {
+        padding: 0 0 20px 0;
+        background: none;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        outline: none;
+    }
+
+    .main-content {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .side-panel {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        min-width: auto;
+        gap: 10px;
+    }
+
+    .game-title {
+        font-size: 1.8rem;
+    }
+
+    .game-status {
+        display: none;
+    }
+
+    /* ----- 22.2 头部控制：按钮缩为方形图标 ----- */
+    .header-controls {
+        position: static;
+        justify-content: left;
+        padding: 10px;
+        background: rgba(0, 0, 0, .3);
+    }
+
+    .header-controls .btn-start,
+    .header-controls .btn-restart,
+    .header-controls .btn-mapeditor,
+    .header-controls .btn-mapselect {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        font-size: 1.2rem;
+        text-indent: -9999px;
+        position: relative;
+    }
+
+    /* 用 data-emoji 属性通过伪元素显示 emoji 图标 */
+    .header-controls .btn-start::before,
+    .header-controls .btn-restart::before,
+    .header-controls .btn-mapeditor::before,
+    .header-controls .btn-mapselect::before {
+        content: attr(data-emoji);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-indent: 0;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+
+    /* ----- 22.3 玩家信息区 ----- */
+    .game-info {
+        flex-direction: column;
+        background: none;
+        margin-bottom: 0;
+        align-items: flex-start;
+    }
+
+    .player-indicator {
+        color: white;
+    }
+
+    .players-list {
+        gap: 5px;
+    }
+
+    /* 非自身玩家：缩小为圆形色点 */
+    .players-list .player-tag:not(.is-self) {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0;
+        cursor: pointer;
+    }
+
+    /* 自身玩家：保留带名字的胶囊标签 */
+    .players-list .player-tag.is-self {
+        width: auto;
+        height: auto;
+        padding: 3px 6px;
+        border-radius: 20px;
+        font-size: 12px;
+        line-height: 12px;
+    }
+
+    /* ----- 22.4 棋盘与格子 ----- */
+    .board-container {
+        margin-bottom: 0;
+    }
+
+    .board {
+        padding: 0px;
+        border-radius: 0;
+        background: none;
+    }
+
+    .cell {
+        width: 35px;
+        height: 35px;
+        font-size: 10px;
+    }
+
+    .cell-number {
+        font-size: 0.5rem;
+        font-weight: normal;
+    }
+
+    .cell-property, .cell-number-value {
+        font-size: 0.75rem;
+    }
+
+    .player-token {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* ----- 22.5 骰子区域：固定到右下角胶囊 ----- */
+    .btn-dice {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .dice-container {
+        gap: 10px;
+        flex-direction: row;
+        position: fixed;
+        bottom: 50px;
+        right: 10px;
+        background: rgba(0, 0, 0, .6);
+        padding: 5px 20px;
+        border-radius: 50px;
+    }
+
+    .dice {
+        font-size: 32px;
+        color: white;
+        margin-top: 0;
+    }
+
+    .dice-face-img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .dice-value {
+        font-size: 14px;
+        color: white;
+    }
+
+    /* ----- 22.6 游戏日志 ----- */
+    .game-log {
+        height: 80px;
+    }
+
+    /* ----- 22.7 弹窗：选项横向排列 ----- */
+    .selection-buttons {
+        flex-direction: row;
+        height: 100%;
+        padding: 10px 0px;
+        gap: 0;
+        overflow: visible;
+    }
+
+    .player-selection-item {
+        gap: 5px;
+        width: 100%;
+    }
+
+    .player-select-btn {
+        font-size: 14px;
+        padding: 10px 12px;
+        flex-direction: row;
+        text-align: center;
+    }
+
+    .player-select-name {
+        font-size: 16px;
+        width: 80px;
+        text-align: left;
+    }
+
+    .player-select-icon {
+        font-size: 16px;
+    }
+
+    .ghost-btn, .move-btn {
+        min-width: auto;
+        padding: 20px 30px;
+    }
+
+    /* ----- 22.8 皮肤选择系统 ----- */
+    .skin-cards {
+        flex-direction: column;
+    }
+
     .skin-icons {
         max-width: 100%;
     }
+
+    .skin-selector {
+        width: 100%;
+    }
+
+    /* 皮肤详情卡片：移动端悬浮定位 */
+    .skin-detail {
+        z-index: 1200;
+        min-width: 180px;
+        max-width: 220px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+    }
+
+    .skin-detail.active {
+        display: flex;
+        transform: translateY(-8px);
+    }
+
+    /* ----- 22.9 卡牌系统 - 手牌 ----- */
     .hand-cards-container {
         padding: 6px;
         margin-bottom: 8px;
@@ -1864,6 +2026,7 @@ a.btn-mapeditor {
         font-size: 0.65rem;
     }
 
+    /* ----- 22.10 卡牌系统 - 购买弹窗 ----- */
     .purchase-cards-grid {
         grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
         gap: 6px;

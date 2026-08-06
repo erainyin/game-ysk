@@ -7,7 +7,7 @@ class UI {
         this.btnStart = document.getElementById('btn-start');
         this.btnDice = document.getElementById('btn-dice');
         this.btnRestart = document.getElementById('btn-restart');
-        this.btnMapSelect = document.getElementById('btn-map-select');
+        this.btnMapSelect = document.getElementById('btn-mapselect');
         this.diceElement = document.getElementById('dice');
         this.diceValueElement = document.getElementById('dice-value');
         this.notificationsElement = document.getElementById('notifications');
@@ -572,17 +572,17 @@ class UI {
                 <button class="modal-close-btn" onclick="ui.hideSelectionModal()" aria-label="关闭">×</button>
                 <h3>选择你要扮演的角色</h3>
                 <div class="player-count-selector">
-                    <label>玩家数量：</label>
-                    <button class="player-count-btn ${playerCount === 2 ? 'active' : ''}" data-count="2" onclick="ui.updatePlayerCount(2)">2人</button>
-                    <button class="player-count-btn ${playerCount === 3 ? 'active' : ''}" data-count="3" onclick="ui.updatePlayerCount(3)">3人</button>
-                    <button class="player-count-btn ${playerCount === 4 ? 'active' : ''}" data-count="4" onclick="ui.updatePlayerCount(4)">4人</button>
-                </div>
-                <div class="ai-checkbox-container">
-                    <label>
-                        <input type="checkbox" id="ai-mode">
-                        <span class="checkbox-text">人机大战（其他玩家自动行动）</span>
-                    </label>
-                </div>
+                    <div class="ai-checkbox-container">
+                        <label>
+                            <input type="checkbox" id="ai-mode">
+                            <span class="checkbox-text">🤖人机对战</span>
+                        </label>
+                    </div>
+                    <button class="btn player-count-btn ${playerCount === 2 ? 'active' : ''}" data-count="2" onclick="ui.updatePlayerCount(2)">2人</button>
+                    <button class="btn player-count-btn ${playerCount === 3 ? 'active' : ''}" data-count="3" onclick="ui.updatePlayerCount(3)">3人</button>
+                    <button class="btn player-count-btn ${playerCount === 4 ? 'active' : ''}" data-count="4" onclick="ui.updatePlayerCount(4)">4人</button>
+                    </div>
+              
                 <div class="selection-buttons" id="selection-buttons">
                     ${buttonsHtml}
                 </div>
@@ -608,13 +608,13 @@ class UI {
                     <button class="player-select-btn ${isSelected ? 'selected-player' : ''}" style="background: ${color};" onclick="ui.selectPlayer(${i}, ${playerCount})">
                         <span class="player-select-icon">👤</span>
                         <span class="player-select-name">${buttonText}</span>
-                    </button>
-                    <div class="skin-selector">
-                        <div class="skin-selector-label">选择皮肤：</div>
+                                            <div class="skin-selector">
                         <div class="skin-cards">
                             ${this.renderSkinCards(i)}
                         </div>
                     </div>
+                    </button>
+
                 </div>
             `;
         }
@@ -646,9 +646,6 @@ class UI {
         html += `
             </div>
             <div class="skin-detail" id="skin-detail-${playerIndex}">
-                <div class="skin-detail-icon">
-                    <img src="${skinSystem.getIconPath(selectedSkinId)}" alt="${selectedSkin.name}">
-                </div>
                 <div class="skin-detail-info">
                     <div class="skin-detail-name">${selectedSkin.name}</div>
                     <div class="skin-detail-desc">${selectedSkin.description}</div>
@@ -684,9 +681,6 @@ class UI {
 
         const isMobile = window.innerWidth < 768;
         detailElement.innerHTML = `
-            <div class="skin-detail-icon">
-                <img src="${skinSystem.getIconPath(skinId)}" alt="${skin.name}">
-            </div>
             <div class="skin-detail-info">
                 <div class="skin-detail-name">${skin.name}</div>
                 <div class="skin-detail-desc">${skin.description}</div>
