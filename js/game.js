@@ -706,6 +706,9 @@ class Game {
     }
 
     checkGameEnd() {//检查游戏结束
+        // 防止重复触发：游戏已结束时不再执行后续逻辑，避免 onGameEnd 被多次调用产生重复弹窗
+        if (this.gameState === 'ended') return;
+
         const winners = this.players.filter(p => p.isWinner);
         
         if (winners.length > 0) {

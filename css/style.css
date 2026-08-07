@@ -1064,9 +1064,10 @@ button, .btn {
 
 /* ============================================================
    16. AI 模式复选框
-   玩家选择弹窗中的"AI 模式"开关
+   玩家选择弹窗中的"AI 模式"与"随机地图模式"开关（共享相同样式）
    ============================================================ */
-.ai-checkbox-container {
+.ai-checkbox-container,
+.randommap-checkbox-container {
     text-align: center;
     background: #eee;
     padding: 8px 16px;
@@ -1074,7 +1075,8 @@ button, .btn {
     width: auto;
 }
 
-.ai-checkbox-container label {
+.ai-checkbox-container label,
+.randommap-checkbox-container label {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -1083,7 +1085,8 @@ button, .btn {
     color: #555;
 }
 
-.ai-checkbox-container input[type="checkbox"] {
+.ai-checkbox-container input[type="checkbox"],
+.randommap-checkbox-container input[type="checkbox"] {
     width: 20px;
     height: 20px;
     cursor: pointer;

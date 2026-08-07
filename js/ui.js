@@ -18,6 +18,7 @@ class UI {
         this.playerCount = 2;
         this.isRollLocked = false;
         this.currentMapFile = 'grid.csv';
+        this.currentMapName = '默认地图';
         this.playerSkins = {};
         this.selectedPlayerIndex = null;
         
@@ -34,6 +35,8 @@ class UI {
         await loadGridCSV();
         this.renderBoard();
         this.updateUI();
+        // 页面打开后自动弹出角色选择弹窗（默认2人，使用已加载的默认地图）
+        this.showSelectPlayerModal(2);
     }
 
     setupEventListeners() {//设置事件监听器
@@ -570,7 +573,16 @@ class UI {
         modal.innerHTML = `
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="ui.hideSelectionModal()" aria-label="关闭">×</button>
-                <h3>选择你要扮演的角色</h3>
+                <h3>YKS大作战</h3>
+                <div class="player-count-selector">
+                    <button class="btn player-count-btn ${playerCount === 2 ? 'active' : ''}" data-count="2" onclick="ui.updatePlayerCount(2)">2人</button>
+                    <button class="btn player-count-btn ${playerCount === 3 ? 'active' : ''}" data-count="3" onclick="ui.updatePlayerCount(3)">3人</button>
+                    <button class="btn player-count-btn ${playerCount === 4 ? 'active' : ''}" data-count="4" onclick="ui.updatePlayerCount(4)">4人</button>
+                </div>
+              
+                <div class="selection-buttons" id="selection-buttons">
+                    ${buttonsHtml}
+                </div>
                 <div class="player-count-selector">
                     <div class="ai-checkbox-container">
                         <label>
@@ -578,13 +590,12 @@ class UI {
                             <span class="checkbox-text">🤖人机对战</span>
                         </label>
                     </div>
-                    <button class="btn player-count-btn ${playerCount === 2 ? 'active' : ''}" data-count="2" onclick="ui.updatePlayerCount(2)">2人</button>
-                    <button class="btn player-count-btn ${playerCount === 3 ? 'active' : ''}" data-count="3" onclick="ui.updatePlayerCount(3)">3人</button>
-                    <button class="btn player-count-btn ${playerCount === 4 ? 'active' : ''}" data-count="4" onclick="ui.updatePlayerCount(4)">4人</button>
+                    <div class="randommap-checkbox-container">
+                        <label>
+                            <input type="checkbox" id="randommap-mode">
+                            <span class="checkbox-text">随机地图</span>
+                        </label>
                     </div>
-              
-                <div class="selection-buttons" id="selection-buttons">
-                    ${buttonsHtml}
                 </div>
                 <div class="modal-action-bar">
                     <button class="btn-start-game" onclick="ui.startSelectedGame()">开始游戏</button>
@@ -735,11 +746,13 @@ class UI {
         }
     }
 
-    startSelectedGame(playerCount) {
+    async startSelectedGame(playerCount) {
         // playerCount optional; prefer current selected value
         const count = typeof playerCount === 'number' ? playerCount : (this.playerCount || 2);
         const aiModeElement = document.getElementById('ai-mode');
         const aiMode = aiModeElement ? aiModeElement.checked : false;
+        const randomMapElement = document.getElementById('randommap-mode');
+        const randomMapMode = randomMapElement ? randomMapElement.checked : false;
         const playerIndex = this.selectedPlayerIndex;
 
         if (playerIndex === undefined || playerIndex === null) {
@@ -748,6 +761,23 @@ class UI {
         }
 
         this.hideSelectionModal();
+
+        // 随机地图模式：从地图列表中随机选取一个地图并加载（须在 renderBoard 之前完成）
+        if (randomMapMode) {
+            try {
+                const maps = await this.loadMapList();
+                if (maps.length > 0) {
+                    const randomMap = maps[Math.floor(Math.random() * maps.length)];
+                    this.currentMapFile = randomMap.path;
+                    await loadGridCSV(this.currentMapFile);
+                    const mapName = randomMap.displayName || randomMap.name;
+                    this.currentMapName = mapName;
+                    this.showNotification(`🎲 随机地图：${mapName}`, 'success');
+                }
+            } catch (e) {
+                console.warn('随机地图加载失败，使用当前地图:', e);
+            }
+        }
 
         this.aiMode = aiMode;
         this.playerIndex = playerIndex;
@@ -1035,8 +1065,9 @@ class UI {
             if (mapPath !== this.currentMapFile) {
                 await loadMapFromFile(mapPath);
                 this.currentMapFile = mapPath;
+                this.currentMapName = selectedItem.querySelector('.map-name').textContent;
                 this.renderBoard();
-                this.addLog(`已切换到地图: ${selectedItem.querySelector('.map-name').textContent}`);
+                this.addLog(`已切换到地图: ${this.currentMapName}`);
             }
         }
         
@@ -1305,6 +1336,9 @@ class UI {
         this.btnStart.disabled = true;
         this.btnMapSelect.disabled = false;
 
+        // 防御性清理：若已存在游戏结束弹窗则先移除，避免重复弹窗堆积
+        this.closeGameEndModal();
+
         const modal = document.createElement('div');
         modal.className = 'selection-modal';
 
@@ -1418,7 +1452,7 @@ class UI {
                     this.playerIndicatorElement.textContent = '🛒 卡牌购买阶段';
                     this.setRollControlsEnabled(false);
                 } else if (state.currentPlayer) {
-                    this.playerIndicatorElement.textContent = `当前玩家：${state.currentPlayer.name}`;
+                    this.playerIndicatorElement.textContent = `当前地图：${this.currentMapName}　当前玩家：${state.currentPlayer.name}`;
                     this.btnDice.style.background = state.currentPlayer.color;
                     this.btnDice.style.backgroundImage = 'none';
                     this.btnDice.textContent = `${state.currentPlayer.name}掷骰子`;
