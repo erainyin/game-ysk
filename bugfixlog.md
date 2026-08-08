@@ -1,3 +1,81 @@
+### 修复因顺序反转导致的胜利判定错误
+
+我找到了 bug 的根因。让我验证一下 — 问题出在 CR（玩家顺序反转）格子上。
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/game.js
+          
+找到根因了！第 5 回合的日志显示 "我：触发[CR]，玩家顺序反转"。`this.players.reverse()` 反转了数组，但 `humanPlayerIndex` 没有更新——之后 `this.players[humanPlayerIndex]` 指向的是 AI 玩家而非人类玩家。当 AI 踩 DDD 死亡时，`checkGameEnd()` 误判为人类玩家死亡，显示"你输了"。
+
+让我确认 `humanPlayerIndex` 的设置方式：
+        
+            
+toolName: Shell
+            
+status: success
+          
+          
+确认了。`humanPlayerIndex` 在 `setAIMode` 时设置一次，之后 CR 反转数组时没有更新。修复：
+        
+            
+toolName: edit_file_search_replace
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/game.js
+          
+changes: undefined
+          
+修复完成。让我确认没有其他地方修改 `players` 数组但遗漏索引更新：
+        
+            
+toolName: Shell
+            
+status: success
+          
+          
+只有两处修改 `players` 数组：初始化时的 `push`（在 `humanPlayerIndex` 设置之前，无影响）和 CR 的 `reverse`（已修复）。
+
+## Bug 根因与修复
+
+### 根因
+
+第 5 回合人类玩家触发了 **CR（玩家顺序反转）** 格子，执行 `this.players.reverse()` 反转了玩家数组，但 `humanPlayerIndex` 和 `currentPlayerIndex` **没有同步更新**。
+
+| | 反转前 | 反转后（修复前） | 反转后（修复后） |
+|---|---|---|---|
+| `players` 数组 | `[我, 玩家2]` | `[玩家2, 我]` | `[玩家2, 我]` |
+| `humanPlayerIndex` | `0` → 指向"我" | `0` → **错误指向"玩家2"** | `1` → 正确指向"我" |
+| `currentPlayerIndex` | `0` → 指向"我" | `0` → **错误指向"玩家2"** | `1` → 正确指向"我" |
+
+第 8 回合玩家2 踩 DDD 死亡时，`checkGameEnd()` 检查 `this.players[this.humanPlayerIndex].isDead` → `this.players[0].isDead` → 玩家2.isDead = true → **误判人类玩家死亡** → 显示"你输了"。
+
+### 修复
+
+[game.js:502-507](file:///Users/erain/Documents/trae_projects/game-ysk/js/game.js#L502-L507) — 在 `players.reverse()` 后同步更新两个索引：
+
+```javascript
+case 'changeorder':
+    this.players.reverse();
+    // 反转后同步更新索引：原索引 i → playerCount - 1 - i
+    this.currentPlayerIndex = this.playerCount - 1 - this.currentPlayerIndex;
+    if (this.humanPlayerIndex >= 0) {
+        this.humanPlayerIndex = this.playerCount - 1 - this.humanPlayerIndex;
+    }
+    ...
+```
+
+- **`humanPlayerIndex`**：修复后正确指向人类玩家，`checkGameEnd()` 不再误判
+- **`currentPlayerIndex`**：修复后 `nextTurn()` 的 `previousPlayer` 正确指向当前回合玩家，buff 递减不会作用到错误玩家身上；回合推进顺序也正确（反转后 P2→P1，P1 结束后下一个是 P2）
+
+修复后，AI 踩 DDD 死亡时会正确走到 `alivePlayers.length === 1` 分支，人类玩家获胜，显示"🏆 我 获得胜利！"并触发彩带特效。
+
 ### 20260808检查游戏结束判定逻辑
 
 让我检查游戏结束判定逻辑，特别是 AI 模式下人类玩家死亡的处理：

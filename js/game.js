@@ -500,6 +500,11 @@ class Game {
                 return false;
             case 'changeorder':
                 this.players.reverse();
+                // 反转后同步更新索引：原索引 i → playerCount - 1 - i
+                this.currentPlayerIndex = this.playerCount - 1 - this.currentPlayerIndex;
+                if (this.humanPlayerIndex >= 0) {
+                    this.humanPlayerIndex = this.playerCount - 1 - this.humanPlayerIndex;
+                }
                 this.notify('玩家顺序已反转！', 'warning');
                 this.log('触发[CR]，玩家顺序反转');
                 return false;

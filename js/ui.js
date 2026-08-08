@@ -1460,6 +1460,15 @@ class UI {
             contentHtml += `<div class="game-end-winner">🏆 ${player.name} 获得胜利！</div>`;
             this.addLog(`${player.name}到达终点，游戏胜利！`);
 
+            // 胜利彩带特效
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
             if (achievements && achievements.length > 0) {
                 contentHtml += `<div class="achievements-section">`;
                 contentHtml += `<div class="achievements-title">🎖️ 获得成就：</div>`;
