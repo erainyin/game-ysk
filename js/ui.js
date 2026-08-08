@@ -21,6 +21,7 @@ class UI {
         this.currentMapName = '默认地图';
         this.playerSkins = {};
         this.selectedPlayerIndex = null;
+        this.recentLogs = []; // 最近日志消息（用于死亡弹窗展示致死原因）
         
         this.game = new Game(2);
         this.playerTokens = {};
@@ -804,6 +805,7 @@ class UI {
         // this.playerSelectorElement.style.display = 'none';
         this.btnMapSelect.disabled = true;
         this.logData = {};
+        this.recentLogs = [];
         this.gameLogElement.innerHTML = '';
 
         this.renderBoard();
@@ -1268,6 +1270,17 @@ class UI {
     }
 
     addLog(logInfo) {
+        // 追踪最近日志（扁平文本，用于死亡弹窗展示致死原因）
+        if (typeof logInfo === 'string') {
+            this.recentLogs.push(logInfo);
+        } else {
+            const { player, message, isNotification } = logInfo;
+            this.recentLogs.push(isNotification ? `🔔 ${message}` : `${player}：${message}`);
+        }
+        if (this.recentLogs.length > 10) {
+            this.recentLogs = this.recentLogs.slice(-10);
+        }
+
         if (typeof logInfo === 'string') {
             if (!this.logData['system']) {
                 this.logData['system'] = [];
@@ -1456,6 +1469,21 @@ class UI {
         if (!player) {
             contentHtml += `<div class="game-end-winner">💀 你输了！</div>`;
             this.addLog('你死亡了，游戏结束！');
+
+            // 展示致死原因（最近几条日志）
+            const deathLogs = this.recentLogs.slice(-5, -1); // 排除最后一条"你死亡了"
+            if (deathLogs.length > 0) {
+                contentHtml += `<div class="death-log-section">`;
+                contentHtml += `<div class="death-log-title">📋 致死原因：</div>`;
+                deathLogs.forEach(log => {
+                    contentHtml += `<div class="death-log-item">${log}</div>`;
+                });
+                contentHtml += `</div>`;
+            }
+        } else if (this.game.isAIMode && player.id !== this.playerIndex) {
+            // AI 对战：AI 玩家先到达终点 → 人类玩家输了
+            contentHtml += `<div class="game-end-winner">💀 你输了！</div>`;
+            this.addLog(`${player.name}先到达终点，你输了！`);
         } else {
             contentHtml += `<div class="game-end-winner">🏆 ${player.name} 获得胜利！</div>`;
             this.addLog(`${player.name}到达终点，游戏胜利！`);

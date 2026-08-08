@@ -1337,6 +1337,29 @@ button, .btn {
     margin-bottom: 15px;
 }
 
+/* 死亡弹窗：致死原因日志 */
+.death-log-section {
+    background: rgba(231, 76, 60, 0.08);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 15px;
+}
+
+.death-log-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #c0392b;
+    margin-bottom: 6px;
+}
+
+.death-log-item {
+    font-size: 0.78rem;
+    color: #7f8c8d;
+    line-height: 1.6;
+    padding: 2px 0;
+}
+
 .game-end-buttons {
     display: flex;
     gap: 15px;

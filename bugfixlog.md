@@ -1,3 +1,228 @@
+### 死亡弹窗展示致死原因
+让我先查看游戏日志的存储方式，然后修改 `onGameEnd`：
+        
+            
+toolName: Shell
+            
+status: success
+          
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+需求 1（非 AI 模式彩带）已经在 `else` 分支中实现（非 AI 和 AI 人类胜利都走 `else`）。现在实现需求 2——在"你输了"下方显示致死日志。
+
+我需要追踪最近的日志消息。先在构造函数中添加数组：
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+
+        
+            
+toolName: edit_file_search_replace
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+changes: undefined
+          
+现在在 `addLog` 中追踪最近的日志消息：
+        
+            
+toolName: edit_file_search_replace
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+changes: undefined
+          
+游戏重启时也需要清空 `recentLogs`。让我找到日志清空的位置：
+        
+            
+toolName: Shell
+            
+status: success
+          
+          
+
+        
+            
+toolName: edit_file_search_replace
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+changes: undefined
+          
+现在修改 `onGameEnd` 的死亡分支，添加致死日志展示：
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+
+        
+            
+toolName: edit_file_search_replace
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+changes: undefined
+          
+现在添加致死日志的 CSS 样式：
+        
+            
+toolName: Shell
+            
+status: success
+          
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/css/style.css
+          
+
+        
+            
+toolName: edit_file_search_replace
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/css/style.css
+          
+changes: undefined
+          
+完成。两处修改都已实现。
+
+## 修改总结
+
+### 1. 非 AI 模式彩带特效 — 已有 ✓
+
+非 AI 模式的胜利者在 `else` 分支中，已有彩带特效。代码结构：
+
+```
+if (!player)                          → 💀 你输了！（人类死亡）
+else if (isAIMode && AI获胜)           → 💀 你输了！（AI先到终点）
+else                                  → 🏆 玩家X 获得胜利！ + 彩带 + 成就
+    ├── 非 AI 模式：任何玩家获胜       → 彩带 ✓
+    └── AI 模式：人类获胜              → 彩带 ✓
+```
+
+### 2. 死亡弹窗致死日志 — 新增 ✓
+
+**[ui.js:1473-1482](file:///Users/erain/Documents/trae_projects/game-ysk/js/ui.js#L1473-L1482)** — 在 `!player`（人类死亡）分支中，展示最近 5 条日志（排除最后的"你死亡了"消息）：
+
+```javascript
+const deathLogs = this.recentLogs.slice(-5, -1);
+```
+
+效果示例：
+```
+┌───────────────────────────────────┐
+│            💀 你输了！              │
+│  ┌─────────────────────────────┐  │
+│  │ 📋 致死原因：                 │  │
+│  │ 🔔 我 被炸弹炸伤！血量减1！   │  │
+│  │ 我：触发[DDD]，直接死亡！     │  │
+│  │ 🔔 我 触发死亡陷阱！直接死亡！ │  │
+│  └─────────────────────────────┘  │
+│      [再来一局]  [返回首页]        │
+└───────────────────────────────────┘
+```
+
+**实现细节**：
+- [构造函数 L24](file:///Users/erain/Documents/trae_projects/game-ysk/js/ui.js#L24)：添加 `this.recentLogs = []`
+- [addLog L1272-1281](file:///Users/erain/Documents/trae_projects/game-ysk/js/ui.js#L1272-L1281)：每条日志同时推入 `recentLogs` 扁平数组（保留最近 10 条），格式统一为 `玩家名：消息` 或 `🔔 消息`
+- [游戏重启 L808](file:///Users/erain/Documents/trae_projects/game-ysk/js/ui.js#L808)：清空 `recentLogs`
+- [CSS L1340-1361](file:///Users/erain/Documents/trae_projects/game-ysk/css/style.css#L1340-L1361)：浅红色背景的日志区域样式
+
+###
+
+让我确认 UI 中如何标识人类玩家的索引：
+        
+            
+toolName: Shell
+            
+status: success
+          
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+逻辑清楚了。`this.playerIndex` 是人类玩家的 ID，`this.game.isAIMode` 标识是否 AI 模式。需要在 `onGameEnd` 中增加一个分支：AI 模式下如果获胜者不是人类玩家，显示"你输了"：
+        
+            
+toolName: edit_file_search_replace
+            
+status: success
+          
+            
+filePath: /Users/erain/Documents/trae_projects/game-ysk/js/ui.js
+          
+changes: undefined
+          
+完成。修改后的判定逻辑：
+
+| 模式 | 场景 | `player` | 显示 |
+|------|------|----------|------|
+| 非 AI | 玩家到达终点 / 最后存活 | 获胜玩家 | 🏆 玩家X 获得胜利！ |
+| AI 对战 | 人类到达终点 | 人类玩家 | 🏆 我 获得胜利！(+彩带) |
+| AI 对战 | 人类最后存活(AI全死) | 人类玩家 | 🏆 我 获得胜利！(+彩带) |
+| AI 对战 | 人类死亡 | `null` | 💀 你输了！ |
+| AI 对战 | AI 先到达终点 | AI 玩家 | 💀 你输了！ |
+
+新增的分支 [ui.js:1459-1462](file:///Users/erain/Documents/trae_projects/game-ysk/js/ui.js#L1459-L1462) 通过 `this.game.isAIMode && player.id !== this.playerIndex` 判断：AI 模式下获胜者不是人类玩家时，显示"你输了"而非"玩家X 获得胜利"。非 AI 模式不受影响（`isAIMode` 为 false，直接走 else 分支显示获胜者）。
+
 ### 修复因顺序反转导致的胜利判定错误
 
 我找到了 bug 的根因。让我验证一下 — 问题出在 CR（玩家顺序反转）格子上。
