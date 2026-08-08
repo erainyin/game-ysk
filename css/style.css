@@ -37,7 +37,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #3d4255;
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -245,10 +245,9 @@ button, .btn {
    .game-container 为白色卡片容器；.main-content 横向布局棋盘与侧栏
    ============================================================ */
 .game-container {
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     border-radius: 20px;
     padding: 10px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     width: 100%;
 }
 
@@ -287,9 +286,7 @@ button, .btn {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 10px;
+    padding: 15px 0 0 15px;
 }
 
 .players-info {
@@ -432,10 +429,7 @@ button, .btn {
 .board {
     display: flex;
     flex-direction: column-reverse;
-    background: #efefef;
-    padding: 10px;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    padding: 0 10px;
     position: relative;
 }
 
@@ -577,7 +571,7 @@ button, .btn {
 }
 
 .dice {
-    font-size: 6rem;
+    font-size: 4rem;
     cursor: pointer;
     transition: transform 0.3s ease;
     animation: pulse 2s infinite;
@@ -1478,29 +1472,25 @@ button, .btn {
     z-index: 10;
     background: white;
     padding: 10px 0 12px;
-    margin-bottom: 12px;
-    border-bottom: 2px solid #e8e8e8;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .purchase-top-info {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 10px;
+    align-items: stretch;
+    gap: 4px;
+    margin-bottom: 4px;
     flex-wrap: wrap;
 }
 
 /* 顶部固定详情文本框 */
 .purchase-desc-box {
     display: flex;
-    gap: 14px;
+    gap: 10px;
     align-items: center;
-    padding: 12px 16px;
+    padding: 5px 10px;
     background: linear-gradient(135deg, #fef9e7, #ebf5fb);
-    border: 2px solid #d5b895;
     border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    min-height: 58px;
 }
 
 .purchase-desc-emoji {
@@ -1517,12 +1507,11 @@ button, .btn {
 .purchase-desc-title {
     font-weight: bold;
     color: #2c3e50;
-    font-size: 1rem;
-    margin-bottom: 4px;
+    font-size: 14px;
 }
 
 .purchase-desc-body {
-    font-size: 0.9rem;
+    font-size: 12px;
     color: #555;
     line-height: 1.5;
 }
@@ -1546,9 +1535,7 @@ button, .btn {
     font-size: 0.95rem;
     font-weight: bold;
     color: #2c3e50;
-    margin-bottom: 8px;
-    padding-bottom: 4px;
-    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 8px;
 }
 
 /* 可购买卡牌网格 */
@@ -1563,8 +1550,8 @@ button, .btn {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 10px 6px;
-    border: 2px solid #bdc3c7;
+    padding: 4px;
+    border: 1px solid #bdc3c7;
     border-radius: 10px;
     background: white;
     cursor: pointer;
@@ -1602,14 +1589,17 @@ button, .btn {
 }
 
 .purchase-card-cost {
-    font-size: 0.75rem;
+    font-size:0.6rem;
     color: white;
     font-weight: bold;
     position: absolute;
-    top: 0;
-    right: 0;
-    padding: 2px 4px;
-    border-radius: 4px;
+    top: 1px;
+    right: 1px;
+    width: 18px;
+    padding:0;
+    border-radius: 9px;
+    text-align: center;
+    line-height: 18px;
     background-color: rgba(230, 126, 34, 0.8);
 }
 
@@ -1899,6 +1889,14 @@ button, .btn {
         display: none;
     }
 
+    .purchase-section {
+        margin-bottom: 16px;
+    }
+
+    /* 通知栏 */
+    .notification {
+        padding: 4px 10px;
+    }
     /* ----- 22.2 头部控制：按钮缩为方形图标 ----- */
     .header-controls {
         position: static;
@@ -1943,6 +1941,7 @@ button, .btn {
         background: none;
         margin-bottom: 0;
         align-items: flex-start;
+        margin-bottom: 20px;
     }
 
     .player-indicator {
@@ -2000,8 +1999,8 @@ button, .btn {
     }
 
     .player-token {
-        width: 20px;
-        height: 20px;
+        width: 30px;
+        height: 30px;
     }
 
     /* ----- 22.5 骰子区域：固定到右下角胶囊 ----- */
@@ -2009,6 +2008,7 @@ button, .btn {
         position: fixed;
         bottom: 10px;
         right: 10px;
+        padding: 15px 30px;
     }
 
     .dice-container {
@@ -2041,13 +2041,15 @@ button, .btn {
     /* ----- 22.6 游戏日志 ----- */
     .game-log {
         height: 80px;
+        background: transparent;
+        border-color:rgba(255, 255, 255, 0.2);
     }
 
     /* ----- 22.7 弹窗：选项横向排列 ----- */
     .selection-buttons {
         flex-direction: row;
         height: 100%;
-        padding: 10px 0px;
+        padding: 10px;
         gap: 0;
         overflow-y: scroll;
     }
@@ -2068,10 +2070,13 @@ button, .btn {
         font-size: 16px;
         width: 80px;
         text-align: left;
+        margin-bottom: 0;
+        margin-left: 10px;
     }
 
     .player-select-icon {
         font-size: 16px;
+        margin-bottom: 0;
     }
 
     .ghost-btn, .move-btn {
@@ -2158,7 +2163,7 @@ button, .btn {
     }
 
     .purchase-top-info {
-        flex-direction: column;
+        flex-direction: row;
         align-items: stretch;
         gap: 8px;
     }

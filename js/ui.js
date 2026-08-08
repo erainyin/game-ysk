@@ -1655,7 +1655,7 @@ class UI {
                      data-player="${playerIndex}">
                     <div class="purchase-card-emoji">${cardSystem.getIconHtml(card)}</div>
                     <!--<div class="purchase-card-name">${card.name}</div>-->
-                    <div class="purchase-card-cost">${card.cost}点</div>
+                    <div class="purchase-card-cost">${card.cost}</div>
                 </div>
             `;
         };
@@ -1667,13 +1667,17 @@ class UI {
         modal.innerHTML = `
             <div class="modal-content purchase-modal-content">
                 <div class="purchase-header">
-                    <h3>🛒 卡牌购买阶段 - ${player.name}</h3>
+                    <h3>🛒 购买卡牌 - ${player.name}</h3>
                 </div>
                 <div class="purchase-top-bar">
                     <div class="purchase-top-info">
+                        <div class="purchase-points">
+                            💰<br><span id="purchase-points-value">${player.points}</span>
+                        </div>
                         <div class="purchase-hand">
-                            <div class="purchase-hand-label">                        <div class="purchase-points">💰 剩余点数：<span id="purchase-points-value">${player.points}</span></div>
-🃏 已购卡牌（${player.cards.length}张）：</div>
+                            <div class="purchase-hand-label">
+                                🃏 已购卡牌（${player.cards.length}张）：
+                            </div>
                             <div class="purchase-hand-list" id="purchase-hand-list">
                                 ${player.cards.map(c => `<span class="purchase-hand-card" data-instance-id="${c.instanceId}">${cardSystem.getIconHtml(c)}${c.name} <span class="purchase-hand-remove">✕</span></span>`).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>'}
                             </div>
