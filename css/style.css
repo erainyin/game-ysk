@@ -839,7 +839,7 @@ button, .btn {
 /* 弹窗内选项按钮的滚动容器 */
 .selection-buttons {
     display: flex;
-    gap: 20px;
+    gap: 8px;
     justify-content: center;
     flex-wrap: wrap;
     max-height: min(56vh, 520px, calc(88vh - 260px));
@@ -860,6 +860,7 @@ button, .btn {
     flex-direction: column;
     align-items: center;
     margin-bottom: 10px;
+    width: 160px;
 }
 
 /* 玩家选择按钮（带颜色背景） */
@@ -893,10 +894,14 @@ button, .btn {
 
 .player-select-icon {
     font-size: 1.5rem;
+    margin-bottom:10px;
+
 }
 
 .player-select-name {
     font-size: 1.2rem;
+    margin-bottom:10px;
+
 }
 
 /* 幽灵/移动选择按钮（GST 阶段使用） */
@@ -963,59 +968,68 @@ button, .btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
-.skin-icons {
+/* 皮肤轮播选择器：左箭头 + 图标 + 右箭头，固定高度 */
+.skin-carousel {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
     justify-content: center;
-    padding: 8px;
-    max-width: 200px;
 }
 
-.skin-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 2px solid transparent;
+.skin-carousel-arrow {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    font-size: 0.7rem;
+    width: 20px;
+    height: 28px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
+    transition: background 0.15s ease;
+    user-select: none;
+    flex-shrink: 0;
 }
 
-.skin-icon:hover {
-    border-color: #3498db;
-    transform: scale(1.1);
+.skin-carousel-arrow:hover {
+    background: rgba(255, 255, 255, 0.45);
 }
 
-.skin-icon.selected {
-    border-color: #e74c3c;
-    background: rgba(0, 0, 0, .6);
+.skin-carousel-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+    overflow: hidden;
 }
 
-.skin-icon img {
+.skin-carousel-icon img {
     width: 28px;
     height: 28px;
     object-fit: contain;
     border-radius: 4px;
 }
 
+.skin-carousel-dice {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
 /* 皮肤详情卡片（选中皮肤后展示名称与效果） */
 .skin-detail {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 5px 10px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 10px;
     color: white;
-    max-width: 180px;
-    margin: 0 auto;
+    margin: 0 10px;
 }
 
 .skin-detail-icon {
@@ -2012,7 +2026,7 @@ button, .btn {
         height: 100%;
         padding: 10px 0px;
         gap: 0;
-        overflow: visible;
+        overflow-y: scroll;
     }
 
     .player-selection-item {
@@ -2043,30 +2057,30 @@ button, .btn {
     }
 
     /* ----- 22.8 皮肤选择系统 ----- */
-    .skin-cards {
-        flex-direction: column;
-    }
-
-    .skin-icons {
-        max-width: 100%;
-    }
-
     .skin-selector {
         width: 100%;
+        flex-direction: row;
     }
 
-    /* 皮肤详情卡片：移动端悬浮定位 */
+    .skin-carousel-arrow {
+        width: 24px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+
+    .skin-carousel-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .skin-carousel-icon img {
+        width: 32px;
+        height: 32px;
+    }
+
+    /* 皮肤详情卡片：移动端 */
     .skin-detail {
-        z-index: 1200;
-        min-width: 180px;
-        max-width: 220px;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-        pointer-events: none;
-    }
-
-    .skin-detail.active {
-        display: flex;
-        transform: translateY(-8px);
+        max-width: 100%;
     }
 
     /* ----- 22.9 卡牌系统 - 手牌 ----- */

@@ -621,13 +621,10 @@ class UI {
                     <button class="player-select-btn ${isSelected ? 'selected-player' : ''}" style="background: ${color};" onclick="ui.selectPlayer(${i}, ${playerCount})">
                         <span class="player-select-icon">👤</span>
                         <span class="player-select-name">${buttonText}</span>
-                                            <div class="skin-selector">
-                        <div class="skin-cards">
+                        <div class="skin-selector">
                             ${this.renderSkinCards(i)}
                         </div>
-                    </div>
                     </button>
-
                 </div>
             `;
         }
@@ -635,97 +632,96 @@ class UI {
     }
     
     renderSkinCards(playerIndex) {
-        const skins = skinSystem.getAllSkins();
-        const defaultSkin = skins.find(s => s.id === 'default');
-        const selectedSkinId = this.playerSkins[playerIndex] || 'default';
-        const selectedSkin = skins.find(s => s.id === selectedSkinId);
-        
-        let html = `
-            <div class="skin-icons">
-        `;
-        
-        skins.forEach(skin => {
-            const isSelected = this.playerSkins[playerIndex] === skin.id;
-            const iconPath = skinSystem.getIconPath(skin.id);
-            html += `
-                <div class="skin-icon ${isSelected ? 'selected' : ''}" 
-                     data-player="${playerIndex}" 
-                     data-skin="${skin.id}">
-                    <img src="${iconPath}" alt="${skin.name}">
-                </div>
-            `;
-        });
-        
-        html += `
+        const skinList = this.getSkinListWithRandom();
+        const selectedSkinId = this.playerSkins[playerIndex] || 'random';
+        const currentSkin = skinList.find(s => s.id === selectedSkinId) || skinList[0];
+
+        const iconHtml = currentSkin.id === 'random'
+            ? '<span class="skin-carousel-dice">🎲</span>'
+            : `<img src="${skinSystem.getIconPath(currentSkin.id)}" alt="${currentSkin.name}">`;
+
+        return `
+            <div class="skin-carousel" data-player="${playerIndex}">
+                <span class="skin-carousel-arrow prev" data-player="${playerIndex}" data-dir="-1" role="button" aria-label="上一个">◀</span>
+                <div class="skin-carousel-icon">${iconHtml}</div>
+                <span class="skin-carousel-arrow next" data-player="${playerIndex}" data-dir="1" role="button" aria-label="下一个">▶</span>
             </div>
             <div class="skin-detail" id="skin-detail-${playerIndex}">
                 <div class="skin-detail-info">
-                    <div class="skin-detail-name">${selectedSkin.name}</div>
-                    <div class="skin-detail-desc">${selectedSkin.description}</div>
+                    <div class="skin-detail-name">${currentSkin.name}</div>
+                    <div class="skin-detail-desc">${currentSkin.description}</div>
                 </div>
             </div>
         `;
-        
-        return html;
     }
-    
+
+    // 获取皮肤列表（首位为"随机"伪皮肤）
+    getSkinListWithRandom() {
+        const randomSkin = {
+            id: 'random',
+            name: '随机皮肤',
+            description: '随机选择一个皮肤',
+            color: '#f1c40f'
+        };
+        return [randomSkin, ...skinSystem.getAllSkins()];
+    }
+
     bindSkinSelectionEvents() {
-        document.querySelectorAll('.skin-icon').forEach(icon => {
-            icon.addEventListener('click', (e) => {
+        document.querySelectorAll('.skin-carousel-arrow').forEach(arrow => {
+            arrow.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const playerIndex = parseInt(e.currentTarget.dataset.player);
-                const skinId = e.currentTarget.dataset.skin;
-                
-                document.querySelectorAll(`.skin-icon[data-player="${playerIndex}"]`).forEach(c => {
-                    c.classList.remove('selected');
-                });
-                e.currentTarget.classList.add('selected');
-                
-                this.playerSkins[playerIndex] = skinId;
-                
-                this.updateSkinDetail(playerIndex, skinId, e.currentTarget);
+                const dir = parseInt(e.currentTarget.dataset.dir);
+                this.cycleSkin(playerIndex, dir);
             });
         });
     }
+
+    // 轮播切换皮肤：方向 -1 上一个 / +1 下一个，切换即选中
+    cycleSkin(playerIndex, direction) {
+        const skinList = this.getSkinListWithRandom();
+        const selectedSkinId = this.playerSkins[playerIndex] || 'random';
+        let currentIndex = skinList.findIndex(s => s.id === selectedSkinId);
+        if (currentIndex === -1) currentIndex = 0;
+
+        currentIndex = (currentIndex + direction + skinList.length) % skinList.length;
+        const newSkin = skinList[currentIndex];
+        this.playerSkins[playerIndex] = newSkin.id;
+
+        this.updateSkinCarousel(playerIndex, newSkin);
+    }
+
+    // 就地更新轮播图标和详情（不重新渲染整个弹窗）
+    updateSkinCarousel(playerIndex, skin) {
+        const carousel = document.querySelector(`.skin-carousel[data-player="${playerIndex}"]`);
+        if (carousel) {
+            const iconContainer = carousel.querySelector('.skin-carousel-icon');
+            if (skin.id === 'random') {
+                iconContainer.innerHTML = '<span class="skin-carousel-dice">🎲</span>';
+            } else {
+                iconContainer.innerHTML = `<img src="${skinSystem.getIconPath(skin.id)}" alt="${skin.name}">`;
+            }
+        }
+        this.updateSkinDetail(playerIndex, skin.id);
+    }
     
-    updateSkinDetail(playerIndex, skinId, triggerElement = null) {
-        const skin = skinSystem.getSkinById(skinId);
+    updateSkinDetail(playerIndex, skinId) {
+        // 'random' 伪皮肤不在 skinSystem 中，手动构造
+        const skin = skinId === 'random'
+            ? { name: '随机', description: '随机选择一个皮肤（含默认）' }
+            : skinSystem.getSkinById(skinId);
         const detailElement = document.getElementById(`skin-detail-${playerIndex}`);
         if (!detailElement || !skin) return;
 
-        const isMobile = window.innerWidth < 768;
         detailElement.innerHTML = `
             <div class="skin-detail-info">
                 <div class="skin-detail-name">${skin.name}</div>
                 <div class="skin-detail-desc">${skin.description}</div>
             </div>
         `;
-
-        if (isMobile) {
-            this.hideSkinDetailTooltips();
-            detailElement.classList.add('active');
-
-            if (triggerElement && this.selectionModal) {
-                const modalContent = this.selectionModal.querySelector('.modal-content');
-                if (modalContent) {
-                    const modalRect = modalContent.getBoundingClientRect();
-                    const rect = triggerElement.getBoundingClientRect();
-                    const left = rect.left - modalRect.left + rect.width / 2 - 110;
-                    const top = rect.top - modalRect.top - 90;
-                    detailElement.style.left = `${Math.max(8, Math.min(left, modalRect.width - 220))}px`;
-                    detailElement.style.top = `${Math.max(8, top)}px`;
-                }
-            }
-        } else {
-            detailElement.classList.remove('active');
-        }
     }
 
-    hideSkinDetailTooltips() {
-        document.querySelectorAll('.skin-detail.active').forEach(detail => {
-            detail.classList.remove('active');
-        });
-    }
-    
+
     updatePlayerCount(count) {
         const selectionButtons = document.getElementById('selection-buttons');
         // 更新内部记录的人数
@@ -820,7 +816,13 @@ class UI {
         const nonDefaultSkins = skins.filter(s => s.id !== 'default');
 
         for (let i = 0; i < count; i++) {
-            let skinId = this.playerSkins[i];
+            let skinId = this.playerSkins[i] || 'random';
+
+            // 'random' 皮肤：从全部皮肤（含默认）中随机选择一个
+            if (skinId === 'random') {
+                const allSkins = skinSystem.getAllSkins();
+                skinId = allSkins[Math.floor(Math.random() * allSkins.length)].id;
+            }
 
             if (!skinId && aiMode && i !== playerIndex) {
                 const randomIndex = Math.floor(Math.random() * nonDefaultSkins.length);

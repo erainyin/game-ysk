@@ -325,12 +325,12 @@ class Game {
             });
             
             const alivePlayers = this.players.filter(p => !p.isDead);
-            if (alivePlayers.length <= 1) {
+            if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
                 this.checkGameEnd();
             }
         }
     }
-    
+
     moveGhostStepByStep(player, startPos, endPos, currentStep) {//幽灵移动分步
         if (currentStep === 0) {
             player.ghostMoveTo(startPos);
@@ -799,7 +799,7 @@ class Game {
             });
 
             const alivePlayers = this.players.filter(p => !p.isDead);
-            if (alivePlayers.length <= 1) {
+            if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
                 this.checkGameEnd();
             }
         }
@@ -820,7 +820,18 @@ class Game {
         }
         
         const alivePlayers = this.players.filter(p => !p.isDead);
-        
+
+        // AI 模式下人类玩家死亡优先判定为"你输了"（即使还有多个AI存活，或只剩1个AI时也不显示"AI获胜"）
+        if (this.isAIMode && this.humanPlayerIndex >= 0) {
+            const humanPlayer = this.players[this.humanPlayerIndex];
+            if (humanPlayer && humanPlayer.isDead) {
+                this.gameState = 'ended';
+                this.onGameEnd && this.onGameEnd(null, []);
+                this.notifyStateChange();
+                return;
+            }
+        }
+
         if (alivePlayers.length === 0) {
             this.gameState = 'ended';
             this.onGameEnd && this.onGameEnd(null, []);
@@ -831,21 +842,22 @@ class Game {
             const achievements = (typeof achievementSystem !== 'undefined') ? achievementSystem.checkAchievements(alivePlayers[0], this) : [];
             this.onGameEnd && this.onGameEnd(alivePlayers[0], achievements);
             this.notifyStateChange();
-        } else if (this.isAIMode && this.humanPlayerIndex >= 0) {
-            const humanPlayer = this.players[this.humanPlayerIndex];
-            if (humanPlayer && humanPlayer.isDead) {
-                this.gameState = 'ended';
-                this.onGameEnd && this.onGameEnd(null, []);
-                this.notifyStateChange();
-                return;
-            }
-            this.nextTurn();
         } else {
             this.nextTurn();
         }
     }
 
     nextTurn() {//下一轮
+        // 游戏已结束时不再推进回合
+        if (this.gameState !== 'playing') return;
+
+        // 在推进回合前检查是否有玩家死亡（超车/范围伤害/炸弹等可能导致其他玩家死亡）
+        const aliveCount = this.players.filter(p => !p.isDead).length;
+        if (aliveCount <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
+            this.checkGameEnd();
+            return;
+        }
+
         this.isSelectingMoveTarget = false;
         this.isSelectingPlunder = false;
         this.isSelectingSkinTemple = false;
@@ -1118,7 +1130,7 @@ class Game {
 
     checkCardDamageGameEnd() {//卡牌伤害后检查游戏结束
         const alivePlayers = this.players.filter(p => !p.isDead);
-        if (alivePlayers.length <= 1) {
+        if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
             this.checkGameEnd();
         }
     }
