@@ -11,7 +11,7 @@
      8.  玩家令牌与幽灵 (.player-token / .ghost-token)
      9.  骰子区域 (.dice-container / .dice)
      10. 游戏日志 (.game-log-container)
-     11. 格子信息提示 (.cell-info)
+     11. 格子信息提示 → 已改用 microtip.css 工具提示（悬停格子显示）
      12. 规则说明 (.rules)
      13. 弹窗系统通用 (.selection-modal / .modal-content)
      14. 玩家选择弹窗 (.player-select-btn / .ghost-btn / .move-btn)
@@ -423,7 +423,7 @@ button, .btn {
     flex-direction: column;
     align-items: center;
     margin-bottom: 20px;
-    overflow-x: auto;
+    overflow: visible;
 }
 
 .board {
@@ -451,8 +451,9 @@ button, .btn {
     font-weight: bold;
     color: #2c3e50;
     position: relative;
+    z-index: 1;                 /* 默认创建层叠上下文，tooltip 始终包裹在格子内 */
     cursor: default;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, background-color 0.3s ease;
 }
 
 .cell-number {
@@ -482,8 +483,19 @@ button, .btn {
     margin-left: 2px;
 }
 
-.cell:hover {
+.cell:hover,
+.cell:focus {
     transform: scale(1.05);
+    z-index: 100;           /* 确保悬停/聚焦格子及其 microtip 工具提示浮于其他格子之上 */
+    outline: none;           /* 工具提示本身即为视觉反馈，去除默认聚焦轮廓 */
+}
+
+/* 取消 microtip 过渡动画：z-index 瞬时变化但 opacity 有 0.18s 过渡，
+   会导致鼠标移出时 tooltip 在淡出过程中被其他格子遮挡。
+   改为无过渡 → tooltip 随 z-index 同步瞬间显示/消失 */
+.cell[role="tooltip"]::before,
+.cell[role="tooltip"]::after {
+    transition: none !important;
 }
 
 /* 功能格子高亮（BB/FF/Combo 等）：2px 红色描边 + 15% 红色透明背景 */
@@ -697,30 +709,6 @@ button, .btn {
     display: inline-block;
 }
 
-
-/* ============================================================
-   11. 格子信息提示
-   侧栏底部，悬停格子时显示属性说明
-   ============================================================ */
-.cell-info {
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 12px 20px;
-    margin-top: 15px;
-    font-size: 14px;
-    color: #666;
-    align-self: stretch;
-    text-align: center;
-    transition: all 0.3s ease;
-    max-width: 468px;
-}
-
-.cell-info.active {
-    background: #e8f5e9;
-    border-color: #27ae60;
-    color: #27ae60;
-}
 
 
 /* ============================================================

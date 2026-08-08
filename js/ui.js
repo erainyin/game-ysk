@@ -14,7 +14,6 @@ class UI {
         this.playerSelectorElement = document.getElementById('player-selector');
         this.gameLogElement = document.getElementById('game-log');
         this.logData = {};
-        this.cellInfoElement = document.getElementById('cell-info');
         this.playerCount = 2;
         this.isRollLocked = false;
         this.currentMapFile = 'grid.csv';
@@ -96,6 +95,12 @@ class UI {
                 cell.dataset.row = row;
                 cell.dataset.col = col;
                 cell.dataset.number = cellNumber;
+                cell.setAttribute('tabindex', '0'); // 移动端点击聚焦显示 tooltip
+
+                // microtip 位置：下半排→top，上半排→bottom；最左列→-right，最右列→-left
+                const vert = row < CONFIG.ROWS / 2 ? 'top' : 'bottom';
+                const horiz = col === 0 ? '-right' : (col === CONFIG.COLS - 1 ? '-left' : '');
+                const tipPos = vert + horiz;
 
                 const property = CELL_PROPERTIES[cellNumber];
                 if (property) {
@@ -129,25 +134,37 @@ class UI {
                     const displayName = property.displayName || PROPERTY_CONFIG[property.type].name;
                     const displayRule = property.displayRule || PROPERTY_CONFIG[property.type].description;
                     const infoText = displayRule ? `${displayName}：${displayRule}` : displayName;
-                    
+
+                    // microtip 工具提示：悬停格子显示属性说明
+                    cell.setAttribute('aria-label', `格子${cellNumber}：${infoText}`);
+                    cell.setAttribute('role', 'tooltip');
+                    cell.setAttribute('data-microtip-position', tipPos);
+                    cell.setAttribute('data-microtip-size', 'medium');
+
                     cell.addEventListener('mouseenter', () => {
-                        this.showCellInfo(cellNumber, infoText);
+                        this.highlightRelatedCells(cellNumber);
                     });
-                    
+
                     cell.addEventListener('mouseleave', () => {
-                        this.hideCellInfo();
+                        this.clearHighlights();
                     });
                 } else {
                     cell.innerHTML = `<span class="cell-number">${cellNumber}</span>`;
-                    
-                    cell.addEventListener('mouseenter', () => {
-                        this.showCellInfo(cellNumber, '普通格子，无特殊效果');
-                    });
-                    
-                    cell.addEventListener('mouseleave', () => {
-                        this.hideCellInfo();
-                    });
+
+                    // microtip 工具提示
+                    cell.setAttribute('aria-label', `格子${cellNumber}：普通格子，无特殊效果`);
+                    cell.setAttribute('role', 'tooltip');
+                    cell.setAttribute('data-microtip-position', tipPos);
+                    cell.setAttribute('data-microtip-size', 'small');
                 }
+
+                // 移动端：点击聚焦时高亮关联格子（桌面端 mouseenter 已处理）
+                cell.addEventListener('focus', () => {
+                    this.highlightRelatedCells(cellNumber);
+                });
+                cell.addEventListener('blur', () => {
+                    this.clearHighlights();
+                });
 
                 if (cellNumber === 1) {
                     cell.classList.add('start');
@@ -162,21 +179,7 @@ class UI {
             this.boardElement.appendChild(rowElement);
         }
     }
-    
-    showCellInfo(cellNumber, info) {
-        this.cellInfoElement.textContent = `格子 ${cellNumber}: ${info}`;
-        this.cellInfoElement.classList.add('active');
-        
-        this.highlightRelatedCells(cellNumber);
-    }
-    
-    hideCellInfo() {
-        this.cellInfoElement.textContent = '悬停格子查看属性说明';
-        this.cellInfoElement.classList.remove('active');
-        
-        this.clearHighlights();
-    }
-    
+
     highlightRelatedCells(cellNumber) {
         const property = CELL_PROPERTIES[cellNumber];
         if (!property) return;
