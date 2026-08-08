@@ -69,7 +69,9 @@ class UI {
             onBombExplode: (positions) => this.playBombAnimation(positions),
             onGhostSelect: (player) => this.showGhostSelection(player),
             onMoveSelect: (player, value) => this.showMoveSelection(player, value),
-            onCardPurchase: () => this.showPurchaseModal()
+            onCardPurchase: () => this.showPurchaseModal(),
+            onPlunderSelect: (player) => this.showPlunderSelection(player),
+            onSkinTempleSelect: (player) => this.showSkinTempleSelection(player)
         });
     }
 
@@ -795,7 +797,9 @@ class UI {
             onBombExplode: (positions) => this.playBombAnimation(positions),
             onGhostSelect: (player) => this.showGhostSelection(player),
             onMoveSelect: (player, value) => this.showMoveSelection(player, value),
-            onCardPurchase: () => this.showPurchaseModal()
+            onCardPurchase: () => this.showPurchaseModal(),
+            onPlunderSelect: (player) => this.showPlunderSelection(player),
+            onSkinTempleSelect: (player) => this.showSkinTempleSelection(player)
         });
 
         this.playerTokens = {};
@@ -851,6 +855,9 @@ class UI {
         if (currentPlayer.id === this.playerIndex) return;
 
         if (currentPlayer.hasRolled) return;
+
+        // 正在选择目标/皮肤/幽灵时，等待自动选择完成
+        if (this.game.isSelectingPlunder || this.game.isSelectingSkinTemple || this.game.isSelectingGhost || this.game.isSelectingMoveTarget) return;
 
         if (this.isAIProcessing) return;
         this.isAIProcessing = true;
@@ -1107,6 +1114,105 @@ class UI {
             this.pendingGhostPlayer = null;
         }
         this.hideSelectionModal();
+    }
+
+    showPlunderSelection(player) {//掠夺点：显示可掠夺的玩家列表
+        this.hideSelectionModal();
+
+        const targets = this.game.players.filter(p => !p.isDead && p.id !== player.id && p.cards.length > 0);
+
+        if (targets.length === 0) {
+            this.showNotification('没有可掠夺的目标（其他玩家无手牌）', 'warning');
+            this.game.isSelectingPlunder = false;
+            this.game.nextTurn();
+            return;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="ui.cancelPlunder()" aria-label="关闭">×</button>
+                <h3>🦝 ${player.name} 掠夺点 — 选择目标</h3>
+                <div class="target-card-desc">选择一名玩家，随机偷取其1张手牌</div>
+                <div class="target-list">
+                    ${targets.map(p => `
+                        <div class="target-item" data-target-id="${p.id}" style="border-color:${p.color};">
+                            <span class="target-color-dot" style="background:${p.color};"></span>
+                            <span class="target-name">${p.name}</span>
+                            <span class="target-info">🃏${p.cards.length}张</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        this.selectionModal = modal;
+        this.pendingPlunderPlayer = player;
+
+        modal.querySelectorAll('.target-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const targetId = parseInt(e.currentTarget.dataset.targetId);
+                this.hideSelectionModal();
+                this.pendingPlunderPlayer = null;
+                this.game.selectPlunderTarget(player, targetId);
+                this.onStateChange();
+            });
+        });
+    }
+
+    cancelPlunder() {//取消掠夺（跳过）
+        this.hideSelectionModal();
+        this.pendingPlunderPlayer = null;
+        this.game.isSelectingPlunder = false;
+        this.game.nextTurn();
+    }
+
+    showSkinTempleSelection(player) {//皮肤神殿：显示皮肤选择列表
+        this.hideSelectionModal();
+
+        const skins = skinSystem.getAllSkins();
+        const currentSkinId = player.skin ? player.skin.id : 'default';
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="ui.cancelSkinTemple()" aria-label="关闭">×</button>
+                <h3>🏛️ ${player.name} 皮肤神殿 — 更换皮肤</h3>
+                <div class="target-card-desc">选择新皮肤（属性将重置）。当前：${player.skin ? player.skin.name : '默认'}</div>
+                <div class="skin-temple-grid">
+                    ${skins.map(skin => `
+                        <div class="skin-temple-card ${skin.id === currentSkinId ? 'current' : ''}" data-skin-id="${skin.id}" title="${skin.description}">
+                            <img class="skin-card-icon" src="${skinSystem.getIconPath(skin.id)}" alt="${skin.name}" onerror="this.style.display='none'">
+                            <div class="skin-card-name">${skin.name}</div>
+                            ${skin.id === currentSkinId ? '<div class="skin-current-tag">当前</div>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        this.selectionModal = modal;
+        this.pendingSkinTemplePlayer = player;
+
+        modal.querySelectorAll('.skin-temple-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const skinId = e.currentTarget.dataset.skinId;
+                const newSkin = skinSystem.getSkinById(skinId);
+                this.hideSelectionModal();
+                this.pendingSkinTemplePlayer = null;
+                this.game.selectSkinTempleChange(player, newSkin);
+                this.onStateChange();
+            });
+        });
+    }
+
+    cancelSkinTemple() {//取消皮肤更换（跳过）
+        this.hideSelectionModal();
+        this.pendingSkinTemplePlayer = null;
+        this.game.isSelectingSkinTemple = false;
+        this.game.nextTurn();
     }
     
     showMoveSelection(player, value) {

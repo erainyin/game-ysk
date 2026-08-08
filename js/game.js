@@ -15,11 +15,15 @@ class Game {
         this.onBombExplode = null;
         this.onGhostSelect = null;
         this.onMoveSelect = null;
+        this.onPlunderSelect = null;        // 掠夺点：选择目标回调
+        this.onSkinTempleSelect = null;     // 皮肤神殿：选择皮肤回调
         this.lastRollValue = 0;
         this.pendingRollValue = 0;
         this.pendingRollPlayer = null;
         this.isSelectingGhost = false;
         this.isSelectingMoveTarget = false;
+        this.isSelectingPlunder = false;    // 掠夺点：等待玩家选择目标
+        this.isSelectingSkinTemple = false; // 皮肤神殿：等待玩家选择皮肤
         this.roundCount = 1;
         this.currentRollStartPos = 0;
         this.aiPlayerIds = new Set();
@@ -41,6 +45,8 @@ class Game {
         if (callbacks.onGhostSelect) this.onGhostSelect = callbacks.onGhostSelect;
         if (callbacks.onMoveSelect) this.onMoveSelect = callbacks.onMoveSelect;
         if (callbacks.onCardPurchase) this.onCardPurchase = callbacks.onCardPurchase;
+        if (callbacks.onPlunderSelect) this.onPlunderSelect = callbacks.onPlunderSelect;
+        if (callbacks.onSkinTempleSelect) this.onSkinTempleSelect = callbacks.onSkinTempleSelect;
     }
 
     setAIPlayers(playerIds = []) {//设置AI玩家
@@ -114,6 +120,8 @@ class Game {
         this.pendingRollPlayer = null;
         this.isSelectingGhost = false;
         this.isSelectingMoveTarget = false;
+        this.isSelectingPlunder = false;
+        this.isSelectingSkinTemple = false;
         this.purchasePhase = false;
         this.notifyStateChange();
     }
@@ -133,7 +141,7 @@ class Game {
     }
 
     rollDice() {//掷骰子
-        if (this.gameState !== 'playing' || this.dice.isRollingNow() || this.isSelectingMoveTarget) {
+        if (this.gameState !== 'playing' || this.dice.isRollingNow() || this.isSelectingMoveTarget || this.isSelectingPlunder || this.isSelectingSkinTemple) {
             return;
         }
         if (this.purchasePhase) return;
@@ -148,9 +156,16 @@ class Game {
         const rollingPlayer = currentPlayer;
         this.dice.roll((value) => {
             let finalValue = value;
+            // 幸运星效果：骰子点数最低+2（即最低为3）
+            if (rollingPlayer.luckyTurns > 0 && finalValue < 3) {
+                finalValue = 3;
+                this.log(`🍀 ${rollingPlayer.name} 幸运星生效！骰子 ${value} → ${finalValue}`, true);
+                this.notify(`${rollingPlayer.name} 幸运星加持！骰子点数提升至 ${finalValue}`, 'success');
+            }
             if (rollingPlayer.speedBoostRemainingTurns > 0) {
-                finalValue = value * 2;
-                this.log(`${rollingPlayer.name} 速度翻倍！${value}×2=${finalValue}`, true);
+                const base = finalValue;
+                finalValue = finalValue * 2;
+                this.log(`${rollingPlayer.name} 速度翻倍！${base}×2=${finalValue}`, true);
             }
 
             // 减速诅咒状态（卡牌）
@@ -520,6 +535,53 @@ class Game {
                     this.onPlayerMove(player, gotoOldPos, value, value - gotoOldPos);
                 }
                 return this.processCellProperty(player, value);
+            case 'luckystar':
+                player.luckyTurns = value;
+                player.justGotLucky = true;
+                this.notify(`${player.name} 获得幸运星！${value}回合内骰子最低+2！`, 'success');
+                this.log(`触发[LCK+${value}]，获得${value}回合幸运加成（骰子最低3）`);
+                return false;
+            case 'plunder':
+                // 掠夺点：选择一名其他玩家偷取1张手牌
+                const plunderTargets = this.players.filter(p => !p.isDead && p.id !== player.id && p.cards.length > 0);
+                if (plunderTargets.length === 0) {
+                    this.notify(`${player.name} 触发掠夺点，但没有可掠夺的目标！`, 'info');
+                    this.log('触发[ROB]，无可掠夺目标');
+                    return false;
+                }
+                this.isSelectingPlunder = true;
+                if (this.isAIPlayer(player)) {
+                    this.setTimeout(() => {
+                        const target = plunderTargets[Math.floor(Math.random() * plunderTargets.length)];
+                        this.selectPlunderTarget(player, target.id);
+                    }, 400);
+                } else {
+                    this.onPlunderSelect && this.onPlunderSelect(player);
+                }
+                return true;
+            case 'skintemple':
+                // 皮肤神殿：更换皮肤1次，重置皮肤属性
+                this.isSelectingSkinTemple = true;
+                if (this.isAIPlayer(player)) {
+                    this.setTimeout(() => {
+                        const skins = skinSystem.getAllSkins();
+                        const nonDefault = skins.filter(s => s.id !== 'default');
+                        // AI 50% 概率换一个不同的皮肤，50% 保持原皮肤（重置属性）
+                        let newSkin;
+                        if (nonDefault.length > 0 && Math.random() < 0.5) {
+                            const currentId = player.skin ? player.skin.id : 'default';
+                            const candidates = nonDefault.filter(s => s.id !== currentId);
+                            if (candidates.length > 0) {
+                                newSkin = candidates[Math.floor(Math.random() * candidates.length)];
+                            }
+                        }
+                        // 如果没选到新的，就重置当前皮肤
+                        this.selectSkinTempleChange(player, newSkin || player.skin || skinSystem.getSkinById('default'));
+                    }, 400);
+                } else {
+                    this.onSkinTempleSelect && this.onSkinTempleSelect(player);
+                }
+                return true;
             case 'ghost':
                 this.isSelectingGhost = true;
                 if (this.isAIPlayer(player)) {
@@ -570,7 +632,45 @@ class Game {
             this.nextTurn();
         }
     }
-    
+
+    selectPlunderTarget(player, targetPlayerId) {//掠夺点：从目标玩家随机偷取1张手牌
+        this.isSelectingPlunder = false;
+
+        const target = this.players.find(p => p.id === targetPlayerId);
+        if (!target || target.isDead || target.cards.length === 0) {
+            this.notify(`掠夺失败：目标没有可偷取的手牌`, 'warning');
+            this.log('触发[ROB]，掠夺失败（无手牌）');
+            this.nextTurn();
+            return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * target.cards.length);
+        const stolenCard = target.cards.splice(randomIndex, 1)[0];
+        player.addCard(stolenCard);
+
+        const cardDef = cardSystem.getCardById(stolenCard.id);
+        const cardName = cardDef ? cardDef.name : stolenCard.id;
+        this.notify(`${player.name} 从 ${target.name} 掠夺了 [${cardName}]！`, 'success');
+        this.log(`触发[ROB]，${player.name} 从 ${target.name} 偷取了 [${cardName}]`);
+
+        this.notifyStateChange();
+        this.nextTurn();
+    }
+
+    selectSkinTempleChange(player, newSkin) {//皮肤神殿：更换皮肤并重置属性
+        this.isSelectingSkinTemple = false;
+
+        const oldSkinName = player.skin ? player.skin.name : '默认';
+        player.changeSkin(newSkin);
+        const newSkinName = newSkin && newSkin.id !== 'default' ? newSkin.name : '默认';
+
+        this.notify(`${player.name} 在皮肤神殿更换了皮肤：${oldSkinName} → ${newSkinName}`, 'success');
+        this.log(`触发[SKIN]，${player.name} 皮肤变更：${oldSkinName} → ${newSkinName}，属性已重置`);
+
+        this.notifyStateChange();
+        this.nextTurn();
+    }
+
     processGhostProperty(player, type, value, rawValue = '') {
         switch (type) {
             case 'blood':
@@ -747,12 +847,22 @@ class Game {
 
     nextTurn() {//下一轮
         this.isSelectingMoveTarget = false;
+        this.isSelectingPlunder = false;
+        this.isSelectingSkinTemple = false;
         this.pendingRollPlayer = null;
         this.pendingRollValue = 0;
-        
+
         const previousPlayer = this.players[this.currentPlayerIndex];
         if (previousPlayer && previousPlayer.undieTurns > 0 && !previousPlayer.isDead && previousPlayer.hasRolled && !previousPlayer.justGotUndie) {
             previousPlayer.undieTurns--;
+        }
+
+        // 幸运星回合递减（当回合获得的不递减，下回合开始才生效）
+        if (previousPlayer && previousPlayer.luckyTurns > 0 && !previousPlayer.justGotLucky) {
+            previousPlayer.luckyTurns--;
+            if (previousPlayer.luckyTurns === 0) {
+                this.notify(`${previousPlayer.name} 的幸运星效果已结束！`, 'info');
+            }
         }
 
         if (previousPlayer && previousPlayer.speedBoostRemainingTurns > 0) {
@@ -796,6 +906,7 @@ class Game {
         const currentPlayer = this.getCurrentPlayer();
         currentPlayer.resetRoll();
         currentPlayer.justGotUndie = false;
+        currentPlayer.justGotLucky = false;
         this.notifyStateChange();
     }
 

@@ -1051,6 +1051,65 @@ button, .btn {
     opacity: 0.9;
 }
 
+/* 皮肤神殿弹窗：皮肤选择网格（复用 .skin-card-icon / .skin-card-name） */
+.skin-temple-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.skin-temple-card {
+    width: 70px;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    position: relative;
+}
+
+.skin-temple-card:hover {
+    border-color: #8e44ad;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(142, 68, 173, 0.2);
+}
+
+.skin-temple-card.current {
+    border-color: #e74c3c;
+    background: #fff5f5;
+}
+
+.skin-temple-card .skin-card-icon {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.skin-temple-card .skin-card-name {
+    font-size: 0.75rem;
+    color: #555;
+    text-align: center;
+}
+
+.skin-current-tag {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
 /* 玩家标签中显示的迷你皮肤图标 */
 .skin-icon-mini {
     width: 16px;

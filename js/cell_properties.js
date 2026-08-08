@@ -14,7 +14,10 @@ const FUNCTION_MAP = {
   'BH': { type: 'blackhole', icon: '🕳️', bgColor: '#666666', direction: null },
   'TO': { type: 'goto', icon: '🌀', bgColor: '#fff3e0', direction: null },
   'GST': { type: 'ghost', icon: '👻', bgColor: '#f3e5f5', direction: null },
-  'P': { type: 'pause', icon: '⏸️', bgColor: '#fff9c4', direction: null }
+  'P': { type: 'pause', icon: '⏸️', bgColor: '#fff9c4', direction: null },
+  'LCK': { type: 'luckystar', icon: '🍀', bgColor: '#e8f8f5', direction: null },
+  'ROB': { type: 'plunder', icon: '🦝', bgColor: '#fff3e0', direction: null },
+  'SKIN': { type: 'skintemple', icon: '🏛️', bgColor: '#f3e5f5', direction: null }
 };
 
 function parseCSV(csv) {
@@ -144,7 +147,10 @@ function getColorForType(type) {
     changeorder: '#e91e63',
     blackhole: '#666666',
     goto: '#f39c12',
-    ghost: '#9c27b0'
+    ghost: '#9c27b0',
+    luckystar: '#1abc9c',
+    plunder: '#e67e22',
+    skintemple: '#8e44ad'
   };
   return colors[type] || '#666';
 }
@@ -162,7 +168,10 @@ PROPERTY_CONFIG = {
   blackhole: { name: '黑洞', icon: '🕳️', bgColor: '#666666', description: 'x为黑洞编号，踩到后移动到当前骰子数对应的黑洞' },
   goto: { name: '格子跳转', icon: '🌀', bgColor: '#fff3e0', description: 'x为格子编号，直接跳转到对应格子' },
   ghost: { name: '幽灵', icon: '👻', bgColor: '#f3e5f5', description: '踩到后可召唤幽灵' },
-  pause: { name: '暂停', icon: '⏸️', bgColor: '#fff9c4', description: 'x为暂停回合数，玩家将跳过x个回合' }
+  pause: { name: '暂停', icon: '⏸️', bgColor: '#fff9c4', description: 'x为暂停回合数，玩家将跳过x个回合' },
+  luckystar: { name: '幸运星', icon: '🍀', bgColor: '#e8f8f5', description: 'x为持续回合数，踩到后下回合开始，x回合内掷骰子点数最低为3（1+2）' },
+  plunder: { name: '掠夺点', icon: '🦝', bgColor: '#fff3e0', description: '无变量，踩到后选择一名其他玩家，随机偷取对方1张手牌' },
+  skintemple: { name: '皮肤神殿', icon: '🏛️', bgColor: '#f3e5f5', description: '无变量，踩到后可更换皮肤1次，重置皮肤属性（可恢复已用完的技能次数）' }
 };
 
 let currentMapFile = 'grid.csv';

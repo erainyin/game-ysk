@@ -22,6 +22,8 @@ class Player {
         this.speedBoostRemainingTurns = 0;
         this.doubleDefenceCharges = 0;  // 两次防皮肤：剩余防御次数
         this.dragonDiagonalCharges = 0; // 龙皮肤：剩余斜行次数
+        this.luckyTurns = 0;            // 幸运星：剩余幸运回合数（骰子最低+2）
+        this.justGotLucky = false;      // 幸运星：当回合获得，防止立刻被递减
 
         // 卡牌系统相关
         this.points = 10;                 // 当前点数（用于购买卡牌）
@@ -64,6 +66,8 @@ class Player {
         this.speedBoostRemainingTurns = 0;
         this.doubleDefenceCharges = 0;
         this.dragonDiagonalCharges = 0;
+        this.luckyTurns = 0;
+        this.justGotLucky = false;
 
         // 卡牌系统相关重置
         this.points = 10;
@@ -113,6 +117,26 @@ class Player {
                 }
             });
         }
+    }
+
+    // 皮肤神殿：切换皮肤，移除旧皮肤被动效果并重置所有皮肤属性后应用新皮肤
+    changeSkin(newSkin) {
+        // 移除旧皮肤的被动效果（如勇者的额外血量）
+        if (this.skin) {
+            this.skin.effects.forEach(effect => {
+                if (effect.type === 'extra_health') {
+                    this.changeHealth(-effect.params.amount);
+                }
+            });
+        }
+
+        // 重置所有皮肤相关属性
+        this.speedBoostRemainingTurns = 0;
+        this.doubleDefenceCharges = 0;
+        this.dragonDiagonalCharges = 0;
+
+        // 应用新皮肤（setSkin 内部会重新设置上述属性）
+        this.setSkin(newSkin);
     }
 
     // 两次防皮肤：尝试抵消一次对手卡牌的负面效果，返回 true 表示抵消成功

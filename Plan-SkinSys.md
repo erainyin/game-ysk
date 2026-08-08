@@ -1124,3 +1124,131 @@ changeHealth(delta) {
 7. **皮肤冲突**：避免设计相互冲突的皮肤效果（如同时有 `speed_boost` 和减速效果）
 8. **图片加载**：确保图片文件存在于 `assets/skins/` 目录下，建议使用PNG格式，尺寸建议为 64x64 或 128x128
 9. **默认皮肤**：默认皮肤（`default`）不应用任何效果，仅作为无皮肤选项
+
+## 十、皮肤神殿格子（SKIN）
+
+### 10.1 需求概述
+
+在棋盘上新增「皮肤神殿」功能格子（类型代码 `SKIN`，无变量）。玩家踩中后可更换皮肤1次，更换后重置皮肤属性。该机制为皮肤系统在游戏过程中的动态入口，使玩家不再局限于开局时的皮肤选择。
+
+### 10.2 触发流程
+
+```
+玩家移动到 SKIN 格子
+    ↓
+processSingleProperty → case 'skintemple'
+    ↓
+├── AI 玩家：自动决策（50%换不同皮肤，50%重置当前皮肤）
+└── 人类玩家：弹出皮肤选择弹窗（showSkinTempleSelection）
+    ↓
+selectSkinTempleChange(player, newSkin)
+    ↓
+player.changeSkin(newSkin)  ← 移除旧皮肤被动效果 → 重置属性 → 应用新皮肤
+    ↓
+nextTurn()  ← 回合结束
+```
+
+### 10.3 Player.changeSkin() 方法
+
+```javascript
+changeSkin(newSkin) {
+    // 1. 移除旧皮肤的被动效果（如勇者的额外血量）
+    if (this.skin) {
+        this.skin.effects.forEach(effect => {
+            if (effect.type === 'extra_health') {
+                this.changeHealth(-effect.params.amount);
+            }
+        });
+    }
+
+    // 2. 重置所有皮肤相关属性
+    this.speedBoostRemainingTurns = 0;
+    this.doubleDefenceCharges = 0;
+    this.dragonDiagonalCharges = 0;
+
+    // 3. 应用新皮肤（setSkin 内部会重新设置上述属性）
+    this.setSkin(newSkin);
+}
+```
+
+### 10.4 重置效果说明
+
+| 皮肤 | 更换后效果 |
+|------|-----------|
+| 坦克 (tank) | 立即获得坦克光环（每回合移动后触发范围伤害） |
+| 飞贼 (thief) | 速度翻倍回合重置为3（即使之前已用完） |
+| 勇者 (warrior) | 移除旧勇者的额外血量，添加新皮肤的额外血量 |
+| 两次防 (double_defence) | 防御次数重置为2（即使之前已用完） |
+| 龙 (dragon) | 斜行次数重置为1（即使之前已用完） |
+| 默认 (default) | 移除所有皮肤属性，变为无皮肤状态 |
+
+### 10.5 特殊场景：龙皮肤技能恢复
+
+> 如果玩家本身是龙，并已使用了龙的技能，可再次选择龙，并恢复龙的技能。
+
+- 玩家选择龙皮肤 → `dragonDiagonalCharges` 已为 0（已用完）
+- 踩到皮肤神殿 → 再次选择龙 → `changeSkin(dragon)` 被调用
+- `changeSkin` 先重置 `dragonDiagonalCharges = 0`，再由 `setSkin` 设为 1
+- 龙的斜行技能恢复，下回合可再次使用
+
+### 10.6 CSV 地图配置
+
+在 CSV 文件中添加皮肤神殿格子：
+
+```csv
+格子,功能,变量
+15,SKIN,X
+```
+
+- `功能`：`SKIN`
+- `变量`：`X`（无变量，固定填 X）
+
+### 10.7 UI 设计
+
+皮肤神殿弹窗（`showSkinTempleSelection`）：
+
+```
+┌───────────────────────────────────────┐
+│  ×                              🏛️    │
+│       玩家名 皮肤神殿 — 更换皮肤       │
+│  选择新皮肤（属性将重置）。当前：坦克   │
+├───────────────────────────────────────┤
+│  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐    │
+│  │ 🖼️  │ │ 🖼️  │ │ 🖼️  │ │ 🖼️  │    │
+│  │ 默认 │ │ 坦克 │ │ 飞贼 │ │ 勇者 │    │
+│  │     │ │当前  │ │     │ │     │    │
+│  └─────┘ └─────┘ └─────┘ └─────┘    │
+│  ┌─────┐ ┌─────┐                     │
+│  │ 🖼️  │ │ 🖼️  │                     │
+│  │两次防│ │ 龙  │                     │
+│  └─────┘ └─────┘                     │
+└───────────────────────────────────────┘
+```
+
+- 当前皮肤标记红色边框 + 「当前」角标
+- 点击任意皮肤卡片即确认更换
+- 点击 × 可取消（跳过更换，直接进入下一回合）
+
+## 十一、关联格子类型：幸运星 (LCK) 与掠夺点 (ROB)
+
+### 11.1 幸运星 (LCK X)
+
+- **类型代码**：`LCK`
+- **变量**：X = 持续回合数
+- **效果**：踩到后下回合开始，X 回合内掷骰子点数最低+2（即最低为3）
+- **实现**：
+  - `Player.luckyTurns` 记录剩余回合数
+  - `Player.justGotLucky` 防止当回合被递减（与 `justGotUndie` 同模式）
+  - `Game.rollDice()` 中：`if (luckyTurns > 0 && finalValue < 3) finalValue = 3`
+  - `Game.nextTurn()` 中递减 `luckyTurns`，归零时通知
+
+### 11.2 掠夺点 (ROB)
+
+- **类型代码**：`ROB`
+- **变量**：无
+- **效果**：踩中后选择一名其他玩家，随机偷取对方1张手牌
+- **实现**：
+  - `Game.selectPlunderTarget(player, targetId)` 从目标随机抽1张牌
+  - 人类玩家通过 `showPlunderSelection` 弹窗选择目标
+  - AI 自动随机选择有手牌的目标
+  - 无可掠夺目标时跳过
