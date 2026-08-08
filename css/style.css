@@ -2075,7 +2075,6 @@ button, .btn {
     /* ----- 22.8 皮肤选择系统 ----- */
     .skin-selector {
         width: 100%;
-        flex-direction: row;
     }
 
     .skin-carousel-arrow {
