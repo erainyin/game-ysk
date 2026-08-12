@@ -71,7 +71,8 @@ class UI {
             onMoveSelect: (player, value) => this.showMoveSelection(player, value),
             onCardPurchase: () => this.showPurchaseModal(),
             onPlunderSelect: (player) => this.showPlunderSelection(player),
-            onSkinTempleSelect: (player) => this.showSkinTempleSelection(player)
+            onSkinTempleSelect: (player) => this.showSkinTempleSelection(player),
+            onChaosShuffle: (affectedCells) => this.handleChaosShuffleRender(affectedCells)
         });
     }
 
@@ -255,6 +256,32 @@ class UI {
                 };
                 
                 cell.appendChild(img);
+            }
+        });
+    }
+
+    handleChaosShuffleRender(affectedCells) {//颠倒师：格子属性打乱后重新渲染棋盘与玩家标记
+        // 重新渲染棋盘（展示打乱后的格子属性）
+        this.renderBoard();
+        // 棋盘 innerHTML 已清空，需重新放置玩家与幽灵标记
+        this.playerTokens = {};
+        this.ghostTokens = {};
+        this.renderPlayerTokens();
+        this.renderGhostTokens();
+
+        // 为受影响的格子添加卡片翻转动画（带波浪式错开延迟）
+        affectedCells.forEach((cellNum, index) => {
+            const cellEl = document.querySelector(`.cell[data-number="${cellNum}"]`);
+            if (cellEl) {
+                // 错开延迟，形成波浪式翻转效果
+                const delay = index * 80;
+                setTimeout(() => {
+                    cellEl.classList.add('chaos-flip');
+                    // 动画结束后移除 class
+                    cellEl.addEventListener('animationend', () => {
+                        cellEl.classList.remove('chaos-flip');
+                    }, { once: true });
+                }, delay);
             }
         });
     }
@@ -799,7 +826,8 @@ class UI {
             onMoveSelect: (player, value) => this.showMoveSelection(player, value),
             onCardPurchase: () => this.showPurchaseModal(),
             onPlunderSelect: (player) => this.showPlunderSelection(player),
-            onSkinTempleSelect: (player) => this.showSkinTempleSelection(player)
+            onSkinTempleSelect: (player) => this.showSkinTempleSelection(player),
+            onChaosShuffle: (affectedCells) => this.handleChaosShuffleRender(affectedCells)
         });
 
         this.playerTokens = {};

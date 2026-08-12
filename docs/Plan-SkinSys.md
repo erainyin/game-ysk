@@ -29,6 +29,7 @@
 | `ghost_protect` | 幽灵保护次数增加 | `amount`（额外保护次数） |
 | `damage_reduction` | 受到伤害减少百分比 | `reduction`（减少百分比，0-1） |
 | `extra_roll` | 每回合额外掷骰子次数 | `amount`（额外次数） |
+| `chaos_shuffle` | 移动后随机打乱周围格子属性 | `maxShuffles`（每局最大打乱次数）、`cooldown`（冷却回合数）、`startTurn`（起始回合） |
 
 ### 图片资源存放
 
@@ -45,7 +46,8 @@ game-ysk/
 │       ├── double_defence.png # 两次防皮肤图标
 │       ├── dragon.png        # 龙皮肤图标
 │       ├── guardian.png      # 守护者皮肤图标
-│       └── iron_wall.png     # 铁壁皮肤图标
+│       ├── iron_wall.png     # 铁壁皮肤图标
+│       └── chaos.png         # 颠倒师皮肤图标
 ```
 
 图片路径拼接规则：`assets/skins/${skin.icon}`
@@ -182,6 +184,34 @@ game-ysk/
   ```
 - **触发时机**：玩家受到伤害时
 
+### 皮肤8：颠倒师 (chaos)
+
+- **名称**：颠倒师
+- **描述**：从第2回合开始，走子后随机打乱周围8格属性（2回合冷却），每局最多3次。皮肤神殿可重置次数
+- **图标**：`chaos.png`
+- **颜色**：`#e91e63`
+- **效果**：
+  ```javascript
+  {
+      type: 'chaos_shuffle',
+      params: { maxShuffles: 3, cooldown: 2, startTurn: 2 }
+  }
+  ```
+- **触发时机**：玩家移动结束后
+- **效果说明**：
+  - 从第2回合起，每次移动结束后检查是否满足触发条件
+  - 触发条件：`chaosTurnCount >= startTurn(2)` 且 `(chaosTurnCount - startTurn) % (cooldown + 1) === 0`，即第2、5、8……回合触发
+  - 每次触发：将自身周围8个格子（跳过自身所在格子、起点、终点）的属性随机打乱（Fisher-Yates 洗牌算法）
+  - 自身所在格子的属性保持不变
+  - 每局最多触发 `maxShuffles`(3) 次，达到上限后不再触发
+  - 踩到皮肤神殿（SKIN）格子并重新选择颠倒师皮肤时，`chaosShuffleCount` 重置为0，可再次使用
+- **实现细节**：
+  - `Player.chaosTurnCount`：记录已走子回合数（每回合移动结束后+1）
+  - `Player.chaosShuffleCount`：记录已使用打乱次数（每局最多3次）
+  - `Game.handleChaosShuffle(player, centerPos, params)`：核心打乱逻辑
+  - 打乱后通过 `onChaosShuffle` 回调通知 UI 重新渲染棋盘
+  - `changeSkin()` 中重置 `chaosTurnCount = 0`、`chaosShuffleCount = 0`
+
 ## 四、皮肤系统架构
 
 ### 4.1 系统架构图
@@ -201,7 +231,8 @@ game-ysk/
 │  ├── handleSpeedBoost(player, game, rollValue)           │
 │  ├── handleExtraHealth(player)                           │
 │  ├── handleGhostProtect(player)                          │
-│  └── handleDamageReduction(player, damageAmount)         │
+│  ├── handleDamageReduction(player, damageAmount)         │
+│  └── handleChaosShuffle(player, centerPos, params)       │
 ├─────────────────────────────────────────────────────────┤
 │  触发时机层 (TriggerPoints)                               │
 │  ├── 玩家创建时 → applyInitialEffects()                  │
@@ -226,6 +257,10 @@ class Player {
         
         // 飞贼皮肤专用状态
         this.speedBoostRemainingTurns = 0; // 剩余加速回合数
+        
+        // 颠倒师皮肤专用状态
+        this.chaosTurnCount = 0;        // 已走子回合数
+        this.chaosShuffleCount = 0;     // 已使用打乱次数（每局最多3次）
     }
 }
 ```
@@ -319,16 +354,20 @@ if (hasReached) {
 }
 
 applyMoveEffects(player, newPosition) {
-    if (!player.skin) return;
-    
-    player.skin.effects.forEach(effect => {
-        switch (effect.type) {
-            case 'area_damage':
-                this.handleAreaDamage(player, newPosition, effect.params.range);
-                break;
-        }
-    });
-}
+        if (!player.skin) return;
+        
+        player.skin.effects.forEach(effect => {
+            switch (effect.type) {
+                case 'area_damage':
+                    this.handleAreaDamage(player, newPosition, effect.params.range);
+                    break;
+                case 'chaos_shuffle':
+                    player.chaosTurnCount++;
+                    this.handleChaosShuffle(player, newPosition, effect.params);
+                    break;
+            }
+        });
+    }
 
 handleAreaDamage(sourcePlayer, centerPos, range) {
     const affectedPlayers = this.players.filter(p => 
@@ -352,6 +391,70 @@ handleAreaDamage(sourcePlayer, centerPos, range) {
         if (alivePlayers.length <= 1) {
             this.checkGameEnd();
         }
+    }
+}
+
+handleChaosShuffle(player, centerPos, params) {
+    const { maxShuffles, cooldown, startTurn } = params;
+
+    // 已达最大打乱次数
+    if (player.chaosShuffleCount >= maxShuffles) return;
+
+    // 尚未到起始回合
+    if (player.chaosTurnCount < startTurn) return;
+
+    // 冷却判断：从 startTurn 起，每 (cooldown+1) 回合触发一次（即第2、5、8……回合）
+    const turnsSinceStart = player.chaosTurnCount - startTurn;
+    const cycleLength = cooldown + 1;
+    if (turnsSinceStart % cycleLength !== 0) return;
+
+    // 找到周围8个格子（自身所在格子不变）
+    const { row, col } = this.board.getPositionByNumber(centerPos);
+    const surroundingCells = [];
+    for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const newRow = row + dr;
+            const newCol = col + dc;
+            if (newRow >= 0 && newRow < CONFIG.ROWS && newCol >= 0 && newCol < CONFIG.COLS) {
+                const cellNumber = this.board.getNumberByPosition(newRow, newCol);
+                if (cellNumber === 1 || cellNumber === this.board.totalCells) continue;
+                surroundingCells.push(cellNumber);
+            }
+        }
+    }
+
+    if (surroundingCells.length < 2) return;
+
+    // 收集当前属性（无属性的格子记为 null）
+    const propertiesToShuffle = surroundingCells.map(cellNum => CELL_PROPERTIES[cellNum] || null);
+    const nonNullCount = propertiesToShuffle.filter(p => p !== null).length;
+    if (nonNullCount === 0) return;
+
+    // Fisher-Yates 洗牌
+    const shuffled = [...propertiesToShuffle];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // 重新分配属性
+    surroundingCells.forEach((cellNum, index) => {
+        const prop = shuffled[index];
+        if (prop === null) {
+            delete CELL_PROPERTIES[cellNum];
+        } else {
+            CELL_PROPERTIES[cellNum] = prop;
+        }
+    });
+
+    player.chaosShuffleCount++;
+
+    this.notify(`🌀 ${player.name} 颠倒师能力发动！周围${surroundingCells.length}个格子属性被打乱！（第${player.chaosShuffleCount}/${maxShuffles}次）`, 'warning');
+
+    // 通知 UI 重新渲染棋盘
+    if (this.onChaosShuffle) {
+        this.onChaosShuffle(surroundingCells);
     }
 }
 ```
@@ -575,6 +678,16 @@ class SkinSystem {
                 effects: [
                     { type: 'damage_reduction', params: { reduction: 0.5 } }
                 ]
+            },
+            {
+                id: 'chaos',
+                name: '颠倒师',
+                description: '从第2回合开始，走子后随机打乱周围8格属性（2回合冷却），每局最多3次。皮肤神殿可重置次数',
+                icon: 'chaos.png',
+                color: '#e91e63',
+                effects: [
+                    { type: 'chaos_shuffle', params: { maxShuffles: 3, cooldown: 2, startTurn: 2 } }
+                ]
             }
         ];
     }
@@ -611,6 +724,7 @@ const skinSystem = new SkinSystem();
 | `dragon.png` | 龙皮肤图标 |
 | `guardian.png` | 守护者皮肤图标 |
 | `iron_wall.png` | 铁壁皮肤图标 |
+| `chaos.png` | 颠倒师皮肤图标 |
 
 ### 步骤3：扩展 Player 类
 
@@ -630,6 +744,8 @@ class Player {
         
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
+        this.chaosTurnCount = 0;
+        this.chaosShuffleCount = 0;
     }
     
     setSkin(skin) {
@@ -995,6 +1111,26 @@ changeHealth(delta) {
    }
    ```
 
+4. **注册 `onChaosShuffle` 回调并实现 `handleChaosShuffleRender` 方法**：
+   ```javascript
+   // 在 setupEventListeners() 中的 setCallbacks 里注册
+   this.game.setCallbacks({
+       // ... 其他回调 ...
+       onChaosShuffle: (affectedCells) => this.handleChaosShuffleRender(affectedCells)
+   });
+
+   // 实现棋盘重新渲染方法
+   handleChaosShuffleRender(affectedCells) {
+       // 重新渲染棋盘（展示打乱后的格子属性）
+       this.renderBoard();
+       // 棋盘 innerHTML 已清空，需重新放置玩家与幽灵标记
+       this.playerTokens = {};
+       this.ghostTokens = {};
+       this.renderPlayerTokens();
+       this.renderGhostTokens();
+   }
+   ```
+
 ### 步骤7：添加皮肤相关 CSS
 
 在 `css/style.css` 中添加：
@@ -1165,6 +1301,8 @@ changeSkin(newSkin) {
     this.speedBoostRemainingTurns = 0;
     this.doubleDefenceCharges = 0;
     this.dragonDiagonalCharges = 0;
+    this.chaosTurnCount = 0;
+    this.chaosShuffleCount = 0;
 
     // 3. 应用新皮肤（setSkin 内部会重新设置上述属性）
     this.setSkin(newSkin);
@@ -1180,6 +1318,7 @@ changeSkin(newSkin) {
 | 勇者 (warrior) | 移除旧勇者的额外血量，添加新皮肤的额外血量 |
 | 两次防 (double_defence) | 防御次数重置为2（即使之前已用完） |
 | 龙 (dragon) | 斜行次数重置为1（即使之前已用完） |
+| 颠倒师 (chaos) | 打乱次数重置为3次（即使之前已用完），回合计数重置为0 |
 | 默认 (default) | 移除所有皮肤属性，变为无皮肤状态 |
 
 ### 10.5 特殊场景：龙皮肤技能恢复

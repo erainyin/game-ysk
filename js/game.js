@@ -17,6 +17,7 @@ class Game {
         this.onMoveSelect = null;
         this.onPlunderSelect = null;        // 掠夺点：选择目标回调
         this.onSkinTempleSelect = null;     // 皮肤神殿：选择皮肤回调
+        this.onChaosShuffle = null;         // 颠倒师：格子属性打乱回调（UI 重渲染棋盘）
         this.lastRollValue = 0;
         this.pendingRollValue = 0;
         this.pendingRollPlayer = null;
@@ -47,6 +48,7 @@ class Game {
         if (callbacks.onCardPurchase) this.onCardPurchase = callbacks.onCardPurchase;
         if (callbacks.onPlunderSelect) this.onPlunderSelect = callbacks.onPlunderSelect;
         if (callbacks.onSkinTempleSelect) this.onSkinTempleSelect = callbacks.onSkinTempleSelect;
+        if (callbacks.onChaosShuffle) this.onChaosShuffle = callbacks.onChaosShuffle;
     }
 
     setAIPlayers(playerIds = []) {//设置AI玩家
@@ -234,7 +236,7 @@ class Game {
             this.log(`🎲${steps}，${oldPosition}->${newPosition}`, true);
         }
         
-        this.movePlayerStepByStep(player, oldPosition, newPosition, 0);
+        this.movePlayerStepByStep(player, oldPosition, newPosition, 0, isFromProperty);
     }
     
     moveGhost(player, steps) {//移动幽灵
@@ -248,7 +250,7 @@ class Game {
         this.moveGhostStepByStep(player, oldPosition, newPosition, 0);
     }
     
-    movePlayerStepByStep(player, startPos, endPos, currentStep) {//玩家移动分步
+    movePlayerStepByStep(player, startPos, endPos, currentStep, isFromProperty = false) {//玩家移动分步
         if (currentStep === 0) {
             player.moveTo(startPos);
             this.onPlayerMove && this.onPlayerMove(player, startPos, startPos, 0);
@@ -268,7 +270,7 @@ class Game {
                     if (typeof player.recordMove === 'function') player.recordMove();
                     this.onPlayerMove && this.onPlayerMove(player, startPos, endPos, endPos - startPos);
                     
-                    this.applyMoveEffects(player, endPos);
+                    this.applyMoveEffects(player, endPos, isFromProperty);
                     
                     this.checkOvertake(player, startPos, endPos);
                     
@@ -288,18 +290,33 @@ class Game {
                     player.moveTo(nextPos);
                     this.onPlayerMove && this.onPlayerMove(player, startPos, nextPos, isForward ? currentStep + 1 : -(currentStep + 1));
                     
-                    this.movePlayerStepByStep(player, startPos, endPos, currentStep + 1);
+                    this.movePlayerStepByStep(player, startPos, endPos, currentStep + 1, isFromProperty);
             }
         }, 100);
     }
     
-    applyMoveEffects(player, newPosition) {
+    applyMoveEffects(player, newPosition, isFromProperty = false) {
         if (!player.skin) return;
-        
+
         player.skin.effects.forEach(effect => {
             switch (effect.type) {
                 case 'area_damage':
                     this.handleAreaDamage(player, newPosition, effect.params.range);
+                    break;
+                case 'chaos_shuffle':
+                    // 仅在主走子（掷骰移动）时计入回合，格子属性触发的二次移动不重复计数
+                    if (isFromProperty) break;
+                    player.chaosTurnCount++;
+                    // 不立即执行 —— 先做条件预检查，若满足则挂 pending 标记
+                    // 等所有格子属性触发的二次移动全部结束后，再以最终位置为中心打乱
+                    const { maxShuffles, cooldown, startTurn } = effect.params;
+                    if (player.chaosShuffleCount >= maxShuffles) break;
+                    if (player.chaosTurnCount < startTurn) break;
+                    const turnsSinceStart = player.chaosTurnCount - startTurn;
+                    const cycleLength = cooldown + 1;
+                    if (turnsSinceStart % cycleLength !== 0) break;
+                    // 所有条件均通过，挂起待执行（以最终落子位置为中心）
+                    player.pendingChaosShuffleParams = effect.params;
                     break;
             }
         });
@@ -323,11 +340,96 @@ class Game {
                     this.notify(`${target.name} 被坦克光环伤害！血量-1`, 'danger');
                 }
             });
-            
+
             const alivePlayers = this.players.filter(p => !p.isDead);
             if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
                 this.checkGameEnd();
             }
+        }
+    }
+
+    executePendingChaosShuffle(player) {//颠倒师：所有移动结束后，以最终位置执行 pending 的格子打乱
+        if (!player || !player.pendingChaosShuffleParams) return;
+        const params = player.pendingChaosShuffleParams;
+        player.pendingChaosShuffleParams = null;
+        this.handleChaosShuffle(player, player.position, params);
+    }
+
+    handleChaosShuffle(player, centerPos, params) {//颠倒师：打乱周围格子属性
+        const { maxShuffles, cooldown, startTurn } = params;
+
+        // 已达最大打乱次数
+        if (player.chaosShuffleCount >= maxShuffles) {
+            return;
+        }
+
+        // 尚未到起始回合
+        if (player.chaosTurnCount < startTurn) {
+            return;
+        }
+
+        // 冷却判断：从 startTurn 起，每 (cooldown+1) 回合触发一次（即第2、5、8……回合）
+        const turnsSinceStart = player.chaosTurnCount - startTurn;
+        const cycleLength = cooldown + 1;
+        if (turnsSinceStart % cycleLength !== 0) {
+            return; // 冷却回合，不触发
+        }
+
+        // 找到周围8个格子（自身所在格子不变）
+        const { row, col } = this.board.getPositionByNumber(centerPos);
+        const surroundingCells = [];
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue; // 跳过自身格子
+                const newRow = row + dr;
+                const newCol = col + dc;
+                if (newRow >= 0 && newRow < CONFIG.ROWS && newCol >= 0 && newCol < CONFIG.COLS) {
+                    const cellNumber = this.board.getNumberByPosition(newRow, newCol);
+                    // 跳过起点与终点
+                    if (cellNumber === 1 || cellNumber === this.board.totalCells) continue;
+                    surroundingCells.push(cellNumber);
+                }
+            }
+        }
+
+        if (surroundingCells.length < 2) {
+            return; // 周围格子不足，无法打乱
+        }
+
+        // 收集当前属性（无属性的格子记为 null）
+        const propertiesToShuffle = surroundingCells.map(cellNum => CELL_PROPERTIES[cellNum] || null);
+
+        // 至少要有1个非空属性才有打乱意义
+        const nonNullCount = propertiesToShuffle.filter(p => p !== null).length;
+        if (nonNullCount === 0) {
+            return;
+        }
+
+        // Fisher-Yates 洗牌
+        const shuffled = [...propertiesToShuffle];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        // 重新分配属性
+        surroundingCells.forEach((cellNum, index) => {
+            const prop = shuffled[index];
+            if (prop === null) {
+                delete CELL_PROPERTIES[cellNum];
+            } else {
+                CELL_PROPERTIES[cellNum] = prop;
+            }
+        });
+
+        player.chaosShuffleCount++;
+
+        this.notify(`🌀 ${player.name} 颠倒师能力发动！周围${surroundingCells.length}个格子属性被打乱！（第${player.chaosShuffleCount}/${maxShuffles}次）`, 'warning');
+        this.log(`颠倒师打乱周围${surroundingCells.length}个格子的属性（第${player.chaosShuffleCount}次）`);
+
+        // 通知 UI 重新渲染棋盘
+        if (this.onChaosShuffle) {
+            this.onChaosShuffle(surroundingCells);
         }
     }
 
@@ -811,6 +913,9 @@ class Game {
     }
 
     checkGameEnd() {//检查游戏结束
+        // 颠倒师：游戏结束判定前，先执行 pending 的格子打乱（确保最终落点附近的动画能被播放）
+        this.players.forEach(p => this.executePendingChaosShuffle(p));
+
         // 防止重复触发：游戏已结束时不再执行后续逻辑，避免 onGameEnd 被多次调用产生重复弹窗
         if (this.gameState === 'ended') return;
 
@@ -855,6 +960,9 @@ class Game {
     nextTurn() {//下一轮
         // 游戏已结束时不再推进回合
         if (this.gameState !== 'playing') return;
+
+        // 颠倒师：所有走子结束（含格子属性二次移动）后执行 pending 的格子打乱
+        this.players.forEach(p => this.executePendingChaosShuffle(p));
 
         // 在推进回合前检查是否有玩家死亡（超车/范围伤害/炸弹等可能导致其他玩家死亡）
         const aliveCount = this.players.filter(p => !p.isDead).length;

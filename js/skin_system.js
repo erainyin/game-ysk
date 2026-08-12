@@ -63,6 +63,16 @@ class SkinSystem {
                 effects: [
                     { type: 'dragon_diagonal', params: { charges: 1 } }
                 ]
+            },
+            {
+                id: 'chaos',
+                name: '颠倒师',
+                description: '从第2回合开始，走子后随机打乱周围8格属性（2回合冷却），每局最多3次。皮肤神殿可重置次数',
+                icon: 'chaos.png',
+                color: '#e91e63',
+                effects: [
+                    { type: 'chaos_shuffle', params: { maxShuffles: 3, cooldown: 2, startTurn: 2 } }
+                ]
             }
         ];
     }

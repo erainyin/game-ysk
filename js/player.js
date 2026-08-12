@@ -24,6 +24,9 @@ class Player {
         this.dragonDiagonalCharges = 0; // 龙皮肤：剩余斜行次数
         this.luckyTurns = 0;            // 幸运星：剩余幸运回合数（骰子最低+2）
         this.justGotLucky = false;      // 幸运星：当回合获得，防止立刻被递减
+        this.chaosTurnCount = 0;        // 颠倒师：已走子回合数
+        this.chaosShuffleCount = 0;     // 颠倒师：已使用打乱次数（每局最多3次）
+        this.pendingChaosShuffleParams = null; // 颠倒师：待执行打乱参数（最终落点执行）
 
         // 卡牌系统相关
         this.points = 10;                 // 当前点数（用于购买卡牌）
@@ -68,6 +71,9 @@ class Player {
         this.dragonDiagonalCharges = 0;
         this.luckyTurns = 0;
         this.justGotLucky = false;
+        this.chaosTurnCount = 0;
+        this.chaosShuffleCount = 0;
+        this.pendingChaosShuffleParams = null;
 
         // 卡牌系统相关重置
         this.points = 10;
@@ -134,6 +140,9 @@ class Player {
         this.speedBoostRemainingTurns = 0;
         this.doubleDefenceCharges = 0;
         this.dragonDiagonalCharges = 0;
+        this.chaosTurnCount = 0;
+        this.chaosShuffleCount = 0;
+        this.pendingChaosShuffleParams = null;
 
         // 应用新皮肤（setSkin 内部会重新设置上述属性）
         this.setSkin(newSkin);

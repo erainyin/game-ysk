@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>颠倒师最终落点打乱逻辑测试</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #ddd; }
+        .pass { color: #4caf50; font-weight: bold; }
+        .fail { color: #f44336; font-weight: bold; }
+        .info { color: #2196f3; }
+    </style>
+</head>
+<body>
+    <h2>颠倒师 (chaos) 最终落点打乱逻辑测试</h2>
+    <div id="results"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/cell_properties.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/skin_system.js"></script>
+    <script src="js/card_system.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/dice.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/game.js"></script>
+
+    <script>
+        const output = document.getElementById('results');
+        let passCount = 0, failCount = 0;
+        function log(msg, type) {
+            const span = document.createElement('span');
+            span.className = type || 'info';
+            span.textContent = msg + '\n';
+            output.appendChild(span);
+        }
+        function assert(cond, label) {
+            if (cond) { log('[PASS] ' + label, 'pass'); passCount++; }
+            else      { log('[FAIL] ' + label, 'fail'); failCount++; }
+        }
+
+        function runTests() {
+            // === 设置格子属性：格子10周围(1,2,3,9,11,17,18,19)全有属性；格子20周围(12,13,14,18,21,28,29,30)也有属性 ===
+            // 位置10和位置20有互不重叠的周围格子集合，用于验证位置切换
+            CELL_PROPERTIES = parseCSV(
+                '格子,功能,变量,中文名称,规则\n' +
+                '1,,,\n' +
+                '2,BL,1,,,,,\n' +
+                '3,FF,2,,,,,\n' +
+                '9,BB,1,,,,,\n' +
+                '10,FF,2,加速前进2格,前进2格\n' +  // 位置10本身是FF2，踩到会跳到12
+                '11,FF,1,,,,,\n' +
+                '12,BL,-1,,,,,\n' +
+                '13,FF,2,,,,,\n' +
+                '14,BB,1,,,,,\n' +
+                '17,BL,1,,,,,\n' +
+                '18,FF,1,,,,,\n' +
+                '19,BB,1,,,,,\n' +
+                '21,BL,1,,,,,\n' +
+                '28,BL,1,,,,,\n' +
+                '29,FF,2,,,,,\n' +
+                '30,BB,1,,,,,\n' +
+                '64,,,\n'
+            );
+
+            // === A. 单元测试：验证 pending 机制 ===
+            log('=== A. 单元测试：pending 标记 + 最终位置执行 ===', 'info');
+            {
+                const game = new Game(2);
+                game.initPlayers(2);
+                const chaosSkin = skinSystem.getSkinById('chaos');
+                const player = game.players[0];
+                player.setSkin(chaosSkin);
+                // 让玩家到达"即将进入第2回合"状态：chaosTurnCount=1，下次主走子会变成2，满足startTurn=2
+                player.chaosTurnCount = 1;
+
+                let shuffleCalled = null; // 记录 handleChaosShuffle 被调用时的 centerPos
+                const orig = game.handleChaosShuffle.bind(game);
+                game.handleChaosShuffle = (p, pos, params) => {
+                    shuffleCalled = pos;
+                    // 阻止真正的 onChaosShuffle（单元测试不需要 UI 回调）
+                    const cb = game.onChaosShuffle;
+                    game.onChaosShuffle = null;
+                    orig(p, pos, params);
+                    game.onChaosShuffle = cb;
+                };
+
+                // A1. 第2回合，玩家从 1 → 10（首次落点10，周围是1,2,3,9,11,17,18,19）
+                // 玩家在位置10时触发 pending，但格子10是FF2，会再前进2格到12（最终位置）
+                player.position = 10; // 先移动到首次落点
+                game.applyMoveEffects(player, 10, false); // 主走子（chaosTurnCount 1→2）
+                log('  applyMoveEffects后: pendingChaosShuffleParams=' + (player.pendingChaosShuffleParams ? '已设置' : 'null'));
+                log('  handleChaosShuffle是否已调用: ' + (shuffleCalled !== null));
+                assert(player.pendingChaosShuffleParams !== null, 'A1. 主走子后应设置 pending 标记');
+                assert(shuffleCalled === null, 'A1. applyMoveEffects 内部不应立即调用 handleChaosShuffle');
+
+                // A2. 模拟格子属性二次移动：从10→12（isFromProperty=true）
+                game.applyMoveEffects(player, 12, true); // 属性格子触发的二次移动
+                log('  二次移动(10→12)后 pending 仍存在: ' + (player.pendingChaosShuffleParams ? '是' : '否'));
+                assert(player.pendingChaosShuffleParams !== null, 'A2. 二次移动（isFromProperty=true）不应清除 pending');
+
+                // A3. 手动将最终位置设为 12（模拟 FF 已经把玩家推到 12）
+                player.position = 12;
+                // 现在走子链结束，调用 executePendingChaosShuffle
+                game.executePendingChaosShuffle(player);
+                log('  executePendingChaosShuffle 调用时 centerPos=' + shuffleCalled + ' (期望 12)');
+                assert(shuffleCalled === 12, 'A3. executePendingChaosShuffle 应以最终 player.position=12 为中心');
+                assert(player.pendingChaosShuffleParams === null, 'A3. 执行后 pending 应被清除');
+                assert(player.chaosShuffleCount === 1, 'A3. 执行后 chaosShuffleCount 应为 1');
+            }
+
+            // === B. 集成测试：通过 nextTurn() 触发 pending 执行 ===
+            log('\n=== B. 集成测试：nextTurn 入口触发 pending ===', 'info');
+            {
+                const game = new Game(2);
+                game.initPlayers(2);
+                game.gameState = 'playing';
+                const chaosSkin = skinSystem.getSkinById('chaos');
+                const player = game.players[0];
+                player.setSkin(chaosSkin);
+                // 让玩家到达第2回合
+                player.chaosTurnCount = 1; // 设为1，下次applyMoveEffects会++到2，满足触发条件
+
+                let shuffleCenterPos = null;
+                const orig = game.handleChaosShuffle.bind(game);
+                game.handleChaosShuffle = (p, pos, params) => {
+                    shuffleCenterPos = pos;
+                    const cb = game.onChaosShuffle;
+                    game.onChaosShuffle = null;
+                    orig(p, pos, params);
+                    game.onChaosShuffle = cb;
+                };
+
+                // 模拟：主走子结束（掷骰）落在格子10（FF2）→ 二次移动到格子12 → 最终位置12
+                player.position = 10;
+                game.applyMoveEffects(player, 10, false); // 主走子：设 pending
+                player.position = 12;
+                game.applyMoveEffects(player, 12, true);  // 二次移动：FF2 推进
+
+                // 接下来调用 nextTurn() —— 应当在内部触发 executePendingChaosShuffle
+                log('  nextTurn() 调用前 shuffleCenterPos=' + shuffleCenterPos);
+                game.nextTurn(); // 回合结束 → nextTurn
+                log('  nextTurn() 调用后 shuffleCenterPos=' + shuffleCenterPos + ' (期望 12)');
+                assert(shuffleCenterPos === 12, 'B1. nextTurn 触发的打乱应以最终位置=12为中心');
+                assert(player.pendingChaosShuffleParams === null, 'B1. 执行后 pending 清除');
+            }
+
+            // === C. 验证最终位置12的周围格子是(11,13,4,10,18,19,20,21) ===
+            // 对比若在初始落点10执行的周围格子(1,2,3,9,11,17,18,19)，明显不同
+            log('\n=== C. 验证最终落点与首次落点周围格子差异 ===', 'info');
+            {
+                const game = new Game(2);
+                const board = game.board;
+                function surroundingCells(pos) {
+                    const { row, col } = board.getPositionByNumber(pos);
+                    const cells = [];
+                    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        const nr = row + dr, nc = col + dc;
+                        if (nr >= 0 && nr < board.rows && nc >= 0 && nc < board.cols) {
+                            cells.push(board.getNumberByPosition(nr, nc));
+                        }
+                    }
+                    return cells.sort((a,b)=>a-b);
+                }
+                const around10 = surroundingCells(10);
+                const around12 = surroundingCells(12);
+                log('  位置10的周围格子: [' + around10.join(',') + ']');
+                log('  位置12的周围格子: [' + around12.join(',') + ']');
+                const diff = around10.filter(x => !around12.includes(x)).length;
+                log('  两个周围集合的差异格子数: ' + diff + ' (说明位置不同确实影响打乱范围)');
+                assert(diff > 0, 'C1. 首次落点10 vs 最终落点12，周围格子确实存在差异');
+            }
+
+            // === D. 回归测试：第1回合不触发、冷却、最大次数、重置（确保pending机制没破坏旧逻辑）===
+            log('\n=== D. 回归测试：触发条件（回合/冷却/次数）依旧正确 ===', 'info');
+            {
+                const game = new Game(2);
+                game.initPlayers(2);
+                game.gameState = 'playing';
+                const chaosSkin = skinSystem.getSkinById('chaos');
+                const player = game.players[0];
+                player.setSkin(chaosSkin);
+
+                let shuffleCount = 0;
+                const orig = game.handleChaosShuffle.bind(game);
+                game.handleChaosShuffle = (p, pos, params) => {
+                    shuffleCount++;
+                    const cb = game.onChaosShuffle;
+                    game.onChaosShuffle = null;
+                    orig(p, pos, params);
+                    game.onChaosShuffle = cb;
+                };
+                // 对 nextTurn 也不处理死亡判定，简化：每次移动后手动 executePendingChaosShuffle
+
+                const POS = 20; // 周围8格都有属性的位置
+                player.position = POS;
+
+                // D1. 第1回合：不触发
+                game.applyMoveEffects(player, POS, false); // chaosTurnCount=1
+                game.executePendingChaosShuffle(player);
+                log('  D1 第1回合后 chaosShuffleCount=' + player.chaosShuffleCount + ' (期望0)');
+                assert(player.chaosShuffleCount === 0, 'D1. 第1回合不触发');
+
+                // 模拟踩到FF的二次移动，不应计数
+                game.applyMoveEffects(player, POS+2, true);
+                log('  二次移动后 chaosTurnCount=' + player.chaosTurnCount + ' (期望仍1)');
+                assert(player.chaosTurnCount === 1, 'D1. 二次移动不重复计数');
+
+                // D2. 第2回合：触发
+                player.position = POS;
+                game.applyMoveEffects(player, POS, false); // chaosTurnCount=2
+                game.executePendingChaosShuffle(player);
+                log('  D2 第2回合后 chaosShuffleCount=' + player.chaosShuffleCount + ' (期望1)');
+                assert(player.chaosShuffleCount === 1, 'D2. 第2回合触发');
+
+                // D3. 第3、4回合冷却
+                player.position = POS;
+                game.applyMoveEffects(player, POS, false); // 3
+                game.executePendingChaosShuffle(player);
+                game.applyMoveEffects(player, POS, false); // 4
+                game.executePendingChaosShuffle(player);
+                log('  D3 第4回合后 chaosShuffleCount=' + player.chaosShuffleCount + ' (期望仍1)');
+                assert(player.chaosShuffleCount === 1, 'D3. 第3、4回合冷却');
+
+                // D4. 第5回合再触发
+                player.position = POS;
+                game.applyMoveEffects(player, POS, false); // 5
+                game.executePendingChaosShuffle(player);
+                log('  D4 第5回合后 chaosShuffleCount=' + player.chaosShuffleCount + ' (期望2)');
+                assert(player.chaosShuffleCount === 2, 'D4. 第5回合再次触发');
+
+                // D5. 第8回合触发（第3次）
+                player.position = POS;
+                game.applyMoveEffects(player, POS, false); // 6
+                game.executePendingChaosShuffle(player);
+                game.applyMoveEffects(player, POS, false); // 7
+                game.executePendingChaosShuffle(player);
+                game.applyMoveEffects(player, POS, false); // 8
+                game.executePendingChaosShuffle(player);
+                log('  D5 第8回合后 chaosShuffleCount=' + player.chaosShuffleCount + ' (期望3)');
+                assert(player.chaosShuffleCount === 3, 'D5. 第8回合第3次触发');
+
+                // D6. 第11回合不触发（已达上限）
+                player.position = POS;
+                game.applyMoveEffects(player, POS, false); // 9
+                game.executePendingChaosShuffle(player);
+                game.applyMoveEffects(player, POS, false); // 10
+                game.executePendingChaosShuffle(player);
+                game.applyMoveEffects(player, POS, false); // 11
+                game.executePendingChaosShuffle(player);
+                log('  D6 第11回合后 chaosShuffleCount=' + player.chaosShuffleCount + ' (期望仍3)');
+                assert(player.chaosShuffleCount === 3, 'D6. 已达上限3次后不再触发');
+
+                // D7. changeSkin 重置
+                player.changeSkin(chaosSkin);
+                log('  D7 changeSkin 后 chaosTurnCount=' + player.chaosTurnCount + ', chaosShuffleCount=' + player.chaosShuffleCount);
+                assert(player.chaosTurnCount === 0 && player.chaosShuffleCount === 0, 'D7. changeSkin 重置计数');
+            }
+
+            log('\n' + '='.repeat(60), 'info');
+            log('测试结果: ' + passCount + ' 通过, ' + failCount + ' 失败', failCount === 0 ? 'pass' : 'fail');
+            log('='.repeat(60), 'info');
+        }
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>
