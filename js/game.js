@@ -424,7 +424,40 @@ class Game {
 
         player.chaosShuffleCount++;
 
-        this.notify(`🌀 ${player.name} 颠倒师能力发动！周围${surroundingCells.length}个格子属性被打乱！（第${player.chaosShuffleCount}/${maxShuffles}次）`, 'warning');
+        // 找出周围8格中数字最小的格子
+        const minCell = Math.min(...surroundingCells);
+        const minCellStr = `格子${minCell}`;
+
+        // 找出周围8格中的其他玩家（非自己、非死亡、非胜利）
+        const playersInArea = this.players.filter(p =>
+            !p.isDead &&
+            !p.isWinner &&
+            p.id !== player.id &&
+            surroundingCells.includes(p.position)
+        );
+
+        // 将这些玩家转移到 minCell
+        const movedPlayers = [];
+        for (const targetPlayer of playersInArea) {
+            if (targetPlayer.position === minCell) continue; // 已在最小格子上，无需动
+            const oldPos = targetPlayer.position;
+            // 直接修改位置（跳过 applyMoveEffects，避免连锁触发）
+            targetPlayer.moveTo(minCell);
+            // 通知 UI 移动标记
+            if (this.onPlayerMove) {
+                this.onPlayerMove(targetPlayer, oldPos, minCell, minCell - oldPos);
+            }
+            movedPlayers.push(`${targetPlayer.name}(${oldPos}→${minCell})`);
+            // 触发 minCell 的格子属性（与正常踩格子一致）
+            this.processCellProperty(targetPlayer, minCell);
+        }
+
+        let notifyMsg = `🌀 ${player.name} 颠倒师能力发动！周围${surroundingCells.length}个格子属性被打乱！（第${player.chaosShuffleCount}/${maxShuffles}次）`;
+        if (movedPlayers.length > 0) {
+            notifyMsg += `\n其他玩家被吸入${minCellStr}：${movedPlayers.join('、')}`;
+            this.log(`颠倒师：${movedPlayers.length}位玩家被强制转移到${minCellStr}：${movedPlayers.join('、')}`);
+        }
+        this.notify(notifyMsg, 'warning');
         this.log(`颠倒师打乱周围${surroundingCells.length}个格子的属性（第${player.chaosShuffleCount}次）`);
 
         // 通知 UI 重新渲染棋盘
