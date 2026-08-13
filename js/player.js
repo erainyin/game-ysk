@@ -297,6 +297,26 @@ class Player {
         this.activeStatuses.push(status);
     }
 
+    // 自动消耗护盾卡抵挡伤害，返回 true 表示抵挡成功
+    consumeShield() {
+        const idx = this.cards.findIndex(c => c.id === 'shield');
+        if (idx !== -1) {
+            this.cards.splice(idx, 1);
+            return true;
+        }
+        return false;
+    }
+
+    // 自动消耗净化卡清除负面状态，返回 true 表示触发
+    consumePurify() {
+        const idx = this.cards.findIndex(c => c.id === 'purify');
+        if (idx !== -1) {
+            this.cards.splice(idx, 1);
+            return true;
+        }
+        return false;
+    }
+
     hasStatus(type) {
         return this.activeStatuses.some(s => s.type === type);
     }

@@ -79,13 +79,14 @@ class CardSystem {
             {
                 id: 'shield',
                 name: '护盾',
-                description: '抵挡下一次受到的伤害',
+                description: '持有期间，自动抵挡下一次受到的攻击伤害（火球、炸弹、坦克光环等），自动消耗',
                 icon: 'shield.png',
                 emoji: '🛡️',
                 type: 'defense',
                 cost: 2,
                 targetType: 'self',
-                effects: [{ type: 'shield', params: { amount: 1 } }]
+                auto: true,  // 自动触发型卡牌，无需主动使用
+                effects: []  // 效果由 game.js 的 tryAutoShield 在伤害入口拦截实现
             },
             {
                 id: 'heal',
@@ -134,13 +135,14 @@ class CardSystem {
             {
                 id: 'purify',
                 name: '净化',
-                description: '清除自身所有负面状态（减速等）',
+                description: '持有期间，自动清除获得的负面状态（减速诅咒等），自动消耗',
                 icon: 'purify.png',
                 emoji: '✨',
                 type: 'defense',
                 cost: 2,
                 targetType: 'self',
-                effects: [{ type: 'purify', params: {} }]
+                auto: true,  // 自动触发型卡牌，无需主动使用
+                effects: []  // 效果由 game.js 在负面状态施加入口拦截实现
             }
         ];
     }

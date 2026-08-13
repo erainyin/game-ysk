@@ -333,8 +333,12 @@ class Game {
         
         if (affectedPlayers.length > 0) {
             this.notify(`${sourcePlayer.name} 的坦克光环生效！`, 'warning');
-            
+
             affectedPlayers.forEach(target => {
+                // 护盾卡自动抵挡
+                if (this.tryAutoShield(target, 1)) {
+                    return;
+                }
                 target.changeHealth(-1);
                 if (!this.notifyUndyingIfTriggered(target)) {
                     this.notify(`${target.name} 被坦克光环伤害！血量-1`, 'danger');
@@ -926,6 +930,10 @@ class Game {
         if (affectedPlayers.length > 0) {
             this.notify(`💥 炸弹爆炸！范围 ${range} 格`, 'danger');
             affectedPlayers.forEach(p => {
+                // 护盾卡自动抵挡
+                if (this.tryAutoShield(p, 1)) {
+                    return;
+                }
                 const wasAlive = !p.isDead;
                 p.changeHealth(-1);
                 if (this.notifyUndyingIfTriggered(p)) {
@@ -1159,6 +1167,12 @@ class Game {
             ? this.players.find(p => p.id === targetPlayerId)
             : null;
 
+        // 自动触发型卡牌（护盾、净化）无法主动使用
+        if (card.auto) {
+            this.notify(`${card.name}为自动触发型卡牌，无需主动使用`, 'info');
+            return;
+        }
+
         // 需要目标的攻击卡必须选定有效目标
         if (card.targetType === 'enemy' && (!target || target.isDead || target.id === player.id)) {
             return;
@@ -1229,10 +1243,17 @@ class Game {
                 this.notify(`${source.name} 获得不死之身，持续 ${effect.duration || 3} 回合`, 'success');
                 break;
             case 'slow_target':
-                target.addStatus({ type: 'slow', amount: 0, remainingTurns: effect.duration || 1 });
-                this.notify(`${target.name} 被减速诅咒！下回合掷骰减半`, 'warning');
+                // 净化卡自动清除负面状态
+                if (target.consumePurify()) {
+                    this.notify(`${target.name} 的【净化】卡自动生效，减速诅咒被清除！`, 'info');
+                    this.log(`${target.name} 的净化卡自动抵挡了减速诅咒`);
+                } else {
+                    target.addStatus({ type: 'slow', amount: 0, remainingTurns: effect.duration || 1 });
+                    this.notify(`${target.name} 被减速诅咒！下回合掷骰减半`, 'warning');
+                }
                 break;
             case 'purify':
+                // 净化卡为自动触发型，不会走到此分支；保留 case 以兼容旧调用
                 source.activeStatuses = (source.activeStatuses || []).filter(s => !this.isNegativeStatus(s));
                 this.notify(`${source.name} 净化了所有负面状态`, 'success');
                 break;
@@ -1242,8 +1263,22 @@ class Game {
         }
     }
 
+    tryAutoShield(target, amount) {//自动消耗护盾卡抵挡伤害，返回 true 表示抵挡成功
+        if (target.consumeShield()) {
+            this.notify(`${target.name} 的【护盾】卡自动生效，抵挡了 ${amount} 点伤害！`, 'info');
+            this.log(`${target.name} 的护盾卡自动抵挡了 ${amount} 点伤害`);
+            return true;
+        }
+        return false;
+    }
+
     dealCardDamage(source, target, amount) {//卡牌伤害（处理护盾/反弹/不死），返回是否实际造成伤害
-        // 护盾抵挡
+        // 护盾卡自动抵挡（优先于护盾状态）
+        if (this.tryAutoShield(target, amount)) {
+            return false;
+        }
+
+        // 护盾状态抵挡
         const shield = target.getStatus('shield');
         if (shield && shield.amount > 0) {
             shield.amount--;
@@ -1409,10 +1444,7 @@ class Game {
             if (healCard && Math.random() < 0.8) {
                 this.useCard(player, healCard.instanceId);
             }
-            const shieldCard = player.cards.find(c => c.id === 'shield');
-            if (shieldCard && Math.random() < 0.5) {
-                this.useCard(player, shieldCard.instanceId);
-            }
+            // 注：shield 卡为自动触发型，无需主动使用
         }
 
         // 攻击：有概率使用攻击卡，目标选血量最低的敌方

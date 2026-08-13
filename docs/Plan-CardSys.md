@@ -70,6 +70,8 @@
 | `purify` | 清除自身所有负面状态 | 无 | 即时 |
 | `place_bomb` | 在目标位置放置炸弹 | `range`（爆炸范围）、`damage`（伤害值） | 即时 |
 
+> **自动触发型卡牌（`auto: true`）**：`shield` 与 `purify` 已改为自动触发型，玩家无需主动使用，在受到伤害/被施加负面状态时自动生效并消耗。详见下方卡牌7、卡牌12 说明。
+
 ### 3.2 状态效果说明
 
 状态效果会挂在玩家身上，在特定时机触发后移除：
@@ -193,14 +195,24 @@ game-ysk/
 
 - **名称**：护盾
 - **类型**：防御型
-- **描述**：抵挡下一次受到的伤害（不受伤害）
+- **描述**：持有期间，自动抵挡下一次受到的攻击伤害（火球、炸弹、坦克光环等），自动消耗
 - **图标**：`shield.png`
 - **花费**：2 点
 - **目标**：`self`（自身）
-- **效果**：
-  ```javascript
-  [{ type: 'shield', params: { amount: 1 } }]
-  ```
+- **属性**：`auto: true`（自动触发型，无法主动使用）
+- **效果**：`effects: []`（无主动效果，由 `Game.tryAutoShield()` 在伤害入口拦截实现）
+- **自动生效场景**：
+  - 火球术（`dealCardDamage`）
+  - 偷取生命（`dealCardDamage`）
+  - 卡牌炸弹（`handleCardBomb` → `dealCardDamage`）
+  - 棋盘炸弹格子 BB（`triggerBomb`）
+  - 坦克皮肤光环 `area_damage`（`handleAreaDamage`）
+- **优先级**：在 `dealCardDamage` 中优先于"护盾状态"和"反弹状态"检查；在 `handleAreaDamage`/`triggerBomb` 中优先于"不死之身"检查
+- **消耗方式**：`Player.consumeShield()` 查找并移除 1 张 shield 卡
+- **代码位置**：
+  - 卡牌定义：`js/card_system.js`
+  - 自动抵挡入口：`js/game.js` 的 `tryAutoShield()`、`dealCardDamage()`、`handleAreaDamage()`、`triggerBomb()`
+  - 玩家消耗方法：`js/player.js` 的 `consumeShield()`
 
 #### 卡牌8：治疗 (heal)
 
@@ -258,14 +270,20 @@ game-ysk/
 
 - **名称**：净化
 - **类型**：防御型
-- **描述**：清除自身所有负面状态（减速、被推后等）
+- **描述**：持有期间，自动清除获得的负面状态（减速诅咒等），自动消耗
 - **图标**：`purify.png`
 - **花费**：2 点
 - **目标**：`self`（自身）
-- **效果**：
-  ```javascript
-  [{ type: 'purify', params: {} }]
-  ```
+- **属性**：`auto: true`（自动触发型，无法主动使用）
+- **效果**：`effects: []`（无主动效果，在负面状态被施加时拦截实现）
+- **自动生效场景**：
+  - 被施加减速诅咒 `slow_target` 时（在 `executeCardEffect` 的 `slow_target` 分支拦截）
+  - 未来扩展：其他负面状态（中毒、沉默等）施加入口同样调用 `Player.consumePurify()` 拦截
+- **消耗方式**：`Player.consumePurify()` 查找并移除 1 张 purify 卡
+- **代码位置**：
+  - 卡牌定义：`js/card_system.js`
+  - 自动清除入口：`js/game.js` 的 `executeCardEffect()` 中 `slow_target` 分支
+  - 玩家消耗方法：`js/player.js` 的 `consumePurify()`
 
 ## 五、卡牌系统架构
 
@@ -302,9 +320,11 @@ game-ysk/
 ├─────────────────────────────────────────────────────────────┤
 │  触发时机层 (TriggerPoints)                                   │
 │  ├── 购买阶段 → purchasePhase()                              │
-│  ├── 掷骰前  → useCard()（玩家主动使用）                     │
+│  ├── 掷骰前  → useCard()（玩家主动使用；auto 卡拒绝主动使用）│
 │  ├── 掷骰后  → applySlowEffect()（减速状态生效）             │
-│  ├── 受伤时  → applyShield/Reflect()（护盾/反弹状态生效）    │
+│  ├── 受伤时  → tryAutoShield()（护盾卡自动抵挡）             │
+│  │            → applyShield/Reflect()（护盾/反弹状态生效）   │
+│  ├── 被施加负面状态时 → consumePurify()（净化卡自动清除）    │
 │  └── 死亡判定 → applyUndying()（不死状态生效）               │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -412,6 +432,13 @@ executeCardEffect(card, effect, source, target) {
             source.changeHealth(effect.params.amount);
             break;
         case 'shield':
+            // shield 卡为 auto: true，不会走到此分支；保留 case 以兼容旧调用
+            source.activeStatuses.push({
+                type: 'shield',
+                amount: effect.params.amount || 1,
+                remainingTurns: 0
+            });
+            break;
         case 'reflect':
         case 'undying':
             source.activeStatuses.push({
@@ -421,13 +448,16 @@ executeCardEffect(card, effect, source, target) {
             });
             break;
         case 'slow_target':
-            target.activeStatuses.push({
-                type: 'slow',
-                amount: 0,
-                remainingTurns: effect.duration || 1
-            });
+            // 净化卡自动清除负面状态
+            if (target.consumePurify()) {
+                this.notify(`${target.name} 的【净化】卡自动生效，减速诅咒被清除！`, 'info');
+            } else {
+                target.addStatus({ type: 'slow', amount: 0, remainingTurns: effect.duration || 1 });
+                this.notify(`${target.name} 被减速诅咒！下回合掷骰减半`, 'warning');
+            }
             break;
         case 'purify':
+            // purify 卡为 auto: true，不会走到此分支；保留 case 以兼容旧调用
             source.activeStatuses = source.activeStatuses.filter(s => !this.isNegativeStatus(s));
             break;
         case 'place_bomb':
@@ -467,14 +497,27 @@ rollDice() {
 }
 ```
 
-### 6.4 受到伤害时（护盾/反弹状态生效）
+### 6.4 受到伤害时（护盾卡/护盾状态/反弹状态生效）
 
 修改 `Player.changeHealth()` 或在伤害来源处拦截。建议在 Game 层统一处理卡牌伤害，复用现有伤害流程：
 
 ```javascript
 // Game 类新增
+tryAutoShield(target, amount) {
+    if (target.consumeShield()) {
+        this.notify(`${target.name} 的【护盾】卡自动生效，抵挡了 ${amount} 点伤害！`, 'info');
+        return true;
+    }
+    return false;
+}
+
 dealCardDamage(source, target, amount) {
-    // 检查目标护盾
+    // 1. 护盾卡自动抵挡（优先于护盾状态）
+    if (this.tryAutoShield(target, amount)) {
+        return false;
+    }
+
+    // 2. 护盾状态抵挡
     const shield = target.activeStatuses.find(s => s.type === 'shield');
     if (shield && shield.amount > 0) {
         shield.amount--;
@@ -485,7 +528,7 @@ dealCardDamage(source, target, amount) {
         return;
     }
 
-    // 检查目标反弹
+    // 3. 检查目标反弹
     const reflect = target.activeStatuses.find(s => s.type === 'reflect');
     if (reflect) {
         target.activeStatuses = target.activeStatuses.filter(s => s !== reflect);
@@ -496,10 +539,20 @@ dealCardDamage(source, target, amount) {
         return;
     }
 
-    // 正常扣血
+    // 4. 正常扣血
     target.changeHealth(-amount);
     this.notify(`${target.name} 受到 ${amount} 点伤害`, 'danger');
     this.checkGameEnd();
+}
+```
+
+**非卡牌伤害入口同样接入护盾卡自动抵挡**：
+
+```javascript
+// handleAreaDamage（坦克皮肤光环）和 triggerBomb（棋盘炸弹格子 BB）中
+// 在 target.changeHealth(-1) 之前均加入：
+if (this.tryAutoShield(target, 1)) {
+    return; // 护盾卡已抵挡，跳过本次伤害
 }
 ```
 
@@ -639,7 +692,7 @@ AI 玩家在回合开始时（掷骰子前）自动使用卡牌：
 ```javascript
 aiUseCards(player) {
     // 简单策略：
-    // 1. 血量低时优先使用治疗/护盾/不死
+    // 1. 血量低时优先使用治疗/不死（注：shield/purify 为 auto 卡，无需主动使用）
     // 2. 有攻击卡时，对血量最低的敌方使用
     // 3. 有概率使用，避免每回合必用
     if (player.cards.length === 0) return;
@@ -650,6 +703,7 @@ aiUseCards(player) {
         if (healCard) {
             this.useCard(player, healCard.instanceId);
         }
+        // 注：shield 卡为自动触发型，无需主动使用
     }
 
     // 攻击：随机对血量最低的敌方使用攻击卡
@@ -746,12 +800,13 @@ class CardSystem {
             {
                 id: 'shield',
                 name: '护盾',
-                description: '抵挡下一次受到的伤害',
+                description: '持有期间，自动抵挡下一次受到的攻击伤害（火球、炸弹、坦克光环等），自动消耗',
                 icon: 'shield.png',
                 type: 'defense',
                 cost: 2,
                 targetType: 'self',
-                effects: [{ type: 'shield', params: { amount: 1 } }]
+                auto: true,  // 自动触发型卡牌，无需主动使用
+                effects: []  // 效果由 game.js 的 tryAutoShield 在伤害入口拦截实现
             },
             {
                 id: 'heal',
@@ -796,12 +851,13 @@ class CardSystem {
             {
                 id: 'purify',
                 name: '净化',
-                description: '清除自身所有负面状态',
+                description: '持有期间，自动清除获得的负面状态（减速诅咒等），自动消耗',
                 icon: 'purify.png',
                 type: 'defense',
                 cost: 2,
                 targetType: 'self',
-                effects: [{ type: 'purify', params: {} }]
+                auto: true,  // 自动触发型卡牌，无需主动使用
+                effects: []  // 效果由 game.js 在负面状态施加入口拦截实现
             }
         ];
     }
@@ -971,3 +1027,9 @@ class Player {
 10. **与皮肤系统兼容**：卡牌伤害与皮肤伤害减免（`damage_reduction`）叠加时，先计算皮肤减免，再检查护盾
 11. **图片加载**：确保图片文件存在于 `assets/cards/` 目录下，建议 PNG 格式，尺寸 64×64 或 128×128
 12. **移动端适配**：手牌区域与购买弹窗需适配窄屏（`max-width: 768px`），手牌可横向滚动
+13. **自动触发型卡牌（`auto: true`）**：`shield` 与 `purify` 改为被动自动触发，玩家无法主动使用：
+    - `useCard()` 中检查 `card.auto` 拒绝主动调用
+    - `shield`：在所有伤害入口（`dealCardDamage`、`handleAreaDamage`、`triggerBomb`）通过 `tryAutoShield()` 拦截，优先级高于"护盾状态"和"反弹状态"
+    - `purify`：在 `executeCardEffect()` 的 `slow_target` 分支通过 `consumePurify()` 拦截，未来扩展其他负面状态时同样接入
+    - `aiUseCards()` 中不再主动使用 shield 卡
+    - 玩家消耗方法在 `Player.consumeShield()` / `Player.consumePurify()` 中实现
