@@ -558,9 +558,29 @@ class Game {
         this.processGhostProperty(player, property.type, property.value, property.rawValue);
     }
 
+    applyBloodAmplify(player, value) {//超级勇者皮肤：将血量变化值乘以倍数（保留正负号）
+        if (!player.skin) return value;
+        let amplified = value;
+        let multiplier = 1;
+        player.skin.effects.forEach(effect => {
+            if (effect.type === 'blood_amplify') {
+                multiplier = effect.params.multiplier || 2;
+                amplified = value * multiplier;
+            }
+        });
+        if (amplified !== value) {
+            const sign = value > 0 ? '加' : '减';
+            this.notify(`${player.name} 超级勇者效果：血量${sign}${Math.abs(value)}→${sign}${Math.abs(amplified)}（×${multiplier}）`, 'info');
+            this.log(`超级勇者：BL${value > 0 ? '+' : ''}${value} → BL${amplified > 0 ? '+' : ''}${amplified}`);
+        }
+        return amplified;
+    }
+
     processSingleProperty(player, type, value, rawValue = '') {//处理单属性
         switch (type) {
             case 'blood':
+                // 超级勇者皮肤：血量变化乘倍数
+                value = this.applyBloodAmplify(player, value);
                 player.changeHealth(value);
                 if (value < 0 && this.notifyUndyingIfTriggered(player)) {
                     this.log(`触发[BL${value > 0 ? '+' : ''}${value}]，不死之身卡牌生效，血量变为${player.health}`);

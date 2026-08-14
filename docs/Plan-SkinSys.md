@@ -30,6 +30,7 @@
 | `damage_reduction` | 受到伤害减少百分比 | `reduction`（减少百分比，0-1） |
 | `extra_roll` | 每回合额外掷骰子次数 | `amount`（额外次数） |
 | `chaos_shuffle` | 移动后随机打乱周围格子属性 | `maxShuffles`（每局最大打乱次数）、`cooldown`（冷却回合数）、`startTurn`（起始回合） |
+| `blood_amplify` | 踩到血量变化（BL）格子时，血量增减值乘以倍数 | `multiplier`（倍数，正数；正值加血/负值减血都乘此倍数） |
 
 ### 图片资源存放
 
@@ -47,7 +48,8 @@ game-ysk/
 │       ├── dragon.png        # 龙皮肤图标
 │       ├── guardian.png      # 守护者皮肤图标
 │       ├── iron_wall.png     # 铁壁皮肤图标
-│       └── chaos.png         # 颠倒师皮肤图标
+│       ├── chaos.png         # 颠倒师皮肤图标
+│       └── super_warrior.png # 超级勇者皮肤图标
 ```
 
 图片路径拼接规则：`assets/skins/${skin.icon}`
@@ -211,6 +213,34 @@ game-ysk/
   - `Game.handleChaosShuffle(player, centerPos, params)`：核心打乱逻辑
   - 打乱后通过 `onChaosShuffle` 回调通知 UI 重新渲染棋盘
   - `changeSkin()` 中重置 `chaosTurnCount = 0`、`chaosShuffleCount = 0`
+
+### 皮肤9：超级勇者 (super_warrior)
+
+- **名称**：超级勇者
+- **描述**：走到加血格子时，加血量乘2倍；走到减血格子时，减血量也乘2倍。无回合限制
+- **图标**：`super_warrior.png`
+- **颜色**：`#c0392b`
+- **效果**：
+  ```javascript
+  {
+      type: 'blood_amplify',
+      params: { multiplier: 2 }
+  }
+  ```
+- **触发时机**：玩家踩到血量变化（BL）格子时
+- **效果说明**：
+  - 当玩家走到 BL 格子（无论加血 BL+X 还是减血 BL-X），血量变化值都乘以 `multiplier`(2)
+  - 加血例子：BL+2 → 实际加血 4
+  - 减血例子：BL-1 → 实际减血 2
+  - 无回合限制，每局可无限次生效
+  - 与"不死之身"卡牌兼容：减血放大后若触发死亡，不死之身正常挽救
+  - 仅对玩家自身踩到 BL 格子生效，不影响幽灵触发 BL 的逻辑（`processGhostProperty` 的 `blood` 分支不受影响）
+- **实现细节**：
+  - `Game.applyBloodAmplify(player, value)`：在 `processSingleProperty` 的 `blood` 分支中调用，遍历 `player.skin.effects` 查找 `blood_amplify` 类型效果，将 `value` 乘以 `multiplier`
+  - 保留正负号：`amplified = value * multiplier`（正值仍为加血，负值仍为减血）
+  - 触发时 notify 提示"超级勇者效果：血量加/减 X→Y（×2）"，便于玩家感知
+  - `Player` 类无需新增字段（被动效果，无状态）
+  - `setSkin()` / `changeSkin()` 中无需特殊处理（皮肤切换自然生效/失效）
 
 ## 四、皮肤系统架构
 
@@ -459,6 +489,42 @@ handleChaosShuffle(player, centerPos, params) {
 }
 ```
 
+#### 5.3.1 踩到血量变化格子时（超级勇者 `blood_amplify` 效果）
+
+在 `Game.processSingleProperty()` 的 `blood` 分支中，先调用 `applyBloodAmplify()` 将血量变化值乘以倍数，再走原 `changeHealth` 逻辑：
+
+```javascript
+applyBloodAmplify(player, value) {
+    if (!player.skin) return value;
+    let amplified = value;
+    let multiplier = 1;
+    player.skin.effects.forEach(effect => {
+        if (effect.type === 'blood_amplify') {
+            multiplier = effect.params.multiplier || 2;
+            amplified = value * multiplier;
+        }
+    });
+    if (amplified !== value) {
+        const sign = value > 0 ? '加' : '减';
+        this.notify(`${player.name} 超级勇者效果：血量${sign}${Math.abs(value)}→${sign}${Math.abs(amplified)}（×${multiplier}）`, 'info');
+        this.log(`超级勇者：BL${value > 0 ? '+' : ''}${value} → BL${amplified > 0 ? '+' : ''}${amplified}`);
+    }
+    return amplified;
+}
+
+processSingleProperty(player, type, value, rawValue = '') {
+    switch (type) {
+        case 'blood':
+            // 超级勇者皮肤：血量变化乘倍数
+            value = this.applyBloodAmplify(player, value);
+            player.changeHealth(value);
+            // ... 后续通知/日志逻辑 ...
+            return false;
+        // ... 其他 case ...
+    }
+}
+```
+
 ### 5.4 受到伤害时
 
 触发 `damage_reduction` 效果：
@@ -687,6 +753,16 @@ class SkinSystem {
                 color: '#e91e63',
                 effects: [
                     { type: 'chaos_shuffle', params: { maxShuffles: 3, cooldown: 2, startTurn: 2 } }
+                ]
+            },
+            {
+                id: 'super_warrior',
+                name: '超级勇者',
+                description: '走到加血格子时，加血量乘2倍；走到减血格子时，减血量也乘2倍。无回合限制',
+                icon: 'super_warrior.png',
+                color: '#c0392b',
+                effects: [
+                    { type: 'blood_amplify', params: { multiplier: 2 } }
                 ]
             }
         ];
@@ -1319,6 +1395,7 @@ changeSkin(newSkin) {
 | 两次防 (double_defence) | 防御次数重置为2（即使之前已用完） |
 | 龙 (dragon) | 斜行次数重置为1（即使之前已用完） |
 | 颠倒师 (chaos) | 打乱次数重置为3次（即使之前已用完），回合计数重置为0 |
+| 超级勇者 (super_warrior) | 被动效果，无状态需重置；切换后立即生效/失效 |
 | 默认 (default) | 移除所有皮肤属性，变为无皮肤状态 |
 
 ### 10.5 特殊场景：龙皮肤技能恢复

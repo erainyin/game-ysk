@@ -73,6 +73,16 @@ class SkinSystem {
                 effects: [
                     { type: 'chaos_shuffle', params: { maxShuffles: 3, cooldown: 2, startTurn: 2 } }
                 ]
+            },
+            {
+                id: 'super_warrior',
+                name: '超级勇者',
+                description: '走到加血格子时，加血量乘2倍；走到减血格子时，减血量也乘2倍。无回合限制',
+                icon: 'super_warrior.png',
+                color: '#c0392b',
+                effects: [
+                    { type: 'blood_amplify', params: { multiplier: 2 } }
+                ]
             }
         ];
     }
