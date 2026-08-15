@@ -31,6 +31,7 @@
 | `extra_roll` | 每回合额外掷骰子次数 | `amount`（额外次数） |
 | `chaos_shuffle` | 移动后随机打乱周围格子属性 | `maxShuffles`（每局最大打乱次数）、`cooldown`（冷却回合数）、`startTurn`（起始回合） |
 | `blood_amplify` | 踩到血量变化（BL）格子时，血量增减值乘以倍数 | `multiplier`（倍数，正数；正值加血/负值减血都乘此倍数） |
+| `guardian_ghost` | 贴身幽灵最大持有数量+1，并初始拥有1个贴身幽灵 | `extraMax`（额外容量）、`initialGhost`（是否初始赋予1个贴身幽灵，布尔） |
 
 ### 图片资源存放
 
@@ -159,17 +160,26 @@ game-ysk/
 ### 皮肤6：守护者 (guardian)
 
 - **名称**：守护者
-- **描述**：贴身幽灵保护次数上限+1（最多4次）
+- **描述**：贴身幽灵最大持有数量+1，并且初始就拥有1个贴身幽灵
 - **图标**：`guardian.png`
-- **颜色**：`#3498db`
+- **颜色**：`#16a085`
 - **效果**：
   ```javascript
   {
-      type: 'ghost_protect',
-      params: { amount: 1 }
+      type: 'guardian_ghost',
+      params: { extraMax: 1, initialGhost: true }
   }
   ```
-- **触发时机**：玩家召唤贴身幽灵时
+- **触发时机**：玩家设置皮肤时（`setSkin`）
+- **效果说明**：
+  - 贴身幽灵（`ghostType === 2`）的最大持有数量上限 +1（默认 `maxGhostCount = 3`，守护者生效后变为 4）
+  - 设置皮肤时，若玩家当前没有幽灵，立即获得1个贴身幽灵（`hasGhost = true`、`ghostType = 2`、`ghostHealth = 1`、`ghostCount = 1`、`ghostPosition = player.position`）
+  - 若玩家已有幽灵（如通过踩 ghost 召唤格获得），不覆盖已有幽灵，仅提升上限
+  - 贴身幽灵位置始终跟随玩家（`Player.moveTo` 中同步 `ghostPosition`）
+- **实现细节**：
+  - `Player.maxGhostCount`：默认 3，`setSkin` 中 +1；`reset()` 中重置回 3
+  - `Player.setSkin()`：在 `guardian_ghost` 分支中提升上限并赋予初始幽灵
+  - `Player.changeSkin()`：移除旧守护者效果时减回上限，若当前 `ghostHealth` 超过新上限则截断
 
 ### 皮肤7：铁壁 (iron_wall)
 
@@ -728,11 +738,11 @@ class SkinSystem {
             {
                 id: 'guardian',
                 name: '守护者',
-                description: '贴身幽灵保护次数上限+1（最多4次）',
+                description: '贴身幽灵最大持有数量+1，并且初始就拥有1个贴身幽灵',
                 icon: 'guardian.png',
-                color: '#3498db',
+                color: '#16a085',
                 effects: [
-                    { type: 'ghost_protect', params: { amount: 1 } }
+                    { type: 'guardian_ghost', params: { extraMax: 1, initialGhost: true } }
                 ]
             },
             {
@@ -840,9 +850,6 @@ class Player {
                     case 'extra_health':
                         this.health += effect.params.amount;
                         break;
-                    case 'ghost_protect':
-                        this.maxGhostCount += effect.params.amount;
-                        break;
                     case 'speed_boost':
                         this.speedBoostRemainingTurns = effect.params.duration;
                         break;
@@ -851,6 +858,18 @@ class Player {
                         break;
                     case 'dragon_diagonal':
                         this.dragonDiagonalCharges = effect.params.charges;
+                        break;
+                    case 'guardian_ghost':
+                        // 守护者：贴身幽灵最大持有数量+1
+                        this.maxGhostCount += effect.params.extraMax;
+                        // 守护者：初始就拥有1个贴身幽灵（仅当当前没有幽灵时）
+                        if (effect.params.initialGhost && !this.hasGhost) {
+                            this.hasGhost = true;
+                            this.ghostType = 2;            // 2 = 贴身幽灵
+                            this.ghostHealth = 1;
+                            this.ghostCount = 1;
+                            this.ghostPosition = this.position;
+                        }
                         break;
                 }
             });
@@ -1364,11 +1383,24 @@ nextTurn()  ← 回合结束
 
 ```javascript
 changeSkin(newSkin) {
-    // 1. 移除旧皮肤的被动效果（如勇者的额外血量）
+    // 1. 移除旧皮肤的被动效果（如勇者的额外血量、守护者的额外幽灵容量）
     if (this.skin) {
         this.skin.effects.forEach(effect => {
             if (effect.type === 'extra_health') {
                 this.changeHealth(-effect.params.amount);
+            } else if (effect.type === 'guardian_ghost') {
+                // 守护者：恢复贴身幽灵最大持有数量
+                this.maxGhostCount -= effect.params.extraMax;
+                // 若当前幽灵血量超过新上限，截断之
+                if (this.ghostHealth > this.maxGhostCount) {
+                    this.ghostHealth = this.maxGhostCount;
+                    this.ghostCount = this.ghostHealth;
+                    if (this.ghostHealth <= 0) {
+                        this.hasGhost = false;
+                        this.ghostType = 0;
+                        this.ghostPosition = 1;
+                    }
+                }
             }
         });
     }
@@ -1394,6 +1426,7 @@ changeSkin(newSkin) {
 | 勇者 (warrior) | 移除旧勇者的额外血量，添加新皮肤的额外血量 |
 | 两次防 (double_defence) | 防御次数重置为2（即使之前已用完） |
 | 龙 (dragon) | 斜行次数重置为1（即使之前已用完） |
+| 守护者 (guardian) | 贴身幽灵上限+1（变回4），若当前无幽灵则获得1个贴身幽灵；离开守护者时上限恢复为3，超出部分截断 |
 | 颠倒师 (chaos) | 打乱次数重置为3次（即使之前已用完），回合计数重置为0 |
 | 超级勇者 (super_warrior) | 被动效果，无状态需重置；切换后立即生效/失效 |
 | 默认 (default) | 移除所有皮肤属性，变为无皮肤状态 |

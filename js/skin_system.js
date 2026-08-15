@@ -83,6 +83,16 @@ class SkinSystem {
                 effects: [
                     { type: 'blood_amplify', params: { multiplier: 2 } }
                 ]
+            },
+            {
+                id: 'guardian',
+                name: '守护者',
+                description: '贴身幽灵最大持有数量+1，并且初始就拥有1个贴身幽灵',
+                icon: 'guardian.png',
+                color: '#16a085',
+                effects: [
+                    { type: 'guardian_ghost', params: { extraMax: 1, initialGhost: true } }
+                ]
             }
         ];
     }

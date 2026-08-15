@@ -46,6 +46,15 @@ class UI {
         this.btnMapSelect.addEventListener('click', () => this.handleMapSelect());
         this.diceElement.addEventListener('click', () => this.handleRollDice());
 
+        // 玩法手册：点击 a.btn-wiki 弹层显示 wiki.html（阻止默认新窗口跳转）
+        const btnWiki = document.getElementById('btn-wiki');
+        if (btnWiki) {
+            btnWiki.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showWikiModal();
+            });
+        }
+
         window.addEventListener('resize', () => {
             if (this.game.gameState === 'playing') {
                 this.renderPlayerTokens();
@@ -1097,7 +1106,46 @@ class UI {
             this.mapSelectModal = null;
         }
     }
-    
+
+    // 玩法手册弹层：用 iframe 加载 wiki.html，样式与游戏页完全隔离
+    showWikiModal() {
+        this.hideWikiModal();
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal wiki-modal';
+
+        modal.innerHTML = `
+            <div class="modal-content wiki-modal-content">
+                <button class="modal-close-btn" onclick="ui.hideWikiModal()" aria-label="关闭">×</button>
+                <iframe class="wiki-iframe" src="wiki.html" title="YSK大作战 玩法手册"></iframe>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        this.wikiModal = modal;
+
+        // 点击遮罩区域关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) this.hideWikiModal();
+        });
+        // ESC 键关闭
+        this._wikiEscHandler = (e) => {
+            if (e.key === 'Escape') this.hideWikiModal();
+        };
+        document.addEventListener('keydown', this._wikiEscHandler);
+    }
+
+    hideWikiModal() {
+        if (this.wikiModal) {
+            this.wikiModal.remove();
+            this.wikiModal = null;
+        }
+        if (this._wikiEscHandler) {
+            document.removeEventListener('keydown', this._wikiEscHandler);
+            this._wikiEscHandler = null;
+        }
+    }
+
     async confirmMapSelection() {
         if (!this.mapSelectModal) return;
         

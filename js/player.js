@@ -66,6 +66,7 @@ class Player {
         this.ghostHealth = 0;
         this.ghostPosition = 1;
         this.ghostCount = 0;
+        this.maxGhostCount = 3;  // 守护者皮肤会在此基础值上 +1
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
         this.doubleDefenceCharges = 0;
@@ -122,6 +123,18 @@ class Player {
                     case 'dragon_diagonal':
                         this.dragonDiagonalCharges = effect.params.charges;
                         break;
+                    case 'guardian_ghost':
+                        // 守护者：贴身幽灵最大持有数量+1
+                        this.maxGhostCount += effect.params.extraMax;
+                        // 守护者：初始就拥有1个贴身幽灵（仅当当前没有幽灵时）
+                        if (effect.params.initialGhost && !this.hasGhost) {
+                            this.hasGhost = true;
+                            this.ghostType = 2;            // 2 = 贴身幽灵
+                            this.ghostHealth = 1;
+                            this.ghostCount = 1;
+                            this.ghostPosition = this.position;
+                        }
+                        break;
                 }
             });
         }
@@ -129,11 +142,24 @@ class Player {
 
     // 皮肤神殿：切换皮肤，移除旧皮肤被动效果并重置所有皮肤属性后应用新皮肤
     changeSkin(newSkin) {
-        // 移除旧皮肤的被动效果（如勇者的额外血量）
+        // 移除旧皮肤的被动效果（如勇者的额外血量、守护者的额外幽灵容量）
         if (this.skin) {
             this.skin.effects.forEach(effect => {
                 if (effect.type === 'extra_health') {
                     this.changeHealth(-effect.params.amount);
+                } else if (effect.type === 'guardian_ghost') {
+                    // 守护者：恢复贴身幽灵最大持有数量
+                    this.maxGhostCount -= effect.params.extraMax;
+                    // 若当前幽灵血量超过新上限，截断之
+                    if (this.ghostHealth > this.maxGhostCount) {
+                        this.ghostHealth = this.maxGhostCount;
+                        this.ghostCount = this.ghostHealth;
+                        if (this.ghostHealth <= 0) {
+                            this.hasGhost = false;
+                            this.ghostType = 0;
+                            this.ghostPosition = 1;
+                        }
+                    }
                 }
             });
         }

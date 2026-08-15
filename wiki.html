@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YSK大作战 - 完整游戏玩法手册</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            color: #2d3748;
+            line-height: 1.7;
+            padding: 16px 12px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2b6cb0;
+            margin-bottom: 24px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #3182ce;
+            font-size: 22px;
+        }
+        .section-wrap {
+            background: #fff;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+        }
+        h2 {
+            color: #2c5282;
+            margin-bottom: 14px;
+            font-size: 19px;
+        }
+        h3 {
+            color: #4a5568;
+            margin: 14px 0 8px;
+            font-size: 16px;
+        }
+        p {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        ul, ol {
+            padding-left: 22px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0 16px;
+            font-size: 13px;
+        }
+        table th, table td {
+            border: 1px solid #e2e8f0;
+            padding: 9px 6px;
+            text-align: left;
+            word-break: break-all;
+        }
+        table th {
+            background: #edf2f7;
+            font-weight: bold;
+        }
+        .divider {
+            height: 1px;
+            background: #cbd5e0;
+            margin: 16px 0;
+        }
+        .tip-box {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 10px 14px;
+            margin: 12px 0;
+            border-radius: 0 6px 6px 0;
+            font-size: 14px;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #fff;
+            margin-right: 4px;
+        }
+        .tag-attack { background: #e53e3e; }
+        .tag-defense { background: #38a169; }
+        .tag-win { background: #3182ce; }
+        .tag-action { background: #805ad5; }
+        .tag-milestone { background: #d69e2e; }
+    </style>
+</head>
+<body>
+    <h1>YSK大作战 完整游戏玩法手册</h1>
+
+    <!-- 第一部分：基础玩法规则 -->
+    <div class="section-wrap">
+        <h2>一、游戏基础玩法规则</h2>
+        <h3>1. 游戏开局设定</h3>
+        <ul>
+            <li>支持2~4名玩家，可选择人机对战模式</li>
+            <li>所有玩家初始血量为3点，血量无上限</li>
+            <li>游戏开始前可选择专属皮肤，开局拥有10点卡牌购买点数</li>
+            <li>初始无手牌，需在【购买阶段】消耗点数购买卡牌</li>
+        </ul>
+
+        <h3>2. 游戏流程</h3>
+        <ol>
+            <li>玩家选择 → 皮肤选择 → 卡牌购买阶段</li>
+            <li>回合循环：轮到玩家回合 → 掷骰子前可使用卡牌 → 掷骰子移动</li>
+            <li>移动到达格子后自动触发格子特殊效果</li>
+            <li>完成走子后切换下一名玩家，所有玩家行动完毕为一整回合</li>
+        </ol>
+
+        <h3>3. 胜利判定条件（满足其一即结束游戏）</h3>
+        <ul>
+            <li>玩家率先走到棋盘最后一格（终点），直接获胜</li>
+            <li>其余所有玩家全部死亡，仅剩一名存活玩家获胜</li>
+            <li>人机对战模式下，人类玩家死亡则游戏直接结束</li>
+        </ul>
+
+        <h3>4. 死亡规则</h3>
+        <ul>
+            <li>血量降至0时玩家直接淘汰，从棋盘移除</li>
+            <li>贴身幽灵可抵挡一次DDD死亡陷阱，幽灵直接消失而非玩家死亡</li>
+            <li>持有【不死之身】卡牌状态时，首次死亡会保留1点血量存活</li>
+        </ul>
+
+        <h3>5. 棋盘格子功能总览</h3>
+        <table>
+            <tr>
+                <th>格子标识</th>
+                <th>名称</th>
+                <th>效果说明</th>
+            </tr>
+            <tr>
+                <td>BL±X</td>
+                <td>血量变化</td>
+                <td>X为加血/减血数值，超级勇者皮肤会放大血量变化倍率</td>
+            </tr>
+            <tr>
+                <td>FF+X</td>
+                <td>加速前进</td>
+                <td>踩到后额外向前移动X步</td>
+            </tr>
+            <tr>
+                <td>BB+X</td>
+                <td>炸弹格子</td>
+                <td>以自身为中心前后X格所有玩家扣1血</td>
+            </tr>
+            <tr>
+                <td>DDD</td>
+                <td>死亡陷阱</td>
+                <td>踩到直接死亡，贴身幽灵可抵挡一次</td>
+            </tr>
+            <tr>
+                <td>BH X</td>
+                <td>黑洞</td>
+                <td>传送至对应编号黑洞格子，统计黑洞传送次数用于成就</td>
+            </tr>
+            <tr>
+                <td>GST</td>
+                <td>幽灵召唤</td>
+                <td>召唤普通/贴身幽灵，最多持有3个幽灵</td>
+            </tr>
+            <tr>
+                <td>SKIN</td>
+                <td>皮肤神殿</td>
+                <td>可更换皮肤，重置全部皮肤专属状态</td>
+            </tr>
+            <tr>
+                <td>CD</td>
+                <td>卡牌抽取格</td>
+                <td>随机获得1张卡牌，本回合无法使用</td>
+            </tr>
+            <tr>
+                <td>STP+X</td>
+                <td>暂停格</td>
+                <td>跳过后续X个回合，无法掷骰子移动</td>
+            </tr>
+            <tr>
+                <td>TNT+X</td>
+                <td>地图炸弹</td>
+                <td>范围X格全体扣血，尾数匹配数字格子同步受损</td>
+            </tr>
+        </table>
+
+        <div class="tip-box">
+            <strong>补充规则：</strong>格子支持叠加多个效果，按格子标记顺序依次执行；若触发DDD死亡陷阱，同格其余效果不再生效。
+        </div>
+    </div>
+
+    <!-- 第二部分：皮肤系统（表格） -->
+    <div class="section-wrap">
+        <h2>二、皮肤系统</h2>
+        <p>游戏开局可自由选择皮肤，每种皮肤拥有专属永久被动效果；踩中【皮肤神殿】格子可中途更换皮肤，更换后重置全部皮肤状态。</p>
+        <table>
+            <tr>
+                <th>皮肤名称</th>
+                <th>图标</th>
+                <th>被动效果详情</th>
+            </tr>
+            <tr>
+                <td>默认</td>
+                <td>🖤</td>
+                <td>无任何特殊加成，基础初始状态</td>
+            </tr>
+            <tr>
+                <td>坦克</td>
+                <td>🛡️</td>
+                <td>移动结束后，自身前后2格所有敌方玩家扣除1点血量</td>
+            </tr>
+            <tr>
+                <td>飞贼</td>
+                <td>🦇</td>
+                <td>前3回合骰子步数翻倍，加速移动，回合结束递减加速次数</td>
+            </tr>
+            <tr>
+                <td>勇者</td>
+                <td>⚔️</td>
+                <td>游戏开局额外增加3点初始血量</td>
+            </tr>
+            <tr>
+                <td>两次防</td>
+                <td>🛡️✨</td>
+                <td>全局自动抵消2次敌方攻击卡牌效果，卡牌消耗但自身不受伤害</td>
+            </tr>
+            <tr>
+                <td>龙</td>
+                <td>🐉</td>
+                <td>全局拥有1次斜行瞬移机会，回合掷骰前可选择对角格子直接移动，统计斜行次数解锁成就</td>
+            </tr>
+            <tr>
+                <td>守护者</td>
+                <td>👻</td>
+                <td>贴身幽灵最大持有数量+1，最多可抵挡4次DDD陷阱</td>
+            </tr>
+            <tr>
+                <td>铁壁</td>
+                <td>🧱</td>
+                <td>受到所有伤害减少50%，所有扣血结算时自动减半</td>
+            </tr>
+            <tr>
+                <td>颠倒师</td>
+                <td>🌀</td>
+                <td>第2回合起每3回合可打乱周围8格格子属性，单局最多3次，神殿可重置次数</td>
+            </tr>
+            <tr>
+                <td>超级勇者</td>
+                <td>❤️‍🔥</td>
+                <td>踩到血量变化格子时，加血、扣血数值全部×2倍放大</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 第三部分：卡牌系统（表格） -->
+    <div class="section-wrap">
+        <h2>三、卡牌系统</h2>
+        <p>1. 开局拥有10点数，购买阶段消耗点数购买卡牌；卡牌仅可在自身回合、掷骰子前主动使用，使用后立即消耗。</p>
+        <p>2. 分为攻击型、防御型；护盾、净化为自动被动卡牌，无法主动点击，受伤/中负面状态时自动触发消耗。</p>
+        <h3>攻击型卡牌</h3>
+        <table>
+            <tr>
+                <th>卡牌名称</th>
+                <th>图标</th>
+                <th>消耗点数</th>
+                <th>卡牌效果</th>
+            </tr>
+            <tr>
+                <td>火球术</td>
+                <td>🔥</td>
+                <td>2</td>
+                <td>指定敌方造成2点伤害</td>
+            </tr>
+            <tr>
+                <td>减速诅咒</td>
+                <td>🐌</td>
+                <td>2</td>
+                <td>敌方下回合骰子点数减半向下取整</td>
+            </tr>
+            <tr>
+                <td>交换位置</td>
+                <td>🔄</td>
+                <td>4</td>
+                <td>与指定敌方互换当前棋盘位置</td>
+            </tr>
+            <tr>
+                <td>偷取生命</td>
+                <td>🩸</td>
+                <td>3</td>
+                <td>偷取敌方2点血量加到自身</td>
+            </tr>
+            <tr>
+                <td>推后</td>
+                <td>⬅️</td>
+                <td>2</td>
+                <td>将指定敌方向后移动3格</td>
+            </tr>
+            <tr>
+                <td>炸弹</td>
+                <td>💣</td>
+                <td>4</td>
+                <td>目标位置生成炸弹，前后2格全体扣2血</td>
+            </tr>
+        </table>
+
+        <div class="divider"></div>
+        <h3>防御型卡牌</h3>
+        <table>
+            <tr>
+                <th>卡牌名称</th>
+                <th>图标</th>
+                <th>消耗点数</th>
+                <th>卡牌效果</th>
+            </tr>
+            <tr>
+                <td>护盾【自动】</td>
+                <td>🛡️</td>
+                <td>2</td>
+                <td>持有期间自动抵挡下一次任意伤害，触发后卡牌消失</td>
+            </tr>
+            <tr>
+                <td>治疗</td>
+                <td>💚</td>
+                <td>2</td>
+                <td>自身直接恢复3点血量</td>
+            </tr>
+            <tr>
+                <td>闪现</td>
+                <td>⚡</td>
+                <td>3</td>
+                <td>不消耗骰子直接前进4格，本回合仍可正常掷骰</td>
+            </tr>
+            <tr>
+                <td>不死之身</td>
+                <td>💀</td>
+                <td>4</td>
+                <td>3回合内死亡时保留1点血量存活</td>
+            </tr>
+            <tr>
+                <td>反弹</td>
+                <td>🔁</td>
+                <td>3</td>
+                <td>3回合内受到攻击将全额伤害反弹给攻击者</td>
+            </tr>
+            <tr>
+                <td>净化【自动】</td>
+                <td>✨</td>
+                <td>2</td>
+                <td>被施加减速等负面效果时自动清除，卡牌消耗</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 第四部分：成就系统（表格） -->
+    <div class="section-wrap">
+        <h2>四、成就系统</h2>
+        <p>每局游戏胜利后自动结算，满足条件即可解锁对应成就，分为胜利类、行为类、里程碑三类。</p>
+        <table>
+            <tr>
+                <th>成就类型</th>
+                <th>成就名称</th>
+                <th>图标</th>
+                <th>解锁条件</th>
+            </tr>
+            <tr>
+                <td><span class="tag tag-win">胜利类</span></td>
+                <td>天胡</td>
+                <td>🀄</td>
+                <td>未掷骰子、无任何移动，初始位置直接获胜</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-win">胜利类</span></td>
+                <td>极速通关</td>
+                <td>⚡</td>
+                <td>3回合以内到达终点取得胜利</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-win">胜利类</span></td>
+                <td>九死一生</td>
+                <td>💀</td>
+                <td>游戏过程中血量最低降至1点，最后成功获胜</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-win">胜利类</span></td>
+                <td>不死传说</td>
+                <td>🛡️</td>
+                <td>整局游戏没有受到任何伤害并取得胜利</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-win">胜利类</span></td>
+                <td>不动如山</td>
+                <td>⛰️</td>
+                <td>全程没有超车任何其他玩家，其余玩家全部死亡获胜</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-action">行为类</span></td>
+                <td>幽灵杀手</td>
+                <td>👻</td>
+                <td>本局累计消灭至少3个敌方幽灵后获胜</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-action">行为类</span></td>
+                <td>炸弹专家</td>
+                <td>💣</td>
+                <td>使用炸弹卡牌炸死至少2名玩家</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-action">行为类</span></td>
+                <td>黑洞行者</td>
+                <td>🕳️</td>
+                <td>累计触发黑洞传送3次以上并获胜</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-action">行为类</span></td>
+                <td>龙行万里</td>
+                <td>🐉</td>
+                <td>使用龙皮肤，斜行功能使用超过2次并获胜</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-milestone">里程碑</span></td>
+                <td>血量之王</td>
+                <td>❤️</td>
+                <td>获胜时自身血量达到200点及以上</td>
+            </tr>
+            <tr>
+                <td><span class="tag tag-milestone">里程碑</span></td>
+                <td>长征</td>
+                <td>🚶</td>
+                <td>游戏总回合超过20回合后取得胜利</td>
+            </tr>
+        </table>
+        <div class="tip-box">
+            <strong>成就结算说明：</strong>仅游戏胜利时判定成就，失败不解锁；后续可扩展本地存储，永久保存已解锁成就记录。
+        </div>
+    </div>
+</body>
+</html>

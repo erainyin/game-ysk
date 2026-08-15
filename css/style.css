@@ -76,7 +76,7 @@ button, .btn {
 }
 
 /* 头部：地图编辑器入口（链接形式） */
-.btn-mapeditor {
+.btn-mapeditor, .btn-wiki {
     color: white;
     border: 1px solid rgba(255, 255, 255, .5);
     background: rgba(0, 0, 0, .2);
@@ -865,6 +865,32 @@ button, .btn {
     touch-action: auto;
     padding: 8px 4px 12px;
     scrollbar-width: thin;
+}
+
+/* 玩法手册弹层：iframe 加载 wiki.html，样式与游戏页完全隔离 */
+.wiki-modal-content {
+    text-align: left;          /* wiki 为文档型内容，左对齐 */
+    padding: 0;                /* 去掉外层内边距，由 wiki.html 自身控制 */
+    max-width: 400px;          /* 与地图选择弹窗宽度一致 */
+    width: 90%;
+    max-height: min(90vh, 900px);
+    overflow: hidden;          /* 由 iframe 内部滚动 */
+}
+
+.wiki-modal-content .modal-close-btn {
+    top: 8px;
+    right: 8px;
+    z-index: 2;                /* 浮于 iframe 之上，确保可点击 */
+    background: rgba(241, 243, 245, 0.9);
+}
+
+.wiki-iframe {
+    width: 100%;
+    flex: 1;
+    border: none;
+    border-radius: 0 0 20px 20px;
+    min-height: 60vh;
+    background: #f5f7fa;       /* 与 wiki.html 背景一致，避免加载时白屏突兀 */
 }
 
 
