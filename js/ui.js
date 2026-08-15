@@ -606,7 +606,7 @@ class UI {
         modal.innerHTML = `
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="ui.hideSelectionModal()" aria-label="关闭">×</button>
-                <h3>YKS大作战</h3>
+                <h3>YSK大作战</h3>
                 <div class="player-count-selector">
                     <button class="btn player-count-btn ${playerCount === 2 ? 'active' : ''}" data-count="2" onclick="ui.updatePlayerCount(2)">2人</button>
                     <button class="btn player-count-btn ${playerCount === 3 ? 'active' : ''}" data-count="3" onclick="ui.updatePlayerCount(3)">3人</button>
@@ -1516,16 +1516,31 @@ class UI {
             contentHtml += `<div class="game-end-winner">💀 你输了！</div>`;
             this.addLog(`${player.name}先到达终点，你输了！`);
         } else {
-            contentHtml += `<div class="game-end-winner">🏆 ${player.name} 获得胜利！</div>`;
+            contentHtml += `<div class="game-end-winner">🏆 ${player.name} 获得胜利！</div><div class="confetti-canvas"></div>`;
             this.addLog(`${player.name}到达终点，游戏胜利！`);
 
             // 胜利彩带特效
             if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
+                var duration = 15 * 1000;
+                var animationEnd = Date.now() + duration;
+                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+                function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+                }
+
+                var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                // since particles fall down, start a bit higher than random
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+                }, 250);
             }
 
             if (achievements && achievements.length > 0) {

@@ -88,6 +88,43 @@ class AchievementSystem {
                 condition: (winner, game) => {
                     try { return !!winner && winner.health >= 200; } catch (e) { return false; }
                 }
+            },
+            {
+                id: 'long_march',
+                name: '长征',
+                description: '超过20回合并最终获胜',
+                icon: '🚶',
+                type: 'milestone',
+                condition: (winner, game) => {
+                    try { return !!winner && game.roundCount > 20; } catch (e) { return false; }
+                }
+            },
+            {
+                id: 'dragon_wanderer',
+                name: '龙行万里',
+                description: '使用"龙"皮肤，本局使用斜行功能超过2次并最终获胜',
+                icon: '🐉',
+                type: 'action',
+                condition: (winner, game) => {
+                    try {
+                        if (!winner) return false;
+                        const isDragonSkin = winner.skin && winner.skin.id === 'dragon';
+                        return isDragonSkin && winner.stats.dragonDiagonalUses > 2;
+                    } catch (e) { return false; }
+                }
+            },
+            {
+                id: 'immovable',
+                name: '不动如山',
+                description: '全程未超车任何玩家并最终获胜（其他玩家均已死亡）',
+                icon: '⛰️',
+                type: 'win',
+                condition: (winner, game) => {
+                    try {
+                        if (!winner) return false;
+                        return winner.stats.overtakeCount === 0;
+                    } catch (e) { return false; }
+                }
             }
         ];
     }

@@ -1377,6 +1377,7 @@ class Game {
         player.hasRolled = true;            // 占用本回合掷骰行动
         player.useDragonDiagonal();         // 消耗斜行次数
         if (typeof player.recordMove === 'function') player.recordMove();
+        if (typeof player.recordDragonDiagonal === 'function') player.recordDragonDiagonal();
 
         this.log(`🐉 ${player.name} 龙之斜行！位置 ${startPos} -> ${targetPos}（剩余斜行 ${player.dragonDiagonalCharges} 次）`, true);
         this.notify(`${player.name} 使用【龙】斜行到格子 ${targetPos}`, 'info');

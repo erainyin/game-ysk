@@ -47,6 +47,7 @@ class Player {
             ghostSummons: 0,
             undieUses: 0,
             overtakeCount: 0,
+            dragonDiagonalUses: 0,  // 龙皮肤：已使用斜行次数
         };
     }
 
@@ -94,6 +95,7 @@ class Player {
             ghostSummons: 0,
             undieUses: 0,
             overtakeCount: 0,
+            dragonDiagonalUses: 0,
         };
     }
 
@@ -347,4 +349,5 @@ class Player {
     recordGhostSummon() { this.stats.ghostSummons++; }
     recordUndieUse() { this.stats.undieUses++; }
     recordOvertake() { this.stats.overtakeCount++; }
+    recordDragonDiagonal() { this.stats.dragonDiagonalUses++; }
 }

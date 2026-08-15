@@ -102,6 +102,37 @@
   - 玩家获胜
   - 获胜时血量 ≥ 200
 
+#### 成就9：长征 (long_march)
+
+- **名称**：长征
+- **描述**：超过20回合并最终获胜
+- **图标**：🚶
+- **类型**：`milestone`
+- **条件**：
+  - 玩家获胜
+  - 游戏结束时回合数 `game.roundCount > 20`
+
+#### 成就10：龙行万里 (dragon_wanderer)
+
+- **名称**：龙行万里
+- **描述**：使用"龙"皮肤，本局使用斜行功能超过2次并最终获胜
+- **图标**：🐉
+- **类型**：`action`
+- **条件**：
+  - 玩家获胜
+  - 玩家皮肤为龙皮肤（`winner.skin && winner.skin.id === 'dragon'`）
+  - 龙斜行使用次数 `winner.stats.dragonDiagonalUses > 2`
+
+#### 成就11：不动如山 (immovable)
+
+- **名称**：不动如山
+- **描述**：全程未超车任何玩家并最终获胜（其他玩家均已死亡）
+- **图标**：⛰️
+- **类型**：`win`
+- **条件**：
+  - 玩家获胜
+  - 超车次数为0（`winner.stats.overtakeCount === 0`）
+
 ## 三、数据采集设计
 
 ### 3.1 玩家统计数据
@@ -126,6 +157,7 @@ class Player {
             ghostSummons: 0,         // 召唤幽灵次数
             undieUses: 0,            // 使用不死守护次数
             overtakeCount: 0,        // 超车次数
+            dragonDiagonalUses: 0,   // 龙皮肤：使用斜行次数
         };
     }
 }
@@ -145,6 +177,7 @@ class Player {
 | 召唤幽灵 | `ghostSummons++` | `Game.triggerCellProperty()` - ghost 处理 |
 | 使用不死守护 | `undieUses++` | `Game.triggerCellProperty()` - undie 处理 |
 | 超车成功 | `overtakeCount++` | `Game.handleOvertake()` |
+| 龙皮肤斜行完成 | `dragonDiagonalUses++` | `Game.movePlayerDiagonal()` |
 
 ## 四、成就判定流程
 
@@ -256,6 +289,7 @@ class Player {
             ghostSummons: 0,
             undieUses: 0,
             overtakeCount: 0,
+            dragonDiagonalUses: 0,
         };
     }
     
@@ -275,6 +309,7 @@ class Player {
             ghostSummons: 0,
             undieUses: 0,
             overtakeCount: 0,
+            dragonDiagonalUses: 0,
         };
     }
     
@@ -298,6 +333,7 @@ class Player {
     recordGhostSummon() { this.stats.ghostSummons++; }
     recordUndieUse() { this.stats.undieUses++; }
     recordOvertake() { this.stats.overtakeCount++; }
+    recordDragonDiagonal() { this.stats.dragonDiagonalUses++; }
 }
 ```
 
@@ -392,6 +428,37 @@ class AchievementSystem {
                 type: 'milestone',
                 condition: (winner, game) => {
                     return winner.health >= 200;
+                }
+            },
+            {
+                id: 'long_march',
+                name: '长征',
+                description: '超过20回合并最终获胜',
+                icon: '🚶',
+                type: 'milestone',
+                condition: (winner, game) => {
+                    return game.roundCount > 20;
+                }
+            },
+            {
+                id: 'dragon_wanderer',
+                name: '龙行万里',
+                description: '使用"龙"皮肤，本局使用斜行功能超过2次并最终获胜',
+                icon: '🐉',
+                type: 'action',
+                condition: (winner, game) => {
+                    const isDragonSkin = winner.skin && winner.skin.id === 'dragon';
+                    return isDragonSkin && winner.stats.dragonDiagonalUses > 2;
+                }
+            },
+            {
+                id: 'immovable',
+                name: '不动如山',
+                description: '全程未超车任何玩家并最终获胜（其他玩家均已死亡）',
+                icon: '⛰️',
+                type: 'win',
+                condition: (winner, game) => {
+                    return winner.stats.overtakeCount === 0;
                 }
             }
         ];
