@@ -55,6 +55,13 @@ class UI {
             });
         }
 
+        const btnAchieve = document.getElementById('btn-achieve');
+        if (btnAchieve) {
+            btnAchieve.addEventListener('click', () => {
+                this.showAchievementModal();
+            });
+        }
+
         window.addEventListener('resize', () => {
             if (this.game.gameState === 'playing') {
                 this.renderPlayerTokens();
@@ -1532,6 +1539,8 @@ class UI {
     }
 
     onGameEnd(player, achievements = []) {
+        achievementSystem.recordPlay();
+
         this.btnDice.disabled = true;
         this.btnStart.disabled = true;
         this.btnMapSelect.disabled = false;
@@ -1634,6 +1643,48 @@ class UI {
         this.closeGameEndModal();
         // reload page or restart
         this.btnRestart && this.btnRestart.click();
+    }
+
+    showAchievementModal() {
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal achievement-modal';
+
+        const unlockedIds = achievementSystem.unlockedIds || new Set();
+        const achievements = achievementSystem.achievements || [];
+
+        let contentHtml = '<div class="modal-content achievement-modal-content">';
+        contentHtml += '<button class="modal-close-btn" onclick="ui.closeSelectionModal()" aria-label="关闭">×</button>';
+        contentHtml += '<div class="modal-title">🏆 成就一览</div>';
+        contentHtml += `<div class="achievement-summary">玩家游玩次数：${achievementSystem.getPlayCount()}</div>`;
+        contentHtml += '<div class="achievement-grid">';
+
+        achievements.forEach(a => {
+            const unlocked = unlockedIds.has(a.id);
+            const cardClass = unlocked ? 'achievement-card unlocked' : 'achievement-card locked';
+            const cardStyle = unlocked ? '' : 'opacity: 0.55; filter: grayscale(1);';
+            contentHtml += `
+                <div class="${cardClass}" style="${cardStyle}">
+                    <div class="achievement-card-icon">${a.icon}</div>
+                    <div class="achievement-card-name">${a.name}</div>
+                    <div class="achievement-card-desc">${a.description}</div>
+                    <div class="achievement-card-status">${unlocked ? '已获得' : '未获得'}</div>
+                </div>
+            `;
+        });
+
+        contentHtml += '</div>';
+        contentHtml += '</div>';
+
+        modal.innerHTML = contentHtml;
+        document.body.appendChild(modal);
+        this.selectionModal = modal;
+    }
+
+    closeSelectionModal() {
+        if (this.selectionModal) {
+            this.selectionModal.remove();
+            this.selectionModal = null;
+        }
     }
 
     showNotification(message, type) {

@@ -346,7 +346,7 @@ class Game {
             });
 
             const alivePlayers = this.players.filter(p => !p.isDead);
-            if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
+            if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex] && this.players[this.humanPlayerIndex].isDead)) {
                 this.checkGameEnd();
             }
         }
@@ -967,7 +967,7 @@ class Game {
             });
 
             const alivePlayers = this.players.filter(p => !p.isDead);
-            if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
+            if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex] && this.players[this.humanPlayerIndex].isDead)) {
                 this.checkGameEnd();
             }
         }
@@ -1027,7 +1027,7 @@ class Game {
 
         // 在推进回合前检查是否有玩家死亡（超车/范围伤害/炸弹等可能导致其他玩家死亡）
         const aliveCount = this.players.filter(p => !p.isDead).length;
-        if (aliveCount <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
+        if (aliveCount <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex] && this.players[this.humanPlayerIndex].isDead)) {
             this.checkGameEnd();
             return;
         }
@@ -1280,6 +1280,27 @@ class Game {
             case 'place_bomb':
                 this.handleCardBomb(source, target, effect.params);
                 break;
+            case 'retreat_all': {
+                const retreatSteps = (effect.params && effect.params.steps !== undefined) ? effect.params.steps : -3;
+                const alivePlayers = this.players.filter(p => !p.isDead && !p.isWinner);
+                const sacrificeAmount = alivePlayers.length;
+                const otherPlayers = alivePlayers.filter(p => p.id !== source.id);
+
+                if (otherPlayers.length > 0) {
+                    otherPlayers.forEach(player => {
+                        this.movePlayerInstant(player, retreatSteps);
+                        this.notify(`${player.name} 被${card.name}击退 ${Math.abs(retreatSteps)} 格`, 'warning');
+                    });
+                } else {
+                    this.notify(`${source.name} 没有其他玩家可撤退`, 'info');
+                }
+
+                source.changeHealth(-sacrificeAmount);
+                this.notify(`${source.name} 为大撤退牺牲了 ${sacrificeAmount} 点血量`, 'warning');
+                this.notifyUndyingIfTriggered(source);
+                this.checkCardDamageGameEnd();
+                break;
+            }
         }
     }
 
@@ -1331,7 +1352,7 @@ class Game {
 
     checkCardDamageGameEnd() {//卡牌伤害后检查游戏结束
         const alivePlayers = this.players.filter(p => !p.isDead);
-        if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex]?.isDead)) {
+        if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex] && this.players[this.humanPlayerIndex].isDead)) {
             this.checkGameEnd();
         }
     }

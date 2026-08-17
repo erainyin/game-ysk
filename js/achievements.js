@@ -1,6 +1,73 @@
 class AchievementSystem {
     constructor() {
+        this.storageKey = 'ysk_achievement_unlocks_v1';
+        this.playCountKey = 'ysk_play_count_v1';
         this.achievements = this.loadAchievements();
+        this.unlockedIds = this.loadUnlockedIds();
+        this.playCount = this.loadPlayCount();
+    }
+
+    loadPlayCount() {
+        try {
+            const raw = localStorage.getItem(this.playCountKey);
+            if (raw === null) return 0;
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) ? parsed : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    savePlayCount() {
+        try {
+            localStorage.setItem(this.playCountKey, String(this.playCount));
+        } catch (e) {
+            console.warn('Play count storage failed', e);
+        }
+    }
+
+    recordPlay() {
+        this.playCount += 1;
+        this.savePlayCount();
+    }
+
+    getPlayCount() {
+        return this.playCount;
+    }
+
+    loadUnlockedIds() {
+        try {
+            const raw = localStorage.getItem(this.storageKey);
+            if (!raw) return new Set();
+            const parsed = JSON.parse(raw);
+            return new Set(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+            return new Set();
+        }
+    }
+
+    saveUnlockedIds() {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify([...this.unlockedIds]));
+        } catch (e) {
+            console.warn('Achievement storage failed', e);
+        }
+    }
+
+    isUnlocked(id) {
+        return this.unlockedIds.has(id);
+    }
+
+    unlock(ids) {
+        if (!Array.isArray(ids)) return;
+        let changed = false;
+        ids.forEach(id => {
+            if (!this.unlockedIds.has(id)) {
+                this.unlockedIds.add(id);
+                changed = true;
+            }
+        });
+        if (changed) this.saveUnlockedIds();
     }
 
     loadAchievements() {
@@ -134,10 +201,15 @@ class AchievementSystem {
         const unlocked = [];
         for (const achievement of this.achievements) {
             try {
-                if (achievement.condition(winner, game)) unlocked.push(achievement);
+                if (achievement.condition(winner, game)) {
+                    unlocked.push(achievement);
+                }
             } catch (e) {
                 console.error('Achievement check error', achievement.id, e);
             }
+        }
+        if (unlocked.length > 0) {
+            this.unlock(unlocked.map(a => a.id));
         }
         return unlocked;
     }

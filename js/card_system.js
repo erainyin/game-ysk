@@ -75,6 +75,17 @@ class CardSystem {
                 targetType: 'enemy',
                 effects: [{ type: 'place_bomb', params: { range: 2, damage: 2 } }]
             },
+            {
+                id: 'great_retreat',
+                name: '大撤退',
+                description: '所有其他玩家倒退 3 格，自身牺牲 n 点血量（n 为场上存活玩家数量）',
+                icon: 'great_retreat.png',
+                emoji: '↩️',
+                type: 'attack',
+                cost: 5,
+                targetType: 'self',
+                effects: [{ type: 'retreat_all', params: { steps: -3 } }]
+            },
             // ===== 防御型卡牌 =====
             {
                 id: 'shield',

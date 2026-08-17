@@ -76,7 +76,7 @@ button, .btn {
 }
 
 /* 头部：地图编辑器入口（链接形式） */
-.btn-mapeditor, .btn-wiki {
+.btn-mapeditor, .btn-wiki, .btn-achieve {
     color: white;
     border: 1px solid rgba(255, 255, 255, .5);
     background: rgba(0, 0, 0, .2);
@@ -84,6 +84,11 @@ button, .btn {
     display: inline-block;
     text-decoration: none;
     padding: 11px;
+}
+
+.btn-achieve:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(241, 196, 15, 0.35);
 }
 
 /* 头部：地图选择按钮 */
@@ -809,12 +814,15 @@ button, .btn {
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
-    max-width: min(92vw, 980px);
+    width: min(92vw, 980px);
+    max-width: 980px;
     max-height: min(88vh, 860px);
     overflow: auto;
     display: flex;
     flex-direction: column;
     position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(113, 128, 150, 0.6) transparent;
 }
 
 .modal-content h3 {
@@ -839,6 +847,7 @@ button, .btn {
     line-height: 1;
     cursor: pointer;
     transition: all 0.2s ease;
+    z-index: 2;
 }
 
 .modal-close-btn:hover {
@@ -871,16 +880,16 @@ button, .btn {
 .wiki-modal-content {
     text-align: left;          /* wiki 为文档型内容，左对齐 */
     padding: 0;                /* 去掉外层内边距，由 wiki.html 自身控制 */
-    max-width: 400px;          /* 与地图选择弹窗宽度一致 */
-    width: 90%;
-    max-height: min(90vh, 900px);
-    overflow: hidden;          /* 由 iframe 内部滚动 */
+    width: min(92vw, 980px);
+    max-width: 980px;
+    max-height: min(88vh, 860px);
+    overflow: hidden;
+    border-radius: 20px;
 }
 
 .wiki-modal-content .modal-close-btn {
-    top: 8px;
-    right: 8px;
-    z-index: 2;                /* 浮于 iframe 之上，确保可点击 */
+    top: 15px;
+    right: 15px;
     background: rgba(241, 243, 245, 0.9);
 }
 
@@ -890,7 +899,111 @@ button, .btn {
     border: none;
     border-radius: 0 0 20px 20px;
     min-height: 60vh;
-    background: #f5f7fa;       /* 与 wiki.html 背景一致，避免加载时白屏突兀 */
+    background: #f5f7fa;
+    display: block;
+}
+
+.achievement-modal .modal-content {
+    width: min(92vw, 980px);
+    max-width: 980px;
+    min-height: 420px;
+    padding: 30px;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(113, 128, 150, 0.6) transparent;
+}
+
+.achievement-modal-content {
+    text-align: left;
+}
+
+.achievement-modal-content .modal-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 8px 0 10px;
+    text-align: center;
+}
+
+.achievement-summary {
+    background: linear-gradient(135deg, #eef6ff, #f4f7ff);
+    border: 1px solid #cfe2ff;
+    border-radius: 12px;
+    color: #2c5282;
+    font-weight: 700;
+    padding: 10px 14px;
+    margin: 0 0 18px;
+    text-align: center;
+}
+
+.achievement-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.achievement-card {
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px 14px;
+    min-height: 170px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.achievement-card.unlocked {
+    background: linear-gradient(180deg, #fff9db, #ffffff);
+    border-color: #f6c453;
+    box-shadow: 0 10px 22px rgba(245, 158, 11, 0.16);
+}
+
+.achievement-card.locked {
+    background: linear-gradient(180deg, #f3f4f6, #eceff3);
+    color: #718096;
+}
+
+.achievement-card:hover {
+    transform: translateY(-2px);
+}
+
+.achievement-card-icon {
+    font-size: 2rem;
+    text-align: center;
+}
+
+.achievement-card-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.achievement-card-desc {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: inherit;
+    opacity: 0.9;
+    flex: 1;
+}
+
+.achievement-card-status {
+    font-size: 0.78rem;
+    text-align: center;
+    font-weight: 700;
+    padding-top: 4px;
+    border-top: 1px solid rgba(113, 128, 150, 0.25);
+    color: inherit;
+}
+
+.achievement-card.unlocked .achievement-card-status {
+    color: #b7791f;
+}
+
+.achievement-card.locked .achievement-card-status {
+    color: #64748b;
 }
 
 
