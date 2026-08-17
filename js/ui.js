@@ -2016,6 +2016,102 @@ class UI {
         }
     }
 
+    playCardProjectile(sourcePlayer, targetPlayer, cardId, onComplete = null) {
+        const card = cardSystem.getCardById(cardId);
+        if (!card || !sourcePlayer || !targetPlayer) return;
+
+        const sourceTag = document.getElementById(`player-${sourcePlayer.id}-tag`);
+        const targetCell = document.querySelector(`.cell[data-number="${targetPlayer.position}"]`);
+        if (!sourceTag || !targetCell) return;
+
+        const sourceRect = sourceTag.getBoundingClientRect();
+        const targetRect = targetCell.getBoundingClientRect();
+        const startX = sourceRect.left + sourceRect.width / 2;
+        const startY = sourceRect.top + sourceRect.height / 2;
+        const endX = targetRect.left + targetRect.width / 2;
+        const endY = targetRect.top + targetRect.height / 2;
+
+        const projectile = document.createElement('div');
+        projectile.className = 'card-projectile';
+
+        const image = document.createElement('img');
+        const iconPath = cardSystem.getIconPath(card.id);
+        if (iconPath) {
+            image.src = iconPath;
+            image.alt = card.name;
+            image.onerror = () => {
+                image.remove();
+                const fallback = document.createElement('span');
+                fallback.textContent = card.emoji || '🎯';
+                projectile.appendChild(fallback);
+            };
+        } else {
+            image.remove();
+            const fallback = document.createElement('span');
+            fallback.textContent = card.emoji || '🎯';
+            projectile.appendChild(fallback);
+        }
+
+        projectile.appendChild(image);
+        document.body.appendChild(projectile);
+
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const distance = Math.hypot(dx, dy) || 1;
+        const lift = Math.min(220, 60 + distance * 0.35);
+        const duration = Math.min(1000, Math.max(450, 700 - distance * 0.18));
+        const startTime = performance.now();
+        const uiInstance = this;
+
+        function animate(now) {
+            const elapsed = now - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - t, 3);
+            const x = startX + dx * eased;
+            const y = startY + dy * eased - Math.sin(Math.PI * t) * lift;
+
+            projectile.style.left = `${x - 16}px`;
+            projectile.style.top = `${y - 16}px`;
+            projectile.style.opacity = String(1 - t * 0.85);
+            projectile.style.transform = `scale(${1 - t * 0.18}) rotate(${dx >= 0 ? 8 : -8}deg)`;
+
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                projectile.remove();
+                uiInstance.playTargetHitEffect(targetPlayer, card.id);
+                if (onComplete) onComplete();
+            }
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    playTargetHitEffect(targetPlayer, cardId) {
+        const targetTag = document.getElementById(`player-${targetPlayer.id}-tag`);
+        if (targetTag) {
+            targetTag.classList.remove('player-hit-hit');
+            void targetTag.offsetWidth;
+            targetTag.classList.add('player-hit-hit');
+            window.setTimeout(() => targetTag.classList.remove('player-hit-hit'), 600);
+        }
+
+        const targetCell = document.querySelector(`.cell[data-number="${targetPlayer.position}"]`);
+        if (!targetCell) return;
+
+        const cellRect = targetCell.getBoundingClientRect();
+        const hitEffect = document.createElement('div');
+        hitEffect.className = 'card-hit-effect';
+        hitEffect.style.left = `${cellRect.left + cellRect.width / 2}px`;
+        hitEffect.style.top = `${cellRect.top + cellRect.height / 2}px`;
+
+        const accentClass = (cardId === 'fireball' || cardId === 'flame') ? 'fire-flame' : 'impact-flame';
+        hitEffect.classList.add(accentClass);
+        document.body.appendChild(hitEffect);
+
+        window.setTimeout(() => hitEffect.remove(), 550);
+    }
+
     showCardTargetSelection(player, instanceId, card) {//显示目标选择弹窗
         if (this.targetModal) this.targetModal.remove();
 
@@ -2048,7 +2144,17 @@ class UI {
         modal.querySelectorAll('.target-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 const targetId = parseInt(e.currentTarget.dataset.targetId);
+                const target = this.game.players.find(p => p.id === targetId);
                 this.hideCardTargetSelection();
+
+                if (card.targetType === 'enemy' && target) {
+                    this.playCardProjectile(player, target, card.id, () => {
+                        this.game.useCard(player, instanceId, targetId);
+                        this.onStateChange();
+                    });
+                    return;
+                }
+
                 this.game.useCard(player, instanceId, targetId);
                 this.onStateChange();
             });

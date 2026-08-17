@@ -1218,6 +1218,15 @@ class Game {
         player.cards.splice(cardIndex, 1);
         player.hasUsedCardThisTurn = true;  // 标记本回合已使用卡牌
         this.log(`${player.name} 使用了 [${card.name}]`, true);
+
+        // 处理“自我牺牲/自伤致死”导致的回合推进：若当前玩家死亡但游戏未结束，必须跳到下一位存活玩家
+        if (player.isDead) {
+            this.checkGameEnd();
+            if (this.gameState === 'playing') {
+                this.nextTurn();
+            }
+        }
+
         this.notifyStateChange();
     }
 
@@ -1298,7 +1307,11 @@ class Game {
                 source.changeHealth(-sacrificeAmount);
                 this.notify(`${source.name} 为大撤退牺牲了 ${sacrificeAmount} 点血量`, 'warning');
                 this.notifyUndyingIfTriggered(source);
+                if (source.isDead) {
+                    this.notify(`${source.name} 因大撤退而倒下了！`, 'danger');
+                }
                 this.checkCardDamageGameEnd();
+                this.checkGameEnd();
                 break;
             }
         }
@@ -1339,6 +1352,7 @@ class Game {
             source.changeHealth(-amount);
             this.notifyUndyingIfTriggered(source);
             this.checkCardDamageGameEnd();
+            this.ensureGameEndIfAnyPlayerDied();
             return false;
         }
 
@@ -1347,12 +1361,21 @@ class Game {
         this.notify(`${target.name} 受到 ${amount} 点卡牌伤害`, 'danger');
         this.notifyUndyingIfTriggered(target);
         this.checkCardDamageGameEnd();
+        this.ensureGameEndIfAnyPlayerDied();
         return true;
     }
 
     checkCardDamageGameEnd() {//卡牌伤害后检查游戏结束
         const alivePlayers = this.players.filter(p => !p.isDead);
         if (alivePlayers.length <= 1 || (this.isAIMode && this.humanPlayerIndex >= 0 && this.players[this.humanPlayerIndex] && this.players[this.humanPlayerIndex].isDead)) {
+            this.checkGameEnd();
+        }
+    }
+
+    ensureGameEndIfAnyPlayerDied() {//防止直接扣血/自我牺牲后未触发结束判定
+        if (this.gameState !== 'playing') return;
+        const anyDead = this.players.some(p => p.isDead);
+        if (anyDead) {
             this.checkGameEnd();
         }
     }
