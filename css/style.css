@@ -2062,7 +2062,7 @@ button, .btn {
     /* ----- 22.2 头部控制：按钮缩为方形图标 ----- */
     .header-controls {
         position: static;
-        justify-content: left;
+        justify-content: center;
         padding: 10px;
         background: rgba(0, 0, 0, .3);
     }
