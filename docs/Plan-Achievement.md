@@ -65,12 +65,12 @@
 #### 成就5：幽灵杀手 (ghost_killer)
 
 - **名称**：幽灵杀手
-- **描述**：消灭3个敌方幽灵
+- **描述**：本轮牺牲3个或3个以上我方幽灵并取得胜利
 - **图标**：👻
 - **类型**：`action`
 - **条件**：
   - 玩家获胜
-  - 游戏过程中消灭的敌方幽灵数量 ≥ 3
+  - 当前回合中牺牲的我方幽灵数量 ≥ 3
 
 #### 成就6：炸弹专家 (bomb_expert)
 
@@ -92,17 +92,37 @@
   - 玩家获胜
   - 游戏过程中经历黑洞传送次数 ≥ 3
 
-#### 成就8：血量之王 (health_king)
+#### 成就8：血量骑士 (health_knight)
 
-- **名称**：血量之王
+- **名称**：血量骑士
 - **描述**：最终血量达到200以上
-- **图标**：❤️
+- **图标**：🛡️
 - **类型**：`milestone`
 - **条件**：
   - 玩家获胜
   - 获胜时血量 ≥ 200
 
-#### 成就9：长征 (long_march)
+#### 成就9：血量之王 (health_king)
+
+- **名称**：血量之王
+- **描述**：最终血量达到500以上
+- **图标**：❤️
+- **类型**：`milestone`
+- **条件**：
+  - 玩家获胜
+  - 获胜时血量 ≥ 500
+
+#### 成就10：血量之帝 (health_emperor)
+
+- **名称**：血量之帝
+- **描述**：最终血量达到1000以上
+- **图标**：👑
+- **类型**：`milestone`
+- **条件**：
+  - 玩家获胜
+  - 获胜时血量 ≥ 1000
+
+#### 成就11：长征 (long_march)
 
 - **名称**：长征
 - **描述**：超过20回合并最终获胜
@@ -112,7 +132,7 @@
   - 玩家获胜
   - 游戏结束时回合数 `game.roundCount > 20`
 
-#### 成就10：龙行万里 (dragon_wanderer)
+#### 成就12：龙行万里 (dragon_wanderer)
 
 - **名称**：龙行万里
 - **描述**：使用"龙"皮肤，本局使用斜行功能超过2次并最终获胜
@@ -123,7 +143,7 @@
   - 玩家皮肤为龙皮肤（`winner.skin && winner.skin.id === 'dragon'`）
   - 龙斜行使用次数 `winner.stats.dragonDiagonalUses > 2`
 
-#### 成就11：不动如山 (immovable)
+#### 成就13：不动如山 (immovable)
 
 - **名称**：不动如山
 - **描述**：全程未超车任何玩家并最终获胜（其他玩家均已死亡）
@@ -171,7 +191,7 @@ class Player {
 | 移动玩家 | `totalMoves++` | `Game.movePlayer()` |
 | 受到伤害 | `damageTaken += delta`, 更新 `minimumHealth` | `Player.changeHealth()` |
 | 经历黑洞 | `blackholeCount++` | `Game.triggerCellProperty()` - blackhole 处理 |
-| 消灭幽灵 | `ghostKills++` | `Game.triggerCellProperty()` - DDD 处理（贴身幽灵死亡） |
+| 牺牲我方幽灵 | `ghostSacrifices++` / `turnGhostSacrifices++` | `Player.changeGhostHealth()` / DDD 处理 |
 | 炸弹击杀 | `bombKills++` | `Game.triggerBomb()` |
 | 血量增加 | 更新 `maxHealth` | `Player.changeHealth()` |
 | 召唤幽灵 | `ghostSummons++` | `Game.triggerCellProperty()` - ghost 处理 |

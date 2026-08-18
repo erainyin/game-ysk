@@ -592,14 +592,19 @@ class Game {
                 return false;
             case 'diediedie':
                 if (player.ghostType === 2 && player.ghostHealth > 0) {
+                    const ghostBefore = player.ghostHealth;
                     player.ghostHealth--;
                     player.ghostCount = player.ghostHealth;
                     if (player.ghostHealth === 0) {
                         player.hasGhost = false;
                         player.ghostType = 0;
+                        player.recordGhostSacrifice();
                     }
                     this.notify(`${player.name} 的贴身幽灵代替玩家死亡！剩余${player.ghostHealth}血`, 'success');
                     this.log(`触发[DDD]，贴身幽灵代替玩家死亡，剩余${player.ghostHealth}血`);
+                    if (ghostBefore > 0 && player.ghostHealth === 0) {
+                        this.notify(`${player.name} 牺牲了本轮的幽灵，累计 ${player.turnGhostSacrifices} 个！`, 'warning');
+                    }
                 } else if (player.undieTurns > 0) {
                     player.undieTurns--;
                     this.notify(`${player.name} 触发死亡陷阱！但不死守护生效，免于死亡！`, 'success');
@@ -844,14 +849,19 @@ class Game {
                 this.log(`幽灵触发[BL${value > 0 ? '+' : ''}${value}]，幽灵血量变为${player.ghostHealth}`);
                 break;
             case 'diediedie':
+                const ghostBefore = player.ghostHealth;
                 player.ghostHealth--;
                 player.ghostCount = player.ghostHealth;
                 if (player.ghostHealth === 0) {
                     player.hasGhost = false;
                     player.ghostType = 0;
                     player.ghostPosition = 1;
+                    player.recordGhostSacrifice();
                     this.notify(`${player.name}的幽灵触发死亡陷阱！幽灵死亡！`, 'danger');
                     this.log(`幽灵触发[DDD]，幽灵死亡！`);
+                    if (ghostBefore > 0) {
+                        this.notify(`${player.name} 牺牲了本轮的幽灵，累计 ${player.turnGhostSacrifices} 个！`, 'warning');
+                    }
                 } else {
                     this.notify(`${player.name}的幽灵触发死亡陷阱！剩余${player.ghostHealth}血`, 'warning');
                     this.log(`幽灵触发[DDD]，剩余${player.ghostHealth}血`);
@@ -1313,8 +1323,7 @@ class Game {
                 if (source.isDead) {
                     this.notify(`${source.name} 因大撤退而倒下了！`, 'danger');
                 }
-                this.checkCardDamageGameEnd();
-                this.checkGameEnd();
+                this.ensureGameEndIfAnyPlayerDied();
                 break;
             }
         }
@@ -1378,8 +1387,14 @@ class Game {
     ensureGameEndIfAnyPlayerDied() {//防止直接扣血/自我牺牲后未触发结束判定
         if (this.gameState !== 'playing') return;
         const anyDead = this.players.some(p => p.isDead);
-        if (anyDead) {
-            this.checkGameEnd();
+        if (!anyDead) return;
+
+        this.checkGameEnd();
+        if (this.gameState !== 'playing') return;
+
+        const currentPlayer = this.getCurrentPlayer();
+        if (currentPlayer && currentPlayer.isDead && !currentPlayer.hasRolled) {
+            this.nextTurn();
         }
     }
 

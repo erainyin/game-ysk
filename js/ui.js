@@ -917,14 +917,50 @@ class UI {
             if (this.game.gameState === 'playing' && !this.game.purchasePhase) {
                 const player = this.game.getCurrentPlayer();
                 if (player && !player.isDead && player.id !== this.playerIndex && !player.hasRolled) {
-                    // AI先使用卡牌，再掷骰子
-                    this.game.aiUseCards(player);
-                    // 龙皮肤：AI 决策是否斜行
-                    const diagTarget = this.game.dragonDecideForAI(player);
-                    if (diagTarget) {
-                        this.game.movePlayerDiagonal(player, diagTarget);
+                    // AI 先决定本回合要使用的卡牌与目标，再播放抛射动画，最后再结算卡牌和掷骰
+                    let chosenCard = null;
+                    let chosenTarget = null;
+
+                    if (player.health <= 2) {
+                        const healCard = player.cards.find(c => c.id === 'heal');
+                        if (healCard) {
+                            chosenCard = healCard;
+                        }
+                    }
+
+                    if (!chosenCard) {
+                        const attackCard = player.cards.find(c => c.type === 'attack');
+                        if (attackCard) {
+                            const enemies = this.game.players.filter(p => !p.isDead && p.id !== player.id);
+                            if (enemies.length > 0) {
+                                chosenCard = attackCard;
+                                chosenTarget = enemies.reduce((min, p) => p.health < min.health ? p : min);
+                            }
+                        }
+                    }
+
+                    const finishAiCardTurn = () => {
+                        // 龙皮肤：AI 决策是否斜行
+                        const diagTarget = this.game.dragonDecideForAI(player);
+                        if (diagTarget) {
+                            this.game.movePlayerDiagonal(player, diagTarget);
+                        } else {
+                            this.game.rollDice();
+                        }
+                    };
+
+                    if (chosenCard && chosenTarget && chosenCard.targetType === 'enemy') {
+                        this.playCardProjectile(player, chosenTarget, chosenCard.id, () => {
+                            this.game.useCard(player, chosenCard.instanceId, chosenTarget.id);
+                            this.onStateChange();
+                            finishAiCardTurn();
+                        });
+                    } else if (chosenCard) {
+                        this.game.useCard(player, chosenCard.instanceId, null);
+                        this.onStateChange();
+                        finishAiCardTurn();
                     } else {
-                        this.game.rollDice();
+                        finishAiCardTurn();
                     }
                 }
             }

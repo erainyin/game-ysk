@@ -17,6 +17,7 @@ class Player {
         this.ghostHealth = 0;
         this.ghostPosition = 1;
         this.ghostCount = 0;
+        this.turnGhostSacrifices = 0;
         this.maxGhostCount = 3;
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
@@ -42,6 +43,7 @@ class Player {
             minimumHealth: this.health,
             blackholeCount: 0,
             ghostKills: 0,
+            ghostSacrifices: 0,
             bombKills: 0,
             maxHealth: this.health,
             ghostSummons: 0,
@@ -66,6 +68,7 @@ class Player {
         this.ghostHealth = 0;
         this.ghostPosition = 1;
         this.ghostCount = 0;
+        this.turnGhostSacrifices = 0;
         this.maxGhostCount = 3;  // 守护者皮肤会在此基础值上 +1
         this.skin = null;
         this.speedBoostRemainingTurns = 0;
@@ -91,6 +94,7 @@ class Player {
             minimumHealth: this.health,
             blackholeCount: 0,
             ghostKills: 0,
+            ghostSacrifices: 0,
             bombKills: 0,
             maxHealth: this.health,
             ghostSummons: 0,
@@ -218,6 +222,7 @@ class Player {
     resetRoll() {
         this.hasRolled = false;
         this.hasUsedCardThisTurn = false;  // 新回合重置卡牌使用次数
+        this.turnGhostSacrifices = 0;
     }
 
     win() {
@@ -282,6 +287,7 @@ class Player {
     }
 
     changeGhostHealth(delta) {
+        const before = this.ghostHealth;
         this.ghostHealth += delta;
         if (this.ghostHealth > this.maxGhostCount) {
             this.ghostHealth = this.maxGhostCount;
@@ -291,6 +297,10 @@ class Player {
             this.hasGhost = false;
             this.ghostType = 0;
             this.ghostPosition = 1;
+            if (before > 0) {
+                this.turnGhostSacrifices += 1;
+                this.stats.ghostSacrifices += 1;
+            }
         }
     }
 
@@ -370,6 +380,10 @@ class Player {
     }
     recordBlackhole() { this.stats.blackholeCount++; }
     recordGhostKill() { this.stats.ghostKills++; }
+    recordGhostSacrifice() {
+        this.turnGhostSacrifices += 1;
+        this.stats.ghostSacrifices += 1;
+    }
     recordBombKill() { this.stats.bombKills++; }
     updateMaxHealth() { if (this.health > this.stats.maxHealth) this.stats.maxHealth = this.health; }
     recordGhostSummon() { this.stats.ghostSummons++; }

@@ -119,11 +119,11 @@ class AchievementSystem {
             {
                 id: 'ghost_killer',
                 name: '幽灵杀手',
-                description: '消灭3个敌方幽灵',
+                description: '本轮牺牲3个或3个以上我方幽灵并取得胜利',
                 icon: '👻',
                 type: 'action',
                 condition: (winner, game) => {
-                    try { return !!winner && winner.stats.ghostKills >= 3; } catch (e) { return false; }
+                    try { return !!winner && winner.turnGhostSacrifices >= 3; } catch (e) { return false; }
                 }
             },
             {
@@ -147,13 +147,33 @@ class AchievementSystem {
                 }
             },
             {
-                id: 'health_king',
-                name: '血量之王',
+                id: 'health_knight',
+                name: '血量骑士',
                 description: '最终血量达到200以上',
-                icon: '❤️',
+                icon: '🛡️',
                 type: 'milestone',
                 condition: (winner, game) => {
                     try { return !!winner && winner.health >= 200; } catch (e) { return false; }
+                }
+            },
+            {
+                id: 'health_king',
+                name: '血量之王',
+                description: '最终血量达到500以上',
+                icon: '❤️',
+                type: 'milestone',
+                condition: (winner, game) => {
+                    try { return !!winner && winner.health >= 500; } catch (e) { return false; }
+                }
+            },
+            {
+                id: 'health_emperor',
+                name: '血量之帝',
+                description: '最终血量达到1000以上',
+                icon: '👑',
+                type: 'milestone',
+                condition: (winner, game) => {
+                    try { return !!winner && winner.health >= 1000; } catch (e) { return false; }
                 }
             },
             {
