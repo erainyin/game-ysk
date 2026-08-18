@@ -33,6 +33,7 @@ class Game {
         this.humanPlayerIndex = -1;
         this.purchasePhase = false;       // 卡牌购买阶段标志
         this.onCardPurchase = null;       // 卡牌购买阶段回调（UI）
+        this.isCardResolution = false;    // 卡牌结算中：禁止在未掷骰前自动轮换回合
     }
 
     setCallbacks(callbacks) {//设置回调函数
@@ -1013,7 +1014,7 @@ class Game {
             const achievements = (typeof achievementSystem !== 'undefined') ? achievementSystem.checkAchievements(alivePlayers[0], this) : [];
             this.onGameEnd && this.onGameEnd(alivePlayers[0], achievements);
             this.notifyStateChange();
-        } else {
+        } else if (!this.isCardResolution && this.getCurrentPlayer() && this.getCurrentPlayer().hasRolled) {
             this.nextTurn();
         }
     }
@@ -1021,6 +1022,12 @@ class Game {
     nextTurn() {//下一轮
         // 游戏已结束时不再推进回合
         if (this.gameState !== 'playing') return;
+        if (this.isCardResolution) return;
+
+        const turnGuardPlayer = this.getCurrentPlayer();
+        if (turnGuardPlayer && !turnGuardPlayer.hasRolled && !turnGuardPlayer.isDead) {
+            return;
+        }
 
         // 颠倒师：所有走子结束（含格子属性二次移动）后执行 pending 的格子打乱
         this.players.forEach(p => this.executePendingChaosShuffle(p));
@@ -1209,24 +1216,20 @@ class Game {
             return;
         }
 
-        // 执行效果
-        card.effects.forEach(effect => {
-            this.executeCardEffect(card, effect, player, target);
-        });
+        this.isCardResolution = true;
+        try {
+            // 执行效果
+            card.effects.forEach(effect => {
+                this.executeCardEffect(card, effect, player, target);
+            });
+        } finally {
+            this.isCardResolution = false;
+        }
 
         // 移除卡牌
         player.cards.splice(cardIndex, 1);
         player.hasUsedCardThisTurn = true;  // 标记本回合已使用卡牌
         this.log(`${player.name} 使用了 [${card.name}]`, true);
-
-        // 处理“自我牺牲/自伤致死”导致的回合推进：若当前玩家死亡但游戏未结束，必须跳到下一位存活玩家
-        if (player.isDead) {
-            this.checkGameEnd();
-            if (this.gameState === 'playing') {
-                this.nextTurn();
-            }
-        }
-
         this.notifyStateChange();
     }
 
