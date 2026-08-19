@@ -590,6 +590,11 @@ class Game {
                     this.log(`触发[BL${value > 0 ? '+' : ''}${value}]，血量变为${player.health}`);
                 }
                 return false;
+            case 'coin':
+                player.points += value;
+                this.notify(`${player.name} ${value >= 0 ? '获得' : '失去'} ${Math.abs(value)} 点数！当前点数：${player.points}`, value >= 0 ? 'success' : 'warning');
+                this.log(`触发[COIN${value >= 0 ? '+' : ''}${value}]，点数变为${player.points}`);
+                return false;
             case 'diediedie':
                 if (player.ghostType === 2 && player.ghostHealth > 0) {
                     const ghostBefore = player.ghostHealth;
