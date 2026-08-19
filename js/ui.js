@@ -1542,7 +1542,7 @@ class UI {
         const cardCount = (player.cards || []).length;
         let cardInfo = '';
         if (!player.isDead && !player.isWinner) {
-            const cardsText = (player.cards || []).map(c => `${cardSystem.getIconHtml(c)}${c.name}`).join('、');
+            const cardsText = (player.cards || []).map(c => `${cardSystem.getIconHtml(c)}`).join(' ');
             cardInfo = `<div class="player-info-cards">
                 <div class="player-info-points">💰 点数：${player.points}</div>
                 <div class="player-info-hand">🃏 手牌（${cardCount}张）：${cardsText || '无'}</div>
