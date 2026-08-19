@@ -86,7 +86,7 @@ button, .btn {
     padding: 11px;
 }
 
-.btn-achieve:hover {
+.btn-mapeditor:hover, .btn-wiki:hover, .btn-achieve:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(241, 196, 15, 0.35);
 }
