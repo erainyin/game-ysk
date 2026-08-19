@@ -2028,10 +2028,11 @@ class UI {
 
         const labelEl = container.querySelector('.hand-cards-label');
         if (labelEl) {
+            const pointsLabel = `💰 点数：${showPlayer.points}`;
             if (isControllable) {
-                labelEl.innerHTML = `🃏 ${showPlayer.name} 的手牌（掷骰前可使用，每回合限1张）${usedHint}`;
+                labelEl.innerHTML = `🃏 ${showPlayer.name} 的手牌　${pointsLabel}（掷骰前可使用，每回合限1张）${usedHint}`;
             } else {
-                labelEl.innerHTML = `🃏 ${showPlayer.name} 的手牌（AI 回合，仅查看）`;
+                labelEl.innerHTML = `🃏 ${showPlayer.name} 的手牌　${pointsLabel}（AI 回合，仅查看）`;
             }
         }
 
