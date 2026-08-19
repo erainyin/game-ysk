@@ -950,10 +950,15 @@ class UI {
                     };
 
                     if (chosenCard && chosenTarget && chosenCard.targetType === 'enemy') {
+                        const config = this.getCardProjectileConfig(chosenCard.id);
                         this.playCardProjectile(player, chosenTarget, chosenCard.id, () => {
                             this.game.useCard(player, chosenCard.instanceId, chosenTarget.id);
                             this.onStateChange();
                             finishAiCardTurn();
+                        }, {
+                            direction: config.direction,
+                            hitEffectClass: config.hitEffectClass,
+                            hitAnchor: config.hitAnchor
                         });
                     } else if (chosenCard) {
                         this.game.useCard(player, chosenCard.instanceId, null);
@@ -1281,6 +1286,19 @@ class UI {
                 const targetId = parseInt(e.currentTarget.dataset.targetId);
                 this.hideSelectionModal();
                 this.pendingPlunderPlayer = null;
+                const target = this.game.players.find(p => p.id === targetId);
+                if (target) {
+                    const config = this.getCardProjectileConfig('plunder');
+                    this.playCardProjectile(player, target, 'plunder', () => {
+                        this.game.selectPlunderTarget(player, targetId);
+                        this.onStateChange();
+                    }, {
+                        direction: config.direction,
+                        hitEffectClass: config.hitEffectClass,
+                        hitAnchor: config.hitAnchor
+                    });
+                    return;
+                }
                 this.game.selectPlunderTarget(player, targetId);
                 this.onStateChange();
             });
@@ -2052,20 +2070,48 @@ class UI {
         }
     }
 
-    playCardProjectile(sourcePlayer, targetPlayer, cardId, onComplete = null) {
-        const card = cardSystem.getCardById(cardId);
-        if (!card || !sourcePlayer || !targetPlayer) return;
+    getCardProjectileConfig(cardId) {
+        const defaults = {
+            direction: 'forward',
+            hitEffectClass: 'impact-flame',
+            hitAnchor: 'cell'
+        };
 
+        const cardVariantMap = {
+            fireball: { direction: 'forward', hitEffectClass: 'fire-flame', hitAnchor: 'cell' },
+            bomb_card: { direction: 'forward', hitEffectClass: 'impact-flame', hitAnchor: 'cell' },
+            life_drain: { direction: 'reverse', hitEffectClass: 'blue-flame', hitAnchor: 'player-tag' },
+            plunder: { direction: 'reverse', hitEffectClass: 'blue-flame', hitAnchor: 'player-tag' }
+        };
+
+        return { ...defaults, ...(cardVariantMap[cardId] || {}) };
+    }
+
+    playCardProjectile(sourcePlayer, targetPlayer, cardId, onComplete = null, options = {}) {
+        const card = cardSystem.getCardById(cardId) || {
+            id: cardId,
+            name: cardId === 'plunder' ? '掠夺' : (cardId === 'life_drain' ? '偷取生命' : cardId),
+            emoji: cardId === 'plunder' ? '🦝' : (cardId === 'life_drain' ? '🧛' : '🎯')
+        };
+        if (!sourcePlayer || !targetPlayer) return;
+
+        const resolvedConfig = this.getCardProjectileConfig(cardId);
+        const direction = options.direction || resolvedConfig.direction;
+        const reverseDirection = direction === 'reverse';
         const sourceTag = document.getElementById(`player-${sourcePlayer.id}-tag`);
+        const targetTag = document.getElementById(`player-${targetPlayer.id}-tag`);
+        const sourceCell = document.querySelector(`.cell[data-number="${sourcePlayer.position}"]`);
         const targetCell = document.querySelector(`.cell[data-number="${targetPlayer.position}"]`);
-        if (!sourceTag || !targetCell) return;
 
-        const sourceRect = sourceTag.getBoundingClientRect();
-        const targetRect = targetCell.getBoundingClientRect();
-        const startX = sourceRect.left + sourceRect.width / 2;
-        const startY = sourceRect.top + sourceRect.height / 2;
-        const endX = targetRect.left + targetRect.width / 2;
-        const endY = targetRect.top + targetRect.height / 2;
+        if (!sourceTag || !targetCell) return;
+        if (reverseDirection && (!targetTag || !sourceCell)) return;
+
+        const startRect = reverseDirection ? targetCell.getBoundingClientRect() : sourceTag.getBoundingClientRect();
+        const endRect = reverseDirection ? sourceTag.getBoundingClientRect() : targetCell.getBoundingClientRect();
+        const startX = startRect.left + startRect.width / 2;
+        const startY = startRect.top + startRect.height / 2;
+        const endX = endRect.left + endRect.width / 2;
+        const endY = endRect.top + endRect.height / 2;
 
         const projectile = document.createElement('div');
         projectile.className = 'card-projectile';
@@ -2115,7 +2161,13 @@ class UI {
                 requestAnimationFrame(animate);
             } else {
                 projectile.remove();
-                uiInstance.playTargetHitEffect(targetPlayer, card.id);
+                const hitTargetPlayer = reverseDirection ? sourcePlayer : targetPlayer;
+                const hitAnchor = options.hitAnchor || resolvedConfig.hitAnchor || (reverseDirection ? 'player-tag' : 'cell');
+                const hitEffectClass = options.hitEffectClass || resolvedConfig.hitEffectClass || 'impact-flame';
+                uiInstance.playTargetHitEffect(hitTargetPlayer, card.id, {
+                    hitEffectClass,
+                    anchor: hitAnchor
+                });
                 if (onComplete) onComplete();
             }
         }
@@ -2123,9 +2175,11 @@ class UI {
         requestAnimationFrame(animate);
     }
 
-    playTargetHitEffect(targetPlayer, cardId) {
+    playTargetHitEffect(targetPlayer, cardId, options = {}) {
         const targetTag = document.getElementById(`player-${targetPlayer.id}-tag`);
-        if (targetTag) {
+        const anchor = options.anchor || 'cell';
+
+        if (anchor === 'player-tag' && targetTag) {
             targetTag.classList.remove('player-hit-hit');
             void targetTag.offsetWidth;
             targetTag.classList.add('player-hit-hit');
@@ -2133,15 +2187,15 @@ class UI {
         }
 
         const targetCell = document.querySelector(`.cell[data-number="${targetPlayer.position}"]`);
-        if (!targetCell) return;
+        const anchorRect = anchor === 'player-tag' && targetTag ? targetTag.getBoundingClientRect() : (targetCell ? targetCell.getBoundingClientRect() : null);
+        if (!anchorRect) return;
 
-        const cellRect = targetCell.getBoundingClientRect();
         const hitEffect = document.createElement('div');
         hitEffect.className = 'card-hit-effect';
-        hitEffect.style.left = `${cellRect.left + cellRect.width / 2}px`;
-        hitEffect.style.top = `${cellRect.top + cellRect.height / 2}px`;
+        hitEffect.style.left = `${anchorRect.left + anchorRect.width / 2}px`;
+        hitEffect.style.top = `${anchorRect.top + anchorRect.height / 2}px`;
 
-        const accentClass = (cardId === 'fireball' || cardId === 'flame') ? 'fire-flame' : 'impact-flame';
+        const accentClass = options.hitEffectClass || this.getCardProjectileConfig(cardId).hitEffectClass || 'impact-flame';
         hitEffect.classList.add(accentClass);
         document.body.appendChild(hitEffect);
 
@@ -2184,9 +2238,14 @@ class UI {
                 this.hideCardTargetSelection();
 
                 if (card.targetType === 'enemy' && target) {
+                    const config = this.getCardProjectileConfig(card.id);
                     this.playCardProjectile(player, target, card.id, () => {
                         this.game.useCard(player, instanceId, targetId);
                         this.onStateChange();
+                    }, {
+                        direction: config.direction,
+                        hitEffectClass: config.hitEffectClass,
+                        hitAnchor: config.hitAnchor
                     });
                     return;
                 }

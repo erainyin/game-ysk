@@ -1075,6 +1075,19 @@ button, .btn {
     background: radial-gradient(circle, rgba(255, 250, 240, 0.95) 0%, rgba(255, 170, 90, 0.85) 14%, rgba(255, 92, 36, 0.7) 38%, rgba(255, 0, 0, 0) 80%);
 }
 
+.card-hit-effect.blue-flame {
+    background: radial-gradient(circle, rgba(245, 250, 255, 0.97) 0%, rgba(140, 210, 255, 0.9) 15%, rgba(72, 144, 255, 0.8) 35%, rgba(22, 87, 255, 0.24) 72%, rgba(0, 0, 0, 0) 100%);
+    box-shadow: 0 0 28px rgba(92, 180, 255, 0.9), 0 0 60px rgba(52, 115, 255, 0.5);
+}
+
+.card-hit-effect.blue-flame::before {
+    border-color: rgba(180, 226, 255, 0.8);
+}
+
+.card-hit-effect.blue-flame::after {
+    border-color: rgba(92, 180, 255, 0.7);
+}
+
 @keyframes flameBurst {
     0% {
         opacity: 0;
