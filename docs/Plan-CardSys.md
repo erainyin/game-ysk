@@ -496,7 +496,7 @@ rollDice() {
     this.dice.roll((value) => {
         let finalValue = value;
 
-        // 飞贼皮肤速度加成
+        // 飞毛腿皮肤速度加成
         if (rollingPlayer.speedBoostRemainingTurns > 0) {
             finalValue = value * 2;
         }

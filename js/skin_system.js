@@ -26,9 +26,9 @@ class SkinSystem {
             },
             {
                 id: 'thief',
-                name: '飞贼',
+                name: '飞毛腿',
                 description: '前3回合移动速度翻倍，第4回合起恢复正常',
-                icon: 'thief.png',
+                icon: 'runner.png',
                 color: '#9b59b6',
                 effects: [
                     { type: 'speed_boost', params: { duration: 3 } }
