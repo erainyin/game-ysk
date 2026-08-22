@@ -1364,7 +1364,7 @@ class UI {
                     </div>
                     <div class="purchase-desc-box">
                         <div class="purchase-desc-title">选择一张卡牌</div>
-                        <div class="purchase-desc-body">可购买的卡牌高亮显示，点数不足的卡牌无法选择。出售手牌后，点数会立即刷新。</div>
+                        <div class="purchase-desc-body">可以出售你有的卡牌，但是只能购买一张新的卡牌，请想好了哦～</div>
                     </div>
                 </div>
                 <div class="purchase-section">
