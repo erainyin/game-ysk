@@ -16,7 +16,8 @@ class UI {
         this.logData = {};
         this.playerCount = 2;
         this.isRollLocked = false;
-        this.currentMapFile = 'grid.csv';
+        this.mapStorageKey = 'ysk_selected_map_v1';
+        this.currentMapFile = this.loadSavedMapFile();
         this.currentMapName = '默认地图';
         this.playerSkins = {};
         this.selectedPlayerIndex = null;
@@ -32,11 +33,27 @@ class UI {
 
     async init() {//初始化UI
         this.setupEventListeners();
-        await loadGridCSV();
+        await loadGridCSV(this.currentMapFile);
         this.renderBoard();
         this.updateUI();
-        // 页面打开后自动弹出角色选择弹窗（默认2人，使用已加载的默认地图）
+        // 页面打开后自动弹出角色选择弹窗（默认2人，使用已保存或默认地图）
         this.showSelectPlayerModal(2);
+    }
+
+    loadSavedMapFile() {
+        try {
+            return localStorage.getItem(this.mapStorageKey) || 'grid.csv';
+        } catch (e) {
+            return 'grid.csv';
+        }
+    }
+
+    saveSelectedMapFile(mapPath) {
+        try {
+            localStorage.setItem(this.mapStorageKey, mapPath);
+        } catch (e) {
+            console.warn('Map selection storage failed', e);
+        }
     }
 
     setupEventListeners() {//设置事件监听器
@@ -88,6 +105,7 @@ class UI {
             onCardPurchase: () => this.showPurchaseModal(),
             onPlunderSelect: (player) => this.showPlunderSelection(player),
             onSkinTempleSelect: (player) => this.showSkinTempleSelection(player),
+            onShopSelect: (player) => this.showShopSelection(player),
             onChaosShuffle: (affectedCells) => this.handleChaosShuffleRender(affectedCells)
         });
     }
@@ -815,6 +833,7 @@ class UI {
                     const randomMap = maps[Math.floor(Math.random() * maps.length)];
                     this.currentMapFile = randomMap.path;
                     await loadGridCSV(this.currentMapFile);
+                    this.saveSelectedMapFile(this.currentMapFile);
                     const mapName = randomMap.displayName || randomMap.name;
                     this.currentMapName = mapName;
                     this.showNotification(`🎲 随机地图：${mapName}`, 'success');
@@ -843,6 +862,7 @@ class UI {
             onCardPurchase: () => this.showPurchaseModal(),
             onPlunderSelect: (player) => this.showPlunderSelection(player),
             onSkinTempleSelect: (player) => this.showSkinTempleSelection(player),
+            onShopSelect: (player) => this.showShopSelection(player),
             onChaosShuffle: (affectedCells) => this.handleChaosShuffleRender(affectedCells)
         });
 
@@ -1200,6 +1220,7 @@ class UI {
         const selectedItem = this.mapSelectModal.querySelector('.map-item.selected');
         if (selectedItem) {
             const mapPath = selectedItem.dataset.path;
+            this.saveSelectedMapFile(mapPath);
             if (mapPath !== this.currentMapFile) {
                 await loadMapFromFile(mapPath);
                 this.currentMapFile = mapPath;
@@ -1310,6 +1331,133 @@ class UI {
         this.pendingPlunderPlayer = null;
         this.game.isSelectingPlunder = false;
         this.game.nextTurn();
+    }
+
+    showShopSelection(player) {//商店：选择一张卡牌后确认购买
+        this.hideSelectionModal();
+        if (this.shopModal) this.shopModal.remove();
+
+        const allCards = cardSystem.getAllCards();
+        const renderCard = (card) => {
+            const canAfford = player.points >= card.cost;
+            return `<div class="purchase-card-item ${canAfford ? '' : 'disabled'}" data-card-id="${card.id}">
+                <div class="purchase-card-emoji">${cardSystem.getIconHtml(card)}</div>
+                <div class="purchase-card-cost">${card.cost}</div>
+            </div>`;
+        };
+
+        const modal = document.createElement('div');
+        modal.className = 'selection-modal';
+        modal.innerHTML = `
+            <div class="modal-content purchase-modal-content shop-modal-content">
+                <div class="purchase-header">
+                    <button class="modal-close-btn" aria-label="关闭">×</button>
+                    <h3>🛒 ${player.name} 的商店</h3>
+                </div>
+                <div class="purchase-top-bar">
+                    <div class="purchase-top-info">
+                        <div class="purchase-points">💰<br><span class="shop-points-value">${player.points}</span></div>
+                        <div class="purchase-hand shop-owned-cards">
+                            <div class="purchase-hand-label">🃏 持有卡牌（点击出售，售价为原价1/3，最低1点）</div>
+                            <div class="purchase-hand-list" id="shop-owned-card-list"></div>
+                        </div>
+                    </div>
+                    <div class="purchase-desc-box">
+                        <div class="purchase-desc-title">选择一张卡牌</div>
+                        <div class="purchase-desc-body">可购买的卡牌高亮显示，点数不足的卡牌无法选择。出售手牌后，点数会立即刷新。</div>
+                    </div>
+                </div>
+                <div class="purchase-section">
+                    <div class="purchase-section-label">⚔️ 攻击型卡牌</div>
+                    <div class="purchase-cards-grid shop-cards-grid">
+                        ${allCards.filter(card => card.type === 'attack').map(renderCard).join('')}
+                    </div>
+                </div>
+                <div class="purchase-section">
+                    <div class="purchase-section-label">🛡️ 防御型卡牌</div>
+                    <div class="purchase-cards-grid shop-cards-grid">
+                        ${allCards.filter(card => card.type === 'defense').map(renderCard).join('')}
+                    </div>
+                </div>
+                <div class="modal-action-bar">
+                    <button class="btn-restart-cancel shop-leave-btn">离开商店</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        this.shopModal = modal;
+
+        const refreshShop = () => {
+            modal.querySelector('.shop-points-value').textContent = player.points;
+            const ownedList = modal.querySelector('#shop-owned-card-list');
+            ownedList.innerHTML = player.cards.map(card => {
+                const cardDef = cardSystem.getCardById(card.id);
+                const sellPrice = Math.max(1, Math.floor((cardDef ? cardDef.cost : 0) / 3));
+                return `<span class="purchase-hand-card shop-owned-card" data-instance-id="${card.instanceId}" title="出售获得${sellPrice}点">
+                    ${cardSystem.getIconHtml(cardDef || card)}${cardDef ? cardDef.name : card.id}<span class="shop-sell-price">+${sellPrice}</span>
+                </span>`;
+            }).join('') || '<span class="purchase-hand-empty">暂无卡牌</span>';
+
+            ownedList.querySelectorAll('.shop-owned-card').forEach(item => {
+                item.addEventListener('click', () => {
+                    const card = player.cards.find(ownedCard => ownedCard.instanceId === parseFloat(item.dataset.instanceId));
+                    if (card) showShopConfirm('sell', card);
+                });
+            });
+        };
+
+        const showShopConfirm = (action, card) => {
+            const cardDef = cardSystem.getCardById(card.id);
+            const sellPrice = Math.max(1, Math.floor((cardDef ? cardDef.cost : 0) / 3));
+            const isSelling = action === 'sell';
+            const existingPopover = modal.querySelector('.shop-confirm-popover');
+            if (existingPopover) existingPopover.remove();
+
+            const popover = document.createElement('div');
+            popover.className = 'shop-confirm-popover';
+            popover.innerHTML = `<div class="shop-confirm-text">确认${isSelling ? '卖出' : '购买'}这张卡牌？</div>
+                <div class="shop-confirm-card">${cardSystem.getIconHtml(cardDef || card)} ${cardDef ? cardDef.name : card.id}${isSelling ? `（+${sellPrice}点）` : `（-${cardDef.cost}点）`}</div>
+                <div class="shop-confirm-actions">
+                    <button class="btn-start-game shop-confirm-action">确认${isSelling ? '卖出' : '购买'}</button>
+                    <button class="btn-restart-cancel shop-dismiss-action">我再想想</button>
+                </div>`;
+            modal.querySelector('.shop-modal-content').appendChild(popover);
+
+            popover.querySelector('.shop-dismiss-action').addEventListener('click', () => popover.remove());
+            popover.querySelector('.shop-confirm-action').addEventListener('click', () => {
+                if (isSelling) {
+                    if (this.game.sellShopCard(player, card.instanceId)) {
+                        refreshShop();
+                        modal.querySelectorAll('.purchase-card-item').forEach(cardItem => {
+                            const purchaseCard = cardSystem.getCardById(cardItem.dataset.cardId);
+                            cardItem.classList.toggle('disabled', player.points < purchaseCard.cost);
+                        });
+                    }
+                } else {
+                    modal.remove();
+                    this.shopModal = null;
+                    this.game.selectShopCard(player, card.id);
+                }
+                popover.remove();
+            });
+        };
+
+        refreshShop();
+        modal.querySelectorAll('.purchase-card-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (item.classList.contains('disabled')) return;
+                const card = cardSystem.getCardById(item.dataset.cardId);
+                if (card) showShopConfirm('buy', card);
+            });
+        });
+
+        const close = () => {
+            modal.remove();
+            this.shopModal = null;
+            this.game.cancelShop(player);
+        };
+        modal.querySelector('.modal-close-btn').addEventListener('click', close);
+        modal.querySelector('.shop-leave-btn').addEventListener('click', close);
     }
 
     showSkinTempleSelection(player) {//皮肤神殿：显示皮肤选择列表

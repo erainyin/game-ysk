@@ -17,6 +17,7 @@ const FUNCTION_MAP = {
   'P': { type: 'pause', icon: '⏸️', bgColor: '#fff9c4', direction: null },
   'LCK': { type: 'luckystar', icon: '🍀', bgColor: '#e8f8f5', direction: null },
   'COIN': { type: 'coin', icon: '💰', bgColor: '#fff8e1', direction: null },
+  'SHOP': { type: 'shop', icon: '🛒', bgColor: '#e8f5e9', direction: null },
   'ROB': { type: 'plunder', icon: '🦝', bgColor: '#fff3e0', direction: null },
   'SKIN': { type: 'skintemple', icon: '🏛️', bgColor: '#f3e5f5', direction: null }
 };
@@ -155,6 +156,7 @@ function getColorForType(type) {
     ghost: '#9c27b0',
     luckystar: '#1abc9c',
     coin: '#f1c40f',
+    shop: '#2e7d32',
     plunder: '#e67e22',
     skintemple: '#8e44ad'
   };
@@ -177,6 +179,7 @@ PROPERTY_CONFIG = {
   pause: { name: '暂停', icon: '⏸️', bgColor: '#fff9c4', description: 'x为暂停回合数，玩家将跳过x个回合' },
   luckystar: { name: '幸运星', icon: '🍀', bgColor: '#e8f8f5', description: 'x为持续回合数，踩到后下回合开始，x回合内掷骰子点数最低为3（1+2）' },
   coin: { name: '钱多少', icon: '💰', bgColor: '#fff8e1', description: 'X为点数变化量，正数增加购买卡牌点数并显示💰，负数减少购买卡牌点数并显示💸' },
+  shop: { name: '商店', icon: '🛒', bgColor: '#e8f5e9', description: '无变量，踩到后打开卡牌商店，可选择一张点数足够的卡牌购买，也可以关闭窗口跳过购买' },
   plunder: { name: '掠夺点', icon: '🦝', bgColor: '#fff3e0', description: '无变量，踩到后选择一名其他玩家，随机偷取对方1张手牌' },
   skintemple: { name: '皮肤神殿', icon: '🏛️', bgColor: '#f3e5f5', description: '无变量，踩到后可更换皮肤1次，重置皮肤属性（可恢复已用完的技能次数）' }
 };

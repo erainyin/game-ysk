@@ -17,6 +17,7 @@ class Game {
         this.onMoveSelect = null;
         this.onPlunderSelect = null;        // 掠夺点：选择目标回调
         this.onSkinTempleSelect = null;     // 皮肤神殿：选择皮肤回调
+        this.onShopSelect = null;           // 商店：选择卡牌回调
         this.onChaosShuffle = null;         // 颠倒师：格子属性打乱回调（UI 重渲染棋盘）
         this.lastRollValue = 0;
         this.pendingRollValue = 0;
@@ -25,6 +26,7 @@ class Game {
         this.isSelectingMoveTarget = false;
         this.isSelectingPlunder = false;    // 掠夺点：等待玩家选择目标
         this.isSelectingSkinTemple = false; // 皮肤神殿：等待玩家选择皮肤
+        this.isSelectingShop = false;       // 商店：等待玩家选择卡牌
         this.roundCount = 1;
         this.currentRollStartPos = 0;
         this.aiPlayerIds = new Set();
@@ -49,6 +51,7 @@ class Game {
         if (callbacks.onCardPurchase) this.onCardPurchase = callbacks.onCardPurchase;
         if (callbacks.onPlunderSelect) this.onPlunderSelect = callbacks.onPlunderSelect;
         if (callbacks.onSkinTempleSelect) this.onSkinTempleSelect = callbacks.onSkinTempleSelect;
+        if (callbacks.onShopSelect) this.onShopSelect = callbacks.onShopSelect;
         if (callbacks.onChaosShuffle) this.onChaosShuffle = callbacks.onChaosShuffle;
     }
 
@@ -125,6 +128,7 @@ class Game {
         this.isSelectingMoveTarget = false;
         this.isSelectingPlunder = false;
         this.isSelectingSkinTemple = false;
+        this.isSelectingShop = false;
         this.purchasePhase = false;
         this.notifyStateChange();
     }
@@ -144,7 +148,7 @@ class Game {
     }
 
     rollDice() {//掷骰子
-        if (this.gameState !== 'playing' || this.dice.isRollingNow() || this.isSelectingMoveTarget || this.isSelectingPlunder || this.isSelectingSkinTemple) {
+        if (this.gameState !== 'playing' || this.dice.isRollingNow() || this.isSelectingMoveTarget || this.isSelectingPlunder || this.isSelectingSkinTemple || this.isSelectingShop) {
             return;
         }
         if (this.purchasePhase) return;
@@ -734,6 +738,22 @@ class Game {
                     this.onPlunderSelect && this.onPlunderSelect(player);
                 }
                 return true;
+            case 'shop':
+                this.isSelectingShop = true;
+                if (this.isAIPlayer(player)) {
+                    this.setTimeout(() => {
+                        const affordableCards = cardSystem.getAllCards().filter(card => player.points >= card.cost);
+                        if (affordableCards.length > 0) {
+                            const card = affordableCards[Math.floor(Math.random() * affordableCards.length)];
+                            this.selectShopCard(player, card.id);
+                        } else {
+                            this.cancelShop(player);
+                        }
+                    }, 400);
+                } else {
+                    this.onShopSelect && this.onShopSelect(player);
+                }
+                return true;
             case 'skintemple':
                 // 皮肤神殿：更换皮肤1次，重置皮肤属性
                 this.isSelectingSkinTemple = true;
@@ -828,6 +848,39 @@ class Game {
         this.notify(`${player.name} 从 ${target.name} 掠夺了 [${cardName}]！`, 'success');
         this.log(`触发[ROB]，${player.name} 从 ${target.name} 偷取了 [${cardName}]`);
 
+        this.notifyStateChange();
+        this.nextTurn();
+    }
+
+    selectShopCard(player, cardId) {//商店：确认购买卡牌
+        this.isSelectingShop = false;
+        if (this.purchaseCard(player, cardId)) {
+            const card = cardSystem.getCardById(cardId);
+            this.notify(`${player.name} 在商店购买了 ${card ? card.name : cardId}`, 'success');
+            this.log(`触发[SHOP]，购买[${card ? card.name : cardId}]，剩余点数${player.points}`);
+        } else {
+            this.notify(`${player.name} 点数不足，无法购买该卡牌`, 'warning');
+        }
+        this.notifyStateChange();
+        this.nextTurn();
+    }
+
+    sellShopCard(player, instanceId) {//商店：出售手牌，返还原价三分之一，最低1点
+        const card = player.removeCard(instanceId);
+        if (!card) return false;
+
+        const cardDef = cardSystem.getCardById(card.id);
+        const sellPrice = Math.max(1, Math.floor((cardDef ? cardDef.cost : 0) / 3));
+        player.points += sellPrice;
+        const cardName = cardDef ? cardDef.name : card.id;
+        this.notify(`${player.name} 出售了 ${cardName}，获得 ${sellPrice} 点数`, 'success');
+        this.log(`触发[SHOP]，出售[${cardName}]，获得${sellPrice}点，当前点数${player.points}`);
+        return true;
+    }
+
+    cancelShop(player) {//商店：关闭或跳过购买
+        this.isSelectingShop = false;
+        this.notify(`${player.name} 离开商店，未购买卡牌`, 'info');
         this.notifyStateChange();
         this.nextTurn();
     }

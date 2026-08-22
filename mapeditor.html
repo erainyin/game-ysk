@@ -822,7 +822,8 @@
                 'BH': { icon: '🕳️', bgColor: '#666666', chineseName: '黑洞', rule: 'x为变量，代表黑洞编号，踩到后瞬间移动到当前骰子数对应的黑洞编号的格子里。' },
                 'TO': { icon: '🌀', bgColor: '#fff3e0', chineseName: '格子跳转', rule: 'x为变量，代表格子编号，踩到后直接跳转到编号对应的格子' },
                 'GST': { icon: '👻', bgColor: '#f3e5f5', chineseName: '幽灵', rule: '无变量，玩家踩到后可召唤幽灵，幽灵的逻辑参考“增加幽灵的逻辑”' },
-                'COIN': { icon: '💰', bgColor: '#fff8e1', chineseName: '钱多少', rule: 'x为点数变化量，正值增加购买卡牌点数并显示💰，负值减少购买卡牌点数并显示💸' }
+                'COIN': { icon: '💰', bgColor: '#fff8e1', chineseName: '钱多少', rule: 'x为点数变化量，正值增加购买卡牌点数并显示💰，负值减少购买卡牌点数并显示💸' },
+                'SHOP': { icon: '🛒', bgColor: '#e8f5e9', chineseName: '商店', rule: '无变量，踩到后打开卡牌商店，可选择一张点数足够的卡牌购买' }
             };
             const TYPE_KEYS = Object.keys(TYPE_CONFIG);
             const HAS_VAR_TYPES = ['BL', 'FF', 'FB', 'FLF', 'FLB', 'BB', 'UDD', 'BH', 'TO', 'COIN'];
