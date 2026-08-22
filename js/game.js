@@ -853,16 +853,24 @@ class Game {
     }
 
     selectShopCard(player, cardId) {//商店：确认购买卡牌
-        this.isSelectingShop = false;
-        if (this.purchaseCard(player, cardId)) {
-            const card = cardSystem.getCardById(cardId);
-            this.notify(`${player.name} 在商店购买了 ${card ? card.name : cardId}`, 'success');
-            this.log(`触发[SHOP]，购买[${card ? card.name : cardId}]，剩余点数${player.points}`);
-        } else {
-            this.notify(`${player.name} 点数不足，无法购买该卡牌`, 'warning');
+        if (this.purchaseShopCard(player, cardId)) {
+            this.isSelectingShop = false;
+            this.notifyStateChange();
+            this.nextTurn();
         }
+    }
+
+    purchaseShopCard(player, cardId) {//商店：购买卡牌但继续留在商店
+        if (!this.isSelectingShop || !this.purchaseCard(player, cardId)) {
+            this.notify(`${player.name} 点数不足，无法购买该卡牌`, 'warning');
+            return false;
+        }
+
+        const card = cardSystem.getCardById(cardId);
+        this.notify(`${player.name} 在商店购买了 ${card ? card.name : cardId}`, 'success');
+        this.log(`触发[SHOP]，购买[${card ? card.name : cardId}]，剩余点数${player.points}`);
         this.notifyStateChange();
-        this.nextTurn();
+        return true;
     }
 
     sellShopCard(player, instanceId) {//商店：出售手牌，返还原价三分之一，最低1点

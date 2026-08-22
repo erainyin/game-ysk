@@ -582,8 +582,8 @@ class UI {
                 tag.classList.add('is-self');
             } else {
                 tag.classList.remove('is-self');
-                tag.onclick = (e) => this.showPlayerInfo(e, player);
             }
+            tag.onclick = (e) => this.showPlayerInfo(e, player);
             
             if (player.id === this.game.currentPlayerIndex && this.game.gameState === 'playing') {
                 tag.classList.add('active');
@@ -1364,7 +1364,7 @@ class UI {
                     </div>
                     <div class="purchase-desc-box">
                         <div class="purchase-desc-title">选择一张卡牌</div>
-                        <div class="purchase-desc-body">可以出售你有的卡牌，但是只能购买一张新的卡牌，请想好了哦～</div>
+                        <div class="purchase-desc-body">可以出售手牌，也可以连续购买多张点数足够的卡牌。</div>
                     </div>
                 </div>
                 <div class="purchase-section">
@@ -1434,9 +1434,13 @@ class UI {
                         });
                     }
                 } else {
-                    modal.remove();
-                    this.shopModal = null;
-                    this.game.selectShopCard(player, card.id);
+                    if (this.game.purchaseShopCard(player, card.id)) {
+                        refreshShop();
+                        modal.querySelectorAll('.purchase-card-item').forEach(cardItem => {
+                            const purchaseCard = cardSystem.getCardById(cardItem.dataset.cardId);
+                            cardItem.classList.toggle('disabled', player.points < purchaseCard.cost);
+                        });
+                    }
                 }
                 popover.remove();
             });
